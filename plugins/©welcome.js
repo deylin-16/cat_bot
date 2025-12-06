@@ -30,17 +30,17 @@ async function sendBatchedWelcome(conn, jid) {
     try {
         ppGroup = await conn.profilePictureUrl(jid, 'image')
     } catch (e) {
-        
+
     }
 
     const mentionListText = users.map(jid => `@${jid.split("@")[0]}`).join(', ')
 
     let welcomeText = chat.customWelcome || "bienvenido al grupo @user"
 
-    
+
     welcomeText = welcomeText.replace(/\\n/g, '\n')
-    
-    
+
+
     let finalCaption = welcomeText.replace(/@user/g, mentionListText) 
 
     try {
@@ -54,9 +54,9 @@ async function sendBatchedWelcome(conn, jid) {
         } else {
             messageOptions.text = finalCaption
         }
-        
+
         await conn.sendMessage(jid, messageOptions)
-        
+
     } catch (e) {
         console.error("ERROR AL ENVIAR BIENVENIDA (VERIFICAR PERMISOS DEL BOT O FALLA DE CONEXIÓN):", e)
     }
@@ -72,7 +72,9 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
     const chat = global.db?.data?.chats?.[m.chat] || {}
 
-    if (m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD && chat.welcome) {
+    // CONDICIÓN MODIFICADA: La bienvenida se activa por defecto (no es estrictamente 'false')
+    // Solo se desactiva si el administrador la configuró como 'off'
+    if (m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD && chat.welcome !== false) {
 
         conn.welcomeBatch = conn.welcomeBatch || {}
         const jid = m.chat

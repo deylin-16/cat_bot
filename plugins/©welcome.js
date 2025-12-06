@@ -1,20 +1,4 @@
 import { WAMessageStubType } from '@whiskeysockets/baileys'
-import fetch from 'node-fetch'
-
-async function obtenerPais(numero) {
-  try {
-    let number = numero.replace("@s.whatsapp.net", "")
-    const res = await fetch(`https://g-mini-ia.vercel.app/api/infonumero?numero=${number}`)
-    const data = await res.json()
-
-    if (data && data.pais) return data.pais
-    if (data && data.bandera && data.nombre) return `${data.bandera} ${data.nombre}`
-
-    return "🌐 Desconocido"
-  } catch (e) {
-    return "🌐 Desconocido"
-  }
-}
 
 async function sendBatchedWelcome(conn, jid) {
     const batch = conn.welcomeBatch[jid]
@@ -26,20 +10,20 @@ async function sendBatchedWelcome(conn, jid) {
     const groupMetadata = (await conn.groupMetadata(jid).catch(() => ({}))) || {}
     const chat = global.db?.data?.chats?.[jid] || {}
 
+    // Intentar obtener la URL de la imagen del grupo
     let ppGroup = null
     try {
         ppGroup = await conn.profilePictureUrl(jid, 'image')
     } catch (e) {
-
+        // Si falla (no hay foto), ppGroup permanece null
     }
 
     const mentionListText = users.map(jid => `@${jid.split("@")[0]}`).join(', ')
 
     let welcomeText = chat.customWelcome || "bienvenido al grupo @user"
 
-
+    // Asegurar el respeto de los saltos de línea
     welcomeText = welcomeText.replace(/\\n/g, '\n')
-
 
     let finalCaption = welcomeText.replace(/@user/g, mentionListText) 
 
@@ -49,9 +33,11 @@ async function sendBatchedWelcome(conn, jid) {
         }
 
         if (ppGroup) {
+            // Si hay URL, enviar como imagen con caption
             messageOptions.image = { url: ppGroup }
             messageOptions.caption = finalCaption
         } else {
+            // Si no hay URL, enviar solo texto
             messageOptions.text = finalCaption
         }
 
@@ -72,8 +58,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
     const chat = global.db?.data?.chats?.[m.chat] || {}
 
-    // CONDICIÓN MODIFICADA: La bienvenida se activa por defecto (no es estrictamente 'false')
-    // Solo se desactiva si el administrador la configuró como 'off'
+    // La bienvenida está activa por defecto (a menos que se desactive explícitamente a 'false')
     if (m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD && chat.welcome !== false) {
 
         conn.welcomeBatch = conn.welcomeBatch || {}

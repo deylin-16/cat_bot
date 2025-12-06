@@ -6,12 +6,10 @@ export async function before(m, { conn, participants, groupMetadata }) {
     const who = m.messageStubParameters?.[0]
     if (!who) return
 
-    // **** 1. CORRECCIÓN CRÍTICA DEL JID (@lid a @s.whatsapp.net) ****
     let fixedWho = who;
     if (fixedWho.endsWith('@lid')) {
         fixedWho = fixedWho.replace('@lid', '@s.whatsapp.net');
     }
-    // **************************************************
 
     let img = 'https://i.ibb.co/Psj3rJmR/Texto-del-p-rrafo-20251206-140954-0000.png'
     const chat = global.db?.data?.chats?.[m.chat] || {}
@@ -20,6 +18,9 @@ export async function before(m, { conn, participants, groupMetadata }) {
     const isJoin = m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_JOIN
     
     if (chat.welcome && (isAdd || isJoin)) {
+        
+        const mentionId = fixedWho ? [fixedWho] : []
+        const taguser = `@${fixedWho.split('@')[0]}` 
 
         let ppGroup = null 
         try {
@@ -27,19 +28,15 @@ export async function before(m, { conn, participants, groupMetadata }) {
         } catch (e) {
             
         }
-
-        // El texto de la mención sigue usando el número, ya que el nombre no está disponible por la privacidad de la Comunidad.
-        const mentionListText = `@${fixedWho.split("@")[0]}` 
         
         let welcomeText = chat.customWelcome || "hola bienvenido @user"
         
         welcomeText = welcomeText.replace(/\\n/g, '\n')
-        let finalCaption = welcomeText.replace(/@user/g, mentionListText) 
+        let finalCaption = welcomeText.replace(/@user/g, taguser) 
 
         try {
             const messageOptions = {
-                // 2. Uso de la JID corregida para la mención TÉCNICA
-                mentions: [fixedWho] 
+                contextInfo: { mentionedJid: mentionId }
             }
 
             if (typeof ppGroup === 'string' && ppGroup.length > 0) {

@@ -1,16 +1,29 @@
 const { areJidsSameUser } = await import('@whiskeysockets/baileys')
 
 let handler = async (m, { conn, text, command, isAdmin, isGroup }) => {
+    
 
     let chat = global.db.data.chats[m.chat] || {}
 
     switch (command.toLowerCase()) {
         case 'setwelcome':
-            if (!text) return m.reply(`*Uso:* /setwelcome ¡Bienvenido, @user! Esperamos que disfrutes.`)
             
-            let msg = text.replace(/\\n/g, '\n')
-            chat.customWelcome = msg
             
+            let usedPrefix = m.text.charAt(0)
+            
+            
+            const commandPattern = usedPrefix + command.toLowerCase()
+            
+            
+            
+            let customMessage = m.text.substring(commandPattern.length).trimStart()
+            
+            
+            
+            if (!customMessage) return m.reply(`*Uso:* /setwelcome ¡Bienvenido, @user! Esperamos que disfrutes.`)
+            
+            chat.customWelcome = customMessage
+
             m.reply(`✅ Mensaje de bienvenida personalizado establecido para este grupo.\n\n*Nota:* Usa *@user* para mencionar al nuevo miembro.`)
             break
 
@@ -22,7 +35,7 @@ let handler = async (m, { conn, text, command, isAdmin, isGroup }) => {
             chat.welcome = status
             m.reply(`✅ La bienvenida en este grupo ha sido *${status ? 'activada' : 'desactivada'}*.`)
             break
-            
+
         default:
             break
     }

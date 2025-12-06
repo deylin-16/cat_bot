@@ -13,7 +13,7 @@ export async function before(m, { conn }) {
     if (isWelcomeEvent && chat.welcome !== false) {
 
         let ppGroup = null
-        const ppGroupDefaultUrl = 'https://i.ibb.co/6P0r7xT/default-group-image.png'
+        const ppGroupDefaultUrl = 'https://i.ibb.co/Psj3rJmR/Texto-del-p-rrafo-20251206-140954-0000.png'
 
         try {
             ppGroup = await conn.profilePictureUrl(m.chat, 'image')

@@ -6,6 +6,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
     const who = m.messageStubParameters?.[0]
     if (!who) return
 
+    // ** CORRECCIÓN CRÍTICA DE JID: @lid a @s.whatsapp.net **
     let fixedWho = who;
     if (fixedWho.endsWith('@lid')) {
         fixedWho = fixedWho.replace('@lid', '@s.whatsapp.net');
@@ -56,6 +57,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
             console.error("ERROR AL ENVIAR BIENVENIDA:", e)
             
             try {
+                // Intentar enviar el reporte de error al chat
                 await conn.sendMessage(m.chat, { text: errorMsg })
             } catch (errorReportingFailed) {
                 console.error("FATAL: Falló el envío del mensaje de bienvenida Y el reporte de error.", errorReportingFailed)

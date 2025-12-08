@@ -16,7 +16,7 @@ let handler = async (m, { conn, args }) => {
 
     if (!who) {
         return conn.sendMessage(m.chat, {
-            text: 'Menciona a un usuario, cita un mensaje, o escribe el número de WhatsApp w.'
+            text: 'Dime a quien quieras robar su foto de perfil  w.'
         }, {
             quoted: m
         });
@@ -57,7 +57,7 @@ let handler = async (m, { conn, args }) => {
         }
     }
 
-    await conn.sendFile(m.chat, pp, 'profile.jpg', `*Aquí tienes el la foto de perfil de ${name}*`, m);
+    await conn.sendFile(m.chat, pp, 'profile.jpg', `*Aquí tienes la foto de perfil de ${name}*`, m);
     await m.react('✔️');
 };
 

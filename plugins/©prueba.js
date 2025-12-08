@@ -28,12 +28,12 @@ export async function before(m, { conn, participants, groupMetadata }) {
         ppUrl = defaultPp
     }
 
-    
+
     const welcomeText = chat.customWelcome
-    
+
     let finalCaption = welcomeText.replace(/\\n/g, '\n').replace(/@user/g, mentionListText)
-    
-    
+
+
     finalCaption = `\n${finalCaption}` 
 
     const jid = m.chat
@@ -51,11 +51,11 @@ export async function before(m, { conn, participants, groupMetadata }) {
             productImageCount: 1
         },
         businessOwnerJid: who || '0@s.whatsapp.net',
-        
-        caption: finalCaption.trim(), 
+
+        caption: ${finalCaption}`.trim(), 
         title: 'gati',
         subtitle: '',
-        
+
         footer: finalCaption.replace(/\n/g, ' ').slice(0, 10000000000000) + '.', 
         mentions: who ? [who] : []
     }

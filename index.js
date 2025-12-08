@@ -74,7 +74,7 @@ global.timestamp = {start: new Date}
 const __dirname = global.__dirname(import.meta.url)
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-global.prefix = new RegExp('^[#/!.]')
+global.prefix = new RegExp('^[#/!]')
 
 global.db = new Low(/https?:\/\//.test(global.opts['db'] || '') ? new cloudDBAdapter(global.opts['db']) : new JSONFile('./lib/1.json'))
 

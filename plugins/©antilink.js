@@ -10,7 +10,7 @@ export async function before(m, { conn, isAdmin, isBotAdmin, isOwner, isROwner, 
   let chat = global.db.data.chats[m.chat]
   let user = global.db.data.users[m.sender]
 
-  if (!chat.antiLink) return
+  //if (!chat.antiLink) return
 
   if (isAdmin || isOwner || m.fromMe || isROwner) return
 

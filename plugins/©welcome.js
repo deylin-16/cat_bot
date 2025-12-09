@@ -21,13 +21,13 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
     let ppUrl
     const defaultPp = 'https://i.ibb.co/jPSF32Pz/9005bfa156f1f56fb2ac661101d748a5.jpg'
-    
+
     try {
         ppUrl = await conn.profilePictureUrl(who, 'image')
     } catch {
         ppUrl = defaultPp
     }
-    
+
     const welcomeText = chat.customWelcome
     const finalCaption = welcomeText.replace(/\\n/g, '\n').replace(/@user/g, mentionListText)
 
@@ -55,7 +55,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
         }
     }
 
-    
+
     await conn.sendMessage(jid, imageMessage, {
         quoted: fkontak 
     })

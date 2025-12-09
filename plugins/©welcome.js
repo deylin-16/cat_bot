@@ -1,4 +1,4 @@
-import { WAMessageStubType } from '@whiskeysockets/baileys'
+/*import { WAMessageStubType } from '@whiskeysockets/baileys'
 import fetch from 'node-fetch'
 
 export async function before(m, { conn, participants, groupMetadata }) {
@@ -60,3 +60,4 @@ export async function before(m, { conn, participants, groupMetadata }) {
         quoted: fkontak 
     })
 }
+*/

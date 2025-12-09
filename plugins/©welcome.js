@@ -1,4 +1,4 @@
-/*import { WAMessageStubType } from '@whiskeysockets/baileys'
+import { WAMessageStubType } from '@whiskeysockets/baileys'
 import fetch from 'node-fetch'
 
 export async function before(m, { conn, participants, groupMetadata }) {
@@ -10,7 +10,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
     const who = m.messageStubParameters?.[0]
     if (!who) return
 
-    if (m.messageStubType !== WAMessageStubType.GROUP_PARTICIPANT_ADD) return
+    if (chat.welcome && m.messageStubType !== WAMessageStubType.GROUP_PARTICIPANT_ADD) return
 
     const chat = global.db.data.chats[m.chat]
     if (!chat?.welcome || !chat?.customWelcome) return
@@ -60,4 +60,3 @@ export async function before(m, { conn, participants, groupMetadata }) {
         quoted: fkontak 
     })
 }
-*/

@@ -7,27 +7,26 @@ import ws from 'ws';
 import { randomBytes, createHash } from 'crypto';
 import fetch from 'node-fetch';
 
-// --- Globales de utilidades (No necesitan ser cargadas en otro lado) ---
+// --- Dependencias Globales ---
 const isNumber = x => typeof x === 'number' && !isNaN(x);
-const MAX_EXECUTION_TIME = 60000; // 60 segundos antes de un posible timeout
+const MAX_EXECUTION_TIME = 60000; // Máximo tiempo de ejecución para evitar timeouts
 
-// --- Sistema de Notificación de Errores Únicos ---
+// --- Sistema de Notificación de Errores Únicos a 50432955554 ---
 async function sendUniqueError(conn, error, origin, m) {
     if (typeof global.sentErrors === 'undefined') {
         global.sentErrors = new Set();
     }
     
-    // Filtramos información sensible como las API Keys
     const errorText = format(error).replace(new RegExp(Object.values(global.APIKeys || {}).join('|'), 'g'), 'Administrador');
     const hash = createHash('sha256').update(errorText).digest('hex');
 
     if (global.sentErrors.has(hash)) {
-        return; // Error repetido, no enviar
+        return;
     }
 
     const targetJid = '50432955554@s.whatsapp.net';
     const messageBody = `
-🚨 *ERROR CRÍTICO* 🚨
+🚨 *ERROR CRÍTICO DETECTADO* 🚨
 
 *Origen:* ${origin}
 *Chat:* ${m?.chat || 'N/A'}
@@ -42,7 +41,7 @@ ${errorText.substring(0, 1500)}
         global.sentErrors.add(hash);
         console.log(`Error único enviado a ${targetJid}. Hash: ${hash}`);
     } catch (sendError) {
-        console.error(`Fallo al enviar el error de notificación a ${targetJid}:`, sendError);
+        console.error(`Fallo al enviar el error de notificación:`, sendError);
     }
 }
 
@@ -51,6 +50,63 @@ async function getLidFromJid(id, connection) {
     const res = await connection.onWhatsApp(id).catch(() => []);
     return res[0]?.lid || id;
 }
+
+// --- Serialización del Mensaje (smsg) - REFORZADA contra TypeError ---
+function smsg(conn, m, store) {
+    if (!m) return m;
+
+    try {
+        let k;
+        try {
+            k = m.key?.id ? m.key.id : randomBytes(16).toString('hex').toUpperCase();
+        } catch (e) {
+            k = randomBytes(16).toString('hex').toUpperCase();
+        }
+
+        m.id = k;
+        m.isBaileys = m.id?.startsWith('BAE5') && m.id?.length === 16;
+        
+        const normalizeJidSafe = (conn?.normalizeJid && typeof conn.normalizeJid === 'function') ? conn.normalizeJid : ((jid) => jid);
+
+        const remoteJid = m.key?.remoteJid || '';
+        if (!remoteJid || !remoteJid.includes('@')) {
+             return null; // CRÍTICO: Descarta mensajes sin un JID remoto válido
+        }
+
+        m.chat = normalizeJidSafe(remoteJid); 
+        m.fromMe = m.key?.fromMe;
+        
+        const botJid = conn?.user?.jid || ''; 
+        m.sender = normalizeJidSafe(m.key?.fromMe ? botJid : m.key?.participant || remoteJid);
+
+        m.text = m.message?.extendedTextMessage?.text || m.message?.conversation || m.message?.imageMessage?.caption || m.message?.videoMessage?.caption || '';
+        m.text = m.text ? m.text.replace(/[\u200e\u200f]/g, '').trim() : ''; 
+        m.mentionedJid = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []; 
+        m.isGroup = m.chat.endsWith('@g.us');
+        m.isMedia = !!(m.message?.imageMessage || m.message?.videoMessage || m.message?.audioMessage || m.message?.stickerMessage || m.message?.documentMessage);
+        m.timestamp = typeof m.messageTimestamp === 'number' ? m.messageTimestamp * 1000 : null;
+
+        if (m.isGroup) {
+            m.metadata = conn.chats[m.chat]?.metadata || {};
+        }
+
+        if (m.quoted) {
+            let q = m.quoted;
+            q.isBaileys = q.id?.startsWith('BAE5') && q.id?.length === 16;
+            q.chat = normalizeJidSafe(q.key?.remoteJid || '');
+            q.fromMe = q.key?.fromMe;
+            q.sender = normalizeJidSafe(q.key?.fromMe ? botJid : q.key?.participant || q.key?.remoteJid || '');
+            q.text = q.message?.extendedTextMessage?.text || q.message?.conversation || q.message?.imageMessage?.caption || q.message?.videoMessage?.caption || '';
+        }
+
+        return m;
+
+    } catch (e) {
+        console.error("Error grave en smsg:", e); 
+        return null; // Descarta si falla la serialización
+    }
+}
+
 
 // --- Función Principal del Handler ---
 export async function handler(chatUpdate, store) {
@@ -64,6 +120,7 @@ export async function handler(chatUpdate, store) {
 
     let m = chatUpdate.messages[chatUpdate.messages.length - 1];
 
+    // Verificación básica del objeto de mensaje
     if (!m || !m.key || !m.message || !m.key.remoteJid) return;
 
     // Desencriptar mensajes efímeros
@@ -74,13 +131,12 @@ export async function handler(chatUpdate, store) {
         }
     }
 
-    // Serializar el mensaje y descartar si falla (Máxima Protección)
+    // Serializar el mensaje y descartar si falla (Usa la smsg blindada de arriba)
     m = smsg(conn, m, store) || m; 
     if (!m) return; 
 
     // Carga de Base de Datos estricta
     if (global.db.data == null) {
-        // En lugar de esperar un proceso externo, intentamos cargarla aquí para evitar fallos de ReferenceError/Null
         try {
             await global.loadDatabase();
         } catch (e) {
@@ -115,10 +171,10 @@ export async function handler(chatUpdate, store) {
         const chatJid = m.chat;
         const botJid = conn.user?.jid || ''; 
 
-        // Validaciones críticas
+        // CRÍTICO: DOBLE VERIFICACIÓN DEL JID ANTES DE ACCEDER A LA BD
         if (!chatJid || !chatJid.includes('@')) {
-             console.error(`JID del chat inválido (REFORZADO): ${chatJid}. Mensaje descartado.`);
-             return; 
+             console.error(`JID del chat inválido (REFORZADO, CAUSA DEL ERROR): ${chatJid}. Mensaje descartado.`);
+             return; // Esto detiene el TypeError
         }
         
         if (!botJid) {
@@ -126,8 +182,8 @@ export async function handler(chatUpdate, store) {
              return;
         }
         
-        // Inicialización de chat (Causa del 90% de los errores)
-        global.db.data.chats[m.chat] ||= {
+        // Inicialización de chat (SAFE ACCESS)
+        global.db.data.chats[chatJid] ||= {
             isBanned: false,
             sAutoresponder: '',
             welcome: true,
@@ -229,7 +285,7 @@ export async function handler(chatUpdate, store) {
 
         // --- Bucle de Plugins ---
         for (const name in global.plugins) {
-            // Control de tiempo para evitar bloqueos del servidor Pterodactyl
+            // Control de tiempo para evitar bloqueos
             if (Date.now() - startTime > MAX_EXECUTION_TIME) {
                  console.warn('Handler detenido: Excedido el tiempo de ejecución máximo.');
                  return;
@@ -430,68 +486,7 @@ export async function handler(chatUpdate, store) {
     }
 }
 
-// --- Serialización del Mensaje (smsg) - Zona Crítica Reforzada ---
-function smsg(conn, m, store) {
-    if (!m) return m;
-
-    try {
-        let k;
-        try {
-            k = m.key?.id ? m.key.id : randomBytes(16).toString('hex').toUpperCase();
-        } catch (e) {
-            k = randomBytes(16).toString('hex').toUpperCase();
-        }
-
-        m.id = k;
-        m.isBaileys = m.id?.startsWith('BAE5') && m.id?.length === 16;
-        
-        // REFUERZO CRÍTICO: Asegura que conn existe y tiene normalizeJid, o usa un fallback
-        const normalizeJidSafe = (conn?.normalizeJid && typeof conn.normalizeJid === 'function') ? conn.normalizeJid : ((jid) => jid);
-
-        const remoteJid = m.key?.remoteJid || '';
-        if (!remoteJid || !remoteJid.includes('@')) {
-             return null; // Descarta mensajes sin un JID remoto válido
-        }
-
-        m.chat = normalizeJidSafe(remoteJid); 
-        m.fromMe = m.key?.fromMe;
-        
-        const botJid = conn?.user?.jid || ''; 
-        // Asignación de sender segura
-        m.sender = normalizeJidSafe(m.key?.fromMe ? botJid : m.key?.participant || remoteJid);
-
-        m.text = m.message?.extendedTextMessage?.text || m.message?.conversation || m.message?.imageMessage?.caption || m.message?.videoMessage?.caption || '';
-        m.text = m.text ? m.text.replace(/[\u200e\u200f]/g, '').trim() : ''; 
-        m.mentionedJid = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []; 
-        m.isGroup = m.chat.endsWith('@g.us');
-        m.isMedia = !!(m.message?.imageMessage || m.message?.videoMessage || m.message?.audioMessage || m.message?.stickerMessage || m.message?.documentMessage);
-        m.timestamp = typeof m.messageTimestamp === 'number' ? m.messageTimestamp * 1000 : null;
-
-        if (m.isGroup) {
-            m.metadata = conn.chats[m.chat]?.metadata || {};
-        }
-
-        // Lógica de quoted (mensaje citado)
-        if (m.quoted) {
-            let q = m.quoted;
-            q.isBaileys = q.id?.startsWith('BAE5') && q.id?.length === 16;
-            q.chat = normalizeJidSafe(q.key?.remoteJid || '');
-            q.fromMe = q.key?.fromMe;
-            q.sender = normalizeJidSafe(q.key?.fromMe ? botJid : q.key?.participant || q.key?.remoteJid || '');
-            q.text = q.message?.extendedTextMessage?.text || q.message?.conversation || q.message?.imageMessage?.caption || q.message?.videoMessage?.caption || '';
-        }
-
-        return m;
-
-    } catch (e) {
-        // Log para identificar qué mensaje falló en la serialización
-        console.error("Error grave en smsg - Objeto 'm' inválido (descartado):", m, e); 
-        return null; // Devuelve null si falla para que el handler lo descarte
-    }
-}
-
 // --- Fallbacks y Watcher ---
-
 global.dfail = (type, m, conn) => {
     const messages = {
         rowner: `

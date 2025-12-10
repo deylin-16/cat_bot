@@ -25,6 +25,13 @@ export async function handler(chatUpdate, store) {
 
     let m = chatUpdate.messages[chatUpdate.messages.length - 1];
     if (!m) return;
+    
+    if (m.message) {
+        m.message = (Object.keys(m.message)[0] === 'ephemeralMessage') ? m.message.ephemeralMessage.message : m.message;
+        if (m.message.extendedTextMessage) {
+            m.message.extendedTextMessage.text = m.message.extendedTextMessage.text?.replace(/[\u200e\u200f]/g, '').trim();
+        }
+    }
 
     m = smsg(conn, m, store) || m; 
     if (!m) return;

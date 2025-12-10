@@ -42,6 +42,33 @@ global.botNumber = global.botNumber || ''
 
 let { say } = cfonts
 
+const { protoType: WAProtoType } = proto;
+
+function protoType() {
+    Object.assign(WAProtoType, {
+        async delete(conn) {
+            await conn.sendMessage(this.chat, { delete: this.key });
+        },
+        reply: function(text, chat, options) {
+            return global.conn.sendMessage(chat ? chat : this.chat, { text: text }, { quoted: this, ...options });
+        },
+    });
+}
+
+function serialize(conn) {
+    if (!conn) return;
+
+    if (!conn.normalizeJid) {
+        conn.normalizeJid = jid => {
+            return jidNormalizedUser(jid);
+        }
+    }
+
+    if (!conn.generateMessageTag) {
+        conn.generateMessageTag = () => String(randomBytes(3).readUIntBE(0, 3)).padStart(6, 0);
+    }
+}
+
 console.log(chalk.bold.redBright(`\n Iniciando programa... \n`))
 say('WhatsApp-bot', { font: 'block', align: 'center', colors: ['magentaBright'] })
 say(`Developed By • Deylin`, { font: 'console', align: 'center', colors: ['blueBright'] })
@@ -152,7 +179,6 @@ global.conn = makeWASocket(connectionOptions)
 global.conn.isInit = false
 global.isConnecting = false
 
-// LLAMADAS A LAS FUNCIONES DE SERIALIZACIÓN Y PROTOTIPO
 protoType()
 serialize(global.conn)
 
@@ -441,32 +467,5 @@ async function isValidPhoneNumber(number) {
         return phoneUtil.isValidNumber(parsedNumber)
     } catch (error) {
         return false
-    }
-}
-
-const { protoType: WAProtoType } = proto;
-
-function protoType() {
-    Object.assign(WAProtoType, {
-        async delete(conn) {
-            await conn.sendMessage(this.chat, { delete: this.key });
-        },
-        reply: function(text, chat, options) {
-            return global.conn.sendMessage(chat ? chat : this.chat, { text: text }, { quoted: this, ...options });
-        },
-    });
-}
-
-function serialize(conn) {
-    if (!conn) return;
-
-    if (!conn.normalizeJid) {
-        conn.normalizeJid = jid => {
-            return jidNormalizedUser(jid);
-        }
-    }
-
-    if (!conn.generateMessageTag) {
-        conn.generateMessageTag = () => String(randomBytes(3).readUIntBE(0, 3)).padStart(6, 0);
     }
 }

@@ -1,45 +1,45 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
-import './config.js'
-import { watchFile, unwatchFile, readdirSync, unlinkSync, readFileSync, watch } from 'fs'
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
+import './config.js';
+import { watchFile, unwatchFile, readdirSync, unlinkSync, readFileSync, watch } from 'fs';
 import yargs from 'yargs/yargs';
-import { createRequire } from 'module'
-import { fileURLToPath, pathToFileURL } from 'url'
-import { platform, exit } from 'process'
-import * as ws from 'ws'
-import { spawn } from 'child_process'
-import lodash from 'lodash'
-import chalk from 'chalk'
-import syntaxerror from 'syntax-error'
-import { tmpdir } from 'os'
-import { format } from 'util'
-import pino from 'pino'
-import path, { join, dirname } from 'path'
-import { Boom } from '@hapi/boom'
-import { Low, JSONFile } from 'lowdb'
-import store from './lib/store.js'
-import pkg from 'google-libphonenumber'
-import readline from 'readline'
-import NodeCache from 'node-cache'
-import os from 'os'
-import cp from 'child_process'
-import cfonts from 'cfonts'
-import { randomBytes } from 'crypto' 
+import { createRequire } from 'module';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { platform, exit } from 'process';
+import * as ws from 'ws';
+import { spawn } from 'child_process';
+import lodash from 'lodash';
+import chalk from 'chalk';
+import syntaxerror from 'syntax-error';
+import { tmpdir } from 'os';
+import { format } from 'util';
+import pino from 'pino';
+import path, { join } from 'path';
+import { Boom } from '@hapi/boom';
+import { Low, JSONFile } from 'lowdb';
+import store from './lib/store.js';
+import pkg from 'google-libphonenumber';
+import readline from 'readline';
+import NodeCache from 'node-cache';
+import os from 'os';
+import cp from 'child_process';
+import cfonts from 'cfonts';
+import { randomBytes } from 'crypto'; 
 
-const { WAProto: proto, DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, makeWASocket } = await import('@whiskeysockets/baileys')
+const { WAProto: proto, DisconnectReason, useMultiFileAuthState, makeCacheableSignalKeyStore, jidNormalizedUser, makeWASocket } = await import('@whiskeysockets/baileys');
+const { fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
 
-
-const { PhoneNumberUtil } = pkg
-const phoneUtil = PhoneNumberUtil.getInstance()
-const { CONNECTING } = ws
-const { chain } = lodash
-const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+const { PhoneNumberUtil } = pkg;
+const phoneUtil = PhoneNumberUtil.getInstance();
+const { CONNECTING } = ws;
+const { chain } = lodash;
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const fs = await import('fs'); 
 
-global.sessions = 'sessions'
-global.botNumber = global.botNumber || ''
+global.sessions = 'sessions';
+global.botNumber = global.botNumber || '';
 
-let { say } = cfonts
+let { say } = cfonts;
 
 const WAProtoType = proto.Message.prototype;
 
@@ -60,7 +60,7 @@ function serialize(conn) {
     if (!conn.normalizeJid) {
         conn.normalizeJid = jid => {
             return jidNormalizedUser(jid);
-        }
+        };
     }
 
     if (!conn.generateMessageTag) {
@@ -68,63 +68,63 @@ function serialize(conn) {
     }
 }
 
-console.log(chalk.bold.redBright(`\n Iniciando programa... \n`))
-say('WhatsApp-bot', { font: 'block', align: 'center', colors: ['magentaBright'] })
-say(`Developed By • Deylin`, { font: 'console', align: 'center', colors: ['blueBright'] })
+console.log(chalk.bold.redBright(`\n Iniciando programa... \n`));
+say('WhatsApp-bot', { font: 'block', align: 'center', colors: ['magentaBright'] });
+say(`Developed By • Deylin`, { font: 'console', align: 'center', colors: ['blueBright'] });
 
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
-    return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString()
-}
+    return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
+};
 global.__dirname = function dirname(pathURL) {
-    return path.dirname(global.__filename(pathURL, true))
-}
+    return path.dirname(global.__filename(pathURL, true));
+};
 global.__require = function require(dir = import.meta.url) {
-    return createRequire(dir)
-}
+    return createRequire(dir);
+};
 
-global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({...query, ...(apikeyqueryname ? {[apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name]} : {})})) : '')
+global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({...query, ...(apikeyqueryname ? {[apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name]} : {})})) : '');
 
-global.timestamp = { start: new Date }
+global.timestamp = { start: new Date };
 
 process.on('uncaughtException', (err) => {
-    console.error(chalk.bold.bgRed('❌ ERROR CRÍTICO NO CAPTURADO (uncaughtException) ❌'))
-    console.error(err)
-})
+    console.error(chalk.bold.bgRed('❌ ERROR CRÍTICO NO CAPTURADO (uncaughtException) ❌'));
+    console.error(err);
+});
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error(chalk.bold.bgRed('❌ PROMESA RECHAZADA NO MANEJADA (unhandledRejection) ❌'))
-    console.error('Razón:', reason)
-    console.error('Promesa:', promise)
-})
+    console.error(chalk.bold.bgRed('❌ PROMESA RECHAZADA NO MANEJADA (unhandledRejection) ❌'));
+    console.error('Razón:', reason);
+    console.error('Promesa:', promise);
+});
 
-console.info = () => {}
-console.debug = () => {}
+console.info = () => {};
+console.debug = () => {};
 
-global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-global.prefix = new RegExp('^[#/!]')
+global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
+global.prefix = new RegExp('^[#/!]');
 
-global.db = new Low(/https?:\/\//.test(global.opts['db'] || '') ? new cloudDBAdapter(global.opts['db']) : new JSONFile('./lib/1.json'))
+global.db = new Low(/https?:\/\//.test(global.opts['db'] || '') ? new cloudDBAdapter(global.opts['db']) : new JSONFile('./lib/1.json'));
 
-global.DATABASE = global.db
+global.DATABASE = global.db;
 global.loadDatabase = async function loadDatabase() {
     if (global.db.READ) {
         return new Promise((resolve) => {
             const check = setInterval(async function() {
                 if (!global.db.READ) {
-                    clearInterval(check)
-                    resolve(global.db.data)
+                    clearInterval(check);
+                    resolve(global.db.data);
                 }
-            }, 100)
-        })
+            }, 100);
+        });
     }
 
-    if (global.db.data !== null) return global.db.data
+    if (global.db.data !== null) return global.db.data;
 
-    global.db.READ = true
+    global.db.READ = true;
 
     try {
-        await global.db.read()
-        
+        await global.db.read();
+
         const defaultData = {
             users: {},
             chats: {},
@@ -133,31 +133,31 @@ global.loadDatabase = async function loadDatabase() {
             sticker: {},
             settings: {},
         };
-        
+
         global.db.data = {
             ...defaultData,
             ...(global.db.data || {}),
         };
-        
-        global.db.chain = chain(global.db.data)
-        console.log(chalk.bold.greenBright('✅ Base de datos cargada con éxito.'))
+
+        global.db.chain = chain(global.db.data);
+        console.log(chalk.bold.greenBright('✅ Base de datos cargada con éxito.'));
     } catch (error) {
-        console.error(chalk.bold.bgRed('⚠️ ERROR: No se pudo cargar o inicializar la Base de Datos.'), error)
-        exit(1)
+        console.error(chalk.bold.bgRed('⚠️ ERROR: No se pudo cargar o inicializar la Base de Datos.'), error);
+        exit(1);
     } finally {
-        global.db.READ = null
+        global.db.READ = null;
     }
-    return global.db.data
-}
+    return global.db.data;
+};
 
-await loadDatabase()
+await loadDatabase();
 
-const { state, saveState, saveCreds } = await useMultiFileAuthState(global.sessions)
-const msgRetryCounterCache = new NodeCache()
-const { version } = await fetchLatestBaileysVersion()
-const MethodMobile = process.argv.includes("mobile")
+const { state, saveState, saveCreds } = await useMultiFileAuthState(global.sessions);
+const msgRetryCounterCache = new NodeCache();
+const { version } = await fetchLatestBaileysVersion();
+const MethodMobile = process.argv.includes("mobile");
 
-const question = (texto) => new Promise((resolver) => rl.question(texto, resolver))
+const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
 
 const connectionOptions = {
     logger: pino({ level: 'silent' }),
@@ -171,68 +171,86 @@ const connectionOptions = {
     markOnlineOnConnect: true,
     generateHighQualityLinkPreview: true,
     getMessage: async (clave) => {
-        let jid = jidNormalizedUser(clave.remoteJid)
-        let msg = await store.loadMessage(jid, clave.id).catch(() => null)
-        return msg?.message || ""
+        let jid = jidNormalizedUser(clave.remoteJid);
+        let msg = await store.loadMessage(jid, clave.id).catch(() => null);
+        return msg?.message || "";
     },
     msgRetryCounterCache,
     defaultQueryTimeoutMs: undefined,
     version,
-}
+};
 
-global.conn = makeWASocket(connectionOptions)
-global.conn.isInit = false
-global.isConnecting = false
+global.conn = makeWASocket(connectionOptions);
+global.conn.isInit = false;
+global.isConnecting = false;
 
-protoType()
-serialize(global.conn)
+protoType();
+serialize(global.conn);
 
 if (!fs.existsSync(`./${global.sessions}/creds.json`)) {
     if (!global.conn.authState.creds.registered) {
-        let addNumber
+        let addNumber;
         do {
-            global.botNumber = await question(chalk.bgBlack(chalk.bold.greenBright(` Por favor, Ingrese el número de WhatsApp.\n${chalk.bold.yellowBright(` Ejemplo: 57321×××××××`)}\n${chalk.bold.magentaBright('---> ')}`)))
-            global.botNumber = global.botNumber.replace(/\D/g, '')
+            global.botNumber = await question(chalk.bgBlack(chalk.bold.greenBright(` Por favor, Ingrese el número de WhatsApp.\n${chalk.bold.yellowBright(` Ejemplo: 57321×××××××`)}\n${chalk.bold.magentaBright('---> ')}`)));
+            global.botNumber = global.botNumber.replace(/\D/g, '');
             if (!global.botNumber.startsWith('+')) {
-                global.botNumber = `+${global.botNumber}`
+                global.botNumber = `+${global.botNumber}`;
             }
-        } while (!await isValidPhoneNumber(global.botNumber))
-        rl.close()
+        } while (!await isValidPhoneNumber(global.botNumber));
+        rl.close();
 
-        addNumber = global.botNumber.replace(/\D/g, '')
+        addNumber = global.botNumber.replace(/\D/g, '');
 
         setTimeout(async () => {
             try {
-                let codeBot = await global.conn.requestPairingCode(addNumber)
-                codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-                console.log(chalk.bold.white(chalk.bgMagenta(` CÓDIGO DE VINCULACIÓN `)), chalk.bold.white(chalk.white(codeBot)))
+                let codeBot = await global.conn.requestPairingCode(addNumber);
+                codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+                console.log(chalk.bold.white(chalk.bgMagenta(` CÓDIGO DE VINCULACIÓN `)), chalk.bold.white(chalk.white(codeBot)));
             } catch (e) {
-                console.error(chalk.bold.bgRed('❌ ERROR al solicitar Pairing Code. Reintente.'), e)
+                console.error(chalk.bold.bgRed('❌ ERROR al solicitar Pairing Code. Reintente.'), e);
             }
-        }, 3000)
+        }, 3000);
     }
 }
 
+let isHandlerActive = false; // Bandera para controlar si el handler ya está asignado
+
 async function connectionUpdate(update) {
-    const { connection, lastDisconnect, isNewLogin } = update
-    global.stopped = connection
+    const { connection, lastDisconnect, isNewLogin } = update;
+    global.stopped = connection;
 
-    if (isNewLogin) global.conn.isInit = true
+    if (isNewLogin) global.conn.isInit = true;
 
-    const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
+    const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
 
     if (connection === 'open') {
         if (!global.conn.isInit) {
-            global.conn.isInit = true
-            console.log(chalk.bold.green('🟢 Conectado con éxito.'))
+            global.conn.isInit = true;
+            console.log(chalk.bold.green('🟢 Conectado con éxito.'));
         }
-        global.timestamp.connect = new Date
-        global.isConnecting = false
-        return
+        global.timestamp.connect = new Date;
+        global.isConnecting = false;
+
+        // **CORRECCIÓN CRÍTICA:** Asignar el handler SÓLO si el JID está disponible
+        if (global.conn.user?.jid && !isHandlerActive) {
+            global.conn.ev.on('messages.upsert', global.conn.handler);
+            isHandlerActive = true;
+            console.log(chalk.bold.yellowBright('✨ Handler de mensajes ACTIVADO. El bot está listo para responder.'));
+        } else if (!global.conn.user?.jid) {
+            // El JID aún no está disponible, esperamos un poco más.
+            setTimeout(() => connectionUpdate(update), 1000);
+        }
+        return;
     }
 
     if (connection === 'close') {
-        global.isConnecting = true
+        global.isConnecting = true;
+        
+        // Desactivar handler si la conexión se cierra
+        if (isHandlerActive) {
+            global.conn.ev.off('messages.upsert', global.conn.handler);
+            isHandlerActive = false;
+        }
 
         if (reason && reason !== DisconnectReason.loggedOut && reason !== DisconnectReason.badSession && reason !== DisconnectReason.connectionReplaced) {
 
@@ -243,17 +261,17 @@ async function connectionUpdate(update) {
                     [DisconnectReason.connectionLost]: 'CONEXIÓN PERDIDA CON EL SERVIDOR. RECONECTANDO...',
                     [DisconnectReason.timedOut]: 'TIEMPO DE CONEXIÓN AGOTADO. RECONECTANDO...',
                     [DisconnectReason.restartRequired]: 'REINICIO REQUERIDO. CONECTANDO AL SERVIDOR...',
-                }[reason]
+                }[reason];
 
-                console.log(chalk.bold.magentaBright(`\n${message}`))
+                console.log(chalk.bold.magentaBright(`\n${message}`));
 
-                const retryDelay = 5000
-                await new Promise(resolve => setTimeout(resolve, retryDelay))
+                const retryDelay = 5000;
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
 
-                await global.reloadHandler(true).catch(console.error)
+                await global.reloadHandler(true).catch(console.error);
 
             } else {
-                console.log(chalk.bold.redBright(`\n⚠︎ RAZON DE DESCONEXIÓN DESCONOCIDA: ${reason || 'No encontrado'}. Reintente manualmente o espere.`))
+                console.log(chalk.bold.redBright(`\n⚠︎ RAZON DE DESCONEXIÓN DESCONOCIDA: ${reason || 'No encontrado'}. Reintente manualmente o espere.`));
             }
 
         } else {
@@ -261,124 +279,124 @@ async function connectionUpdate(update) {
                 [DisconnectReason.loggedOut]: `⚠︎ SIN CONEXIÓN, BORRE LA CARPETA ${global.sessions} Y VINCULE EL CÓDIGO DE TEXTO ⚠︎`,
                 [DisconnectReason.badSession]: `⚠︎ SESIÓN INVÁLIDA, BORRE LA CARPETA ${global.sessions} Y VINCULE EL CÓDIGO DE TEXTO ⚠︎`,
                 [DisconnectReason.connectionReplaced]: `⚠︎ CONEXIÓN REEMPLAZADA. DEBE CERRAR LA SESIÓN EN OTRO LADO.`,
-            }[reason] || `⚠︎ DESCONEXIÓN CRÍTICA (${reason}). REINICIO RECOMENDADO.`
+            }[reason] || `⚠︎ DESCONEXIÓN CRÍTICA (${reason}). REINICIO RECOMENDADO.`;
 
-            console.log(chalk.bold.redBright(criticalMessage))
+            console.log(chalk.bold.redBright(criticalMessage));
 
         }
     }
 
-    if (global.db.data == null) await loadDatabase().catch(console.error)
+    if (global.db.data == null) await loadDatabase().catch(console.error);
 }
 
-let isInit = true
-let handler = await import('./handler.js')
+let isInit = true;
+let handler = await import('./handler.js');
 
 global.reloadHandler = async function(restatConn) {
-    console.log(chalk.bold.yellow('Recargando Handler...'))
+    console.log(chalk.bold.yellow('Recargando Handler...'));
     try {
-        const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
-        if (Object.keys(Handler || {}).length) handler = Handler
+        const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
+        if (Object.keys(Handler || {}).length) handler = Handler;
     } catch (e) {
-        console.error(chalk.bold.bgRed('❌ ERROR al cargar el handler:'), e)
+        console.error(chalk.bold.bgRed('❌ ERROR al cargar el handler:'), e);
     }
 
     if (restatConn) {
-        const oldChats = global.conn.chats
+        const oldChats = global.conn.chats;
         try {
-            global.conn.ws.close()
+            global.conn.ws.close();
         } catch { }
-        global.conn.ev.removeAllListeners()
+        global.conn.ev.removeAllListeners();
 
-        global.conn = makeWASocket(connectionOptions, { chats: oldChats })
-        isInit = true
+        global.conn = makeWASocket(connectionOptions, { chats: oldChats });
+        isInit = true;
     }
 
     if (!isInit) {
-        global.conn.ev.off('messages.upsert', global.conn.handler)
-        global.conn.ev.off('connection.update', global.conn.connectionUpdate)
-        global.conn.ev.off('creds.update', global.conn.credsUpdate)
+        global.conn.ev.off('messages.upsert', global.conn.handler);
+        global.conn.ev.off('connection.update', global.conn.connectionUpdate);
+        global.conn.ev.off('creds.update', global.conn.credsUpdate);
     }
 
-    global.conn.handler = handler.handler.bind(global.conn)
-    global.conn.connectionUpdate = connectionUpdate.bind(global.conn)
-    global.conn.credsUpdate = saveCreds.bind(global.conn, true)
+    global.conn.handler = handler.handler.bind(global.conn);
+    global.conn.connectionUpdate = connectionUpdate.bind(global.conn);
+    global.conn.credsUpdate = saveCreds.bind(global.conn, true);
 
-    global.conn.ev.on('messages.upsert', global.conn.handler)
-    global.conn.ev.on('connection.update', global.conn.connectionUpdate)
-    global.conn.ev.on('creds.update', global.conn.credsUpdate)
-    isInit = false
-    return true
-}
+    // *Aquí NO asignamos el 'messages.upsert'*, lo hace 'connectionUpdate' si está 'open' y el JID existe.
+    global.conn.ev.on('connection.update', global.conn.connectionUpdate);
+    global.conn.ev.on('creds.update', global.conn.credsUpdate);
+    isInit = false;
+    return true;
+};
 
-const __dirname = global.__dirname(import.meta.url)
-const pluginFolder = global.__dirname(join(__dirname, './plugins/index'))
-const pluginFilter = (filename) => /\.js$/.test(filename)
-global.plugins = {}
+const __dirname = global.__dirname(import.meta.url);
+const pluginFolder = global.__dirname(join(__dirname, './plugins/index'));
+const pluginFilter = (filename) => /\.js$/.test(filename);
+global.plugins = {};
 
 async function filesInit() {
-    console.log(chalk.bold.blueBright('Cargando Plugins...'))
+    console.log(chalk.bold.blueBright('Cargando Plugins...'));
     for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
         try {
-            const file = global.__filename(join(pluginFolder, filename))
-            const module = await import(file)
-            global.plugins[filename] = module.default || module
+            const file = global.__filename(join(pluginFolder, filename));
+            const module = await import(file);
+            global.plugins[filename] = module.default || module;
         } catch (e) {
-            console.error(chalk.bold.red(`❌ ERROR al cargar plugin '${filename}':`), e)
-            delete global.plugins[filename]
+            console.error(chalk.bold.red(`❌ ERROR al cargar plugin '${filename}':`), e);
+            delete global.plugins[filename];
         }
     }
-    console.log(chalk.bold.greenBright(`✅ ${Object.keys(global.plugins).length} Plugins cargados.`))
+    console.log(chalk.bold.greenBright(`✅ ${Object.keys(global.plugins).length} Plugins cargados.`));
 }
 
 global.reload = async (_ev, filename) => {
     if (pluginFilter(filename)) {
-        const dir = global.__filename(join(pluginFolder, filename), true)
-        const exists = fs.existsSync(dir)
+        const dir = global.__filename(join(pluginFolder, filename), true);
+        const exists = fs.existsSync(dir);
 
         if (filename in global.plugins && exists) {
-            global.conn.logger.info(`🔄 Plugin actualizado - '${filename}'`)
+            global.conn.logger.info(`🔄 Plugin actualizado - '${filename}'`);
         } else if (filename in global.plugins && !exists) {
-            global.conn.logger.warn(`🗑️ Plugin eliminado - '${filename}'`)
-            return delete global.plugins[filename]
+            global.conn.logger.warn(`🗑️ Plugin eliminado - '${filename}'`);
+            return delete global.plugins[filename];
         } else if (exists) {
-            global.conn.logger.info(`✨ Nuevo plugin - '${filename}'`)
+            global.conn.logger.info(`✨ Nuevo plugin - '${filename}'`);
         } else {
-            return
+            return;
         }
 
         const err = syntaxerror(readFileSync(dir), filename, {
             sourceType: 'module',
             allowAwaitOutsideFunction: true,
-        })
+        });
 
         if (err) {
-            global.conn.logger.error(chalk.bold.bgRed(`❌ Error de sintaxis en '${filename}':\n${format(err)}`))
+            global.conn.logger.error(chalk.bold.bgRed(`❌ Error de sintaxis en '${filename}':\n${format(err)}`));
         } else {
             try {
-                const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`))
-                global.plugins[filename] = module.default || module
+                const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
+                global.plugins[filename] = module.default || module;
             } catch (e) {
-                global.conn.logger.error(chalk.bold.bgRed(`❌ Error de ejecución en plugin '${filename}':\n${format(e)}`))
+                global.conn.logger.error(chalk.bold.bgRed(`❌ Error de ejecución en plugin '${filename}':\n${format(e)}`));
             } finally {
-                global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
+                global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)));
             }
         }
     }
-}
+};
 
 filesInit().then(() => {
-    Object.freeze(global.reload)
-    watch(pluginFolder, global.reload)
-    global.reloadHandler()
-}).catch(console.error)
+    Object.freeze(global.reload);
+    watch(pluginFolder, global.reload);
+    global.reloadHandler(); // Esto iniciará la conexión
+}).catch(console.error);
 
 
 if (!global.opts['test'] && global.db) {
     setInterval(async () => {
-        if (global.db.data) await global.db.write().catch(e => console.error(chalk.bold.bgRed('❌ Error al escribir DB:'), e))
-        if (global.opts['autocleartmp'] && (global.support || {}).find) (tmp = [os.tmpdir(), 'tmp'], tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete'])))
-    }, 30 * 1000)
+        if (global.db.data) await global.db.write().catch(e => console.error(chalk.bold.bgRed('❌ Error al escribir DB:'), e));
+        if (global.opts['autocleartmp'] && (global.support || {}).find) (tmp = [os.tmpdir(), 'tmp'], tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete'])));
+    }, 30 * 1000);
 }
 
 async function _quickTest() {
@@ -387,90 +405,90 @@ async function _quickTest() {
         spawn('convert'), spawn('magick'), spawn('gm'), spawn('find', ['--version']),
     ].map((p) => {
         return Promise.race([
-            new Promise((resolve) => { p.on('close', (code) => { resolve(code !== 127) }) }),
-            new Promise((resolve) => { p.on('error', (_) => resolve(false)) })
-        ])
-    }))
-    const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test
-    const s = global.support = { ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find }
-    Object.freeze(global.support)
-    global.conn.logger.info(chalk.bold(`✦ H E C H O\n`.trim()))
+            new Promise((resolve) => { p.on('close', (code) => { resolve(code !== 127); }); }),
+            new Promise((resolve) => { p.on('error', (_) => resolve(false)); })
+        ]);
+    }));
+    const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test;
+    const s = global.support = { ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find };
+    Object.freeze(global.support);
+    global.conn.logger.info(chalk.bold(`✦ H E C H O\n`.trim()));
 }
-_quickTest().catch(console.error)
+_quickTest().catch(console.error);
 
 function clearTmp() {
-    const tmpDir = join(__dirname, 'tmp')
+    const tmpDir = join(global.__dirname(import.meta.url), 'tmp');
     try {
-        const filenames = readdirSync(tmpDir)
+        const filenames = readdirSync(tmpDir);
         filenames.forEach(file => {
-            const filePath = join(tmpDir, file)
-            unlinkSync(filePath)
-        })
-        console.log(chalk.bold.cyanBright(`\n╭» ❍ MULTIMEDIA ❍\n│→ ARCHIVOS DE LA CARPETA TMP ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))
+            const filePath = join(tmpDir, file);
+            unlinkSync(filePath);
+        });
+        console.log(chalk.bold.cyanBright(`\n╭» ❍ MULTIMEDIA ❍\n│→ ARCHIVOS DE LA CARPETA TMP ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`));
     } catch (e) { }
 }
 
 function purgeSession() {
-    let prekey = []
-    let directorio = readdirSync(`./${global.sessions}`)
+    let prekey = [];
+    let directorio = readdirSync(`./${global.sessions}`);
     let filesFolderPreKeys = directorio.filter(file => {
-        return file.startsWith('pre-key-')
-    })
-    prekey = [...prekey, ...filesFolderPreKeys]
+        return file.startsWith('pre-key-');
+    });
+    prekey = [...prekey, ...filesFolderPreKeys];
     filesFolderPreKeys.forEach(files => {
-        unlinkSync(`./${global.sessions}/${files}`)
-    })
+        unlinkSync(`./${global.sessions}/${files}`);
+    });
 }
 
 function purgeOldFiles() {
-    const directories = [`./${global.sessions}/`]
+    const directories = [`./${global.sessions}/`];
     directories.forEach(dir => {
         readdirSync(dir, (err, files) => {
-            if (err) throw err
+            if (err) throw err;
             files.forEach(file => {
                 if (file !== 'creds.json') {
-                    const filePath = path.join(dir, file)
+                    const filePath = path.join(dir, file);
                     unlinkSync(filePath, err => {
                         if (err) {
-                            console.log(chalk.bold.red(`\n╭» ❍ ARCHIVO ❍\n│→ ${file} NO SE LOGRÓ BORRAR\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ✘\n` + err))
+                            console.log(chalk.bold.red(`\n╭» ❍ ARCHIVO ❍\n│→ ${file} NO SE LOGRÓ BORRAR\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ✘\n` + err));
                         } else {
-                            console.log(chalk.bold.green(`\n╭» ❍ ARCHIVO ❍\n│→ ${file} BORRADO CON ÉXITO\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))
+                            console.log(chalk.bold.green(`\n╭» ❍ ARCHIVO ❍\n│→ ${file} BORRADO CON ÉXITO\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`));
                         }
-                    })
+                    });
                 }
-            })
-        })
-    })
+            });
+        });
+    });
 }
 
 setInterval(async () => {
-    if (global.stopped === 'close' || !global.conn || !global.conn.user || global.isConnecting) return
-    await clearTmp()
-}, 1000 * 60 * 4)
+    if (global.stopped === 'close' || !global.conn || !global.conn.user || global.isConnecting) return;
+    await clearTmp();
+}, 1000 * 60 * 4);
 
 setInterval(async () => {
-    if (global.stopped === 'close' || !global.conn || !global.conn.user || global.isConnecting) return
-    await purgeSession()
-    console.log(chalk.bold.cyanBright(`\n╭» ❍ ${global.sessions} ❍\n│→ SESIONES NO ESENCIALES ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))
-}, 1000 * 60 * 10)
+    if (global.stopped === 'close' || !global.conn || !global.conn.user || global.isConnecting) return;
+    await purgeSession();
+    console.log(chalk.bold.cyanBright(`\n╭» ❍ ${global.sessions} ❍\n│→ SESIONES NO ESENCIALES ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`));
+}, 1000 * 60 * 10);
 
 setInterval(async () => {
-    if (global.stopped === 'close' || !global.conn || !global.conn.user || global.isConnecting) return
-    await purgeOldFiles()
-    console.log(chalk.bold.cyanBright(`\n╭» ❍ ARCHIVOS ❍\n│→ ARCHIVOS RESIDUALES ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))
-}, 1000 * 60 * 10)
+    if (global.stopped === 'close' || !global.conn || !global.conn.user || global.isConnecting) return;
+    await purgeOldFiles();
+    console.log(chalk.bold.cyanBright(`\n╭» ❍ ARCHIVOS ❍\n│→ ARCHIVOS RESIDUALES ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`));
+}, 1000 * 60 * 10);
 
 async function isValidPhoneNumber(number) {
     try {
-        number = number.replace(/\s+/g, '')
+        number = number.replace(/\s+/g, '');
         if (number.startsWith('+521')) {
-            number = number.replace('+521', '+52')
+            number = number.replace('+521', '+52');
         } else if (number.startsWith('+52') && number[4] === '1') {
-            number = number.replace('+52 1', '+52')
+            number = number.replace('+52 1', '+52');
         }
-        const parsedNumber = phoneUtil.parseAndKeepRawInput(number)
-        return phoneUtil.isValidNumber(parsedNumber)
+        const parsedNumber = phoneUtil.parseAndKeepRawInput(number);
+        return phoneUtil.isValidNumber(parsedNumber);
     } catch (error) {
-        return false
+        return false;
     }
 }

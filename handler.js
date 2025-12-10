@@ -52,13 +52,12 @@ export async function handler(chatUpdate) {
     }
 
     try {
-
-
         m.exp = 0;
         m.coin = false;
 
         const senderJid = m.sender;
         const chatJid = m.chat;
+        const botJid = conn.user.jid;
 
         global.db.data.chats[chatJid] ||= {
             isBanned: false,
@@ -94,7 +93,6 @@ export async function handler(chatUpdate) {
         const chat = global.db.data.chats[chatJid];
         const settings = global.db.data.settings[settingsJid];
 
-
         if (typeof global.db.data.users[senderJid] !== 'object') global.db.data.users[senderJid] = {};
         if (user) {
             if (!('exp' in user) || !isNumber(user.exp)) user.exp = 0;
@@ -113,13 +111,12 @@ export async function handler(chatUpdate) {
         if (opts['swonly'] && m.chat !== 'status@broadcast') return;
         if (typeof m.text !== 'string') m.text = '';
 
-        let senderLid, botLid, botJid, groupMetadata, participants, user2, bot, isRAdmin, isAdmin, isBotAdmin;
+        let senderLid, botLid, groupMetadata, participants, user2, bot, isRAdmin, isAdmin, isBotAdmin;
 
         if (m.isGroup) {
             groupMetadata = (conn.chats[m.chat] || {}).metadata || await conn.groupMetadata(m.chat).catch(_ => null) || {};
             participants = groupMetadata.participants || [];
-            botJid = conn.user.jid;
-
+            
             [senderLid, botLid] = await Promise.all([
                 getLidFromJid(m.sender, conn),
                 getLidFromJid(botJid, conn)
@@ -134,7 +131,6 @@ export async function handler(chatUpdate) {
         } else {
             senderLid = m.sender;
             botLid = conn.user.jid;
-            botJid = conn.user.jid;
             groupMetadata = {};
             participants = [];
             user2 = {};
@@ -146,6 +142,10 @@ export async function handler(chatUpdate) {
 
         const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
         let usedPrefix = '';
+        let match = null;
+        let command = '';
+        let text = m.text;
+        let args = [];
 
         for (const name in global.plugins) {
             const plugin = global.plugins[name];
@@ -172,18 +172,53 @@ export async function handler(chatUpdate) {
             const str2Regex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
             let _prefix = plugin.customPrefix ? plugin.customPrefix : conn.prefix ? conn.prefix : global.prefix;
 
-            const match = (
-                _prefix instanceof RegExp ?
-                    [[_prefix.exec(m.text), _prefix]] :
-                    Array.isArray(_prefix) ?
-                        _prefix.map(p => {
-                            const re = p instanceof RegExp ? p : new RegExp(str2Regex(p));
-                            return [re.exec(m.text), re];
-                        }) :
-                        typeof _prefix === 'string' ?
-                            [[new RegExp(str2Regex(_prefix)).exec(m.text), new RegExp(str2Regex(_prefix))]] :
-                            [[[], new RegExp()]]
-            ).find(p => p[0]);
+            // --- 1. DETECCIÓN POR PREFIJO TRADICIONAL ---
+            const prefixes = Array.isArray(_prefix) ? _prefix : [_prefix];
+
+            for (const p of prefixes) {
+                const re = p instanceof RegExp ? p : new RegExp(str2Regex(p));
+                const execResult = re.exec(m.text);
+                if (execResult) {
+                    match = [execResult, re];
+                    break;
+                }
+            }
+
+            // --- 2. PROCESAMIENTO INICIAL DEL COMANDO ---
+            if (match) {
+                usedPrefix = match[0][0];
+                const noPrefix = m.text.replace(usedPrefix, '');
+                [command, ...args] = noPrefix.trim().split(/\s+/).filter(v => v);
+                text = args.join(' ');
+                command = (command || '').toLowerCase();
+            } else {
+                
+                // --- 3. DETECCIÓN SIN PREFIJO (Mención o Respuesta) ---
+                
+                let isNewDetection = false;
+                
+                const isMentioned = m.mentionedJid.includes(botJid) || m.text.startsWith('@' + botJid.split('@')[0]);
+                const isQuotedByBot = m.quoted && m.quoted.sender === botJid;
+                
+                if (isMentioned) {
+                    const noMentionText = m.text.replace(new RegExp(`@${botJid.split('@')[0]}`, 'g'), '').trim();
+                    [command, ...args] = noMentionText.split(/\s+/).filter(v => v);
+                    text = args.join(' ');
+                    command = (command || '').toLowerCase();
+                    usedPrefix = '@'; 
+                    isNewDetection = true;
+                } else if (isQuotedByBot) {
+                    [command, ...args] = m.text.trim().split(/\s+/).filter(v => v);
+                    text = args.join(' ');
+                    command = (command || '').toLowerCase();
+                    usedPrefix = '>>'; 
+                    isNewDetection = true;
+                }
+
+                if (!isNewDetection) continue; // Si no hay match ni nueva detección, salta al siguiente plugin.
+            }
+            
+            // --- 4. HOOK BEFORE y Verificación de Aceptación ---
 
             if (typeof plugin.before === 'function') {
                 const extraBefore = {
@@ -194,15 +229,9 @@ export async function handler(chatUpdate) {
                 }
             }
 
-            if (typeof plugin !== 'function' || !match) continue;
-
-            usedPrefix = match[0][0];
-            let noPrefix = m.text.replace(usedPrefix, '');
-            let [command, ...args] = noPrefix.trim().split(/\s+/).filter(v => v);
-            let text = args.join(' ');
-            command = (command || '').toLowerCase();
-
             const fail = plugin.fail || global.dfail;
+            
+            // La lógica de isAccept ahora verifica el 'command' detectado (ya sea por prefijo o por nueva detección)
             const isAccept = plugin.command instanceof RegExp ?
                 plugin.command.test(command) :
                 Array.isArray(plugin.command) ?
@@ -217,9 +246,9 @@ export async function handler(chatUpdate) {
                 continue;
             }
 
-
-
             if (!isAccept) continue;
+            
+            // El plugin fue aceptado, ya sea por el prefijo tradicional o por la nueva detección.
 
             m.plugin = name;
 
@@ -248,11 +277,13 @@ export async function handler(chatUpdate) {
             }
 
             m.isCommand = true;
+            m.usedPrefix = usedPrefix; // Asignar el prefijo detectado ('!', '@', '>>')
+            
             const xp = 'exp' in plugin ? parseInt(plugin.exp) : 10;
             m.exp += xp;
 
             const extra = {
-                match, usedPrefix, noPrefix, args, command, text, conn, participants, groupMetadata, user: global.db.data.users[m.sender], isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, chatUpdate, __dirname: ___dirname, __filename
+                match, usedPrefix, noPrefix: text, args, command, text, conn, participants, groupMetadata, user: global.db.data.users[m.sender], isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, chatUpdate, __dirname: ___dirname, __filename
             };
 
             try {
@@ -310,12 +341,7 @@ Solo con Deylin-Eliac hablo de eso w.
         owner: `Solo con Deylin-Eliac hablo de eso w. 
 `,
         group: `Si quieres hablar de eso solo en grupos bro. `,
-       /* private: `
-┏━━━━━╹━━━━━━━╮
-┃  *〘 ${global.comando} 〙*
-┃ ➣ 𝑆𝑜𝑙𝑜 𝑒𝑛 𝑃𝑟𝑖𝑣𝑎𝑑𝑜 ↷
-┃ » 𝐴𝑞𝑢í 𝑛𝑜, 𝑎𝑚𝑖𝑔𝑜...
-┗━━━━━━━━━━━━━╯`,*/
+        private: `De ésto solo habló en privado güey.`,
         admin: `Solo los administradores me pueden decir que hacer. 
 `,
         botAdmin: `Dame admin bro para seguir. 

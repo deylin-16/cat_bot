@@ -26,7 +26,8 @@ import cfonts from 'cfonts'
 import { randomBytes } from 'crypto' 
 
 const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, makeWASocket } = await import('@whiskeysockets/baileys')
-import proto from '@whiskeysockets/baileys/lib/WAProto/index.js'; 
+import { WAProto as proto } from '@whiskeysockets/baileys';
+
 
 const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()

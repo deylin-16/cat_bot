@@ -1,11 +1,10 @@
-import { smsg, proto } from './lib/simple.js';
-
 import { format } from 'util';
 import { fileURLToPath } from 'url';
 import path, { join } from 'path';
 import { unwatchFile, watchFile } from 'fs';
 import chalk from 'chalk';
 import ws from 'ws';
+import { randomBytes } from 'crypto'; // <-- Nueva importación para IDs
 import fetch from 'node-fetch';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
@@ -16,7 +15,7 @@ async function getLidFromJid(id, connection) {
     return res[0]?.lid || id;
 }
 
-export async function handler(chatUpdate) {
+export async function handler(chatUpdate, store) { // Añadimos 'store' como argumento
     this.uptime = this.uptime || Date.now();
     const conn = this;
 
@@ -27,7 +26,8 @@ export async function handler(chatUpdate) {
     let m = chatUpdate.messages[chatUpdate.messages.length - 1];
     if (!m) return;
 
-    m = smsg(conn, m) || m;
+    // AHORA LLAMAMOS A LA FUNCIÓN smsg LOCALMENTE
+    m = smsg(conn, m, store) || m; 
     if (!m) return;
 
     if (global.db.data == null) {
@@ -324,6 +324,47 @@ export async function handler(chatUpdate) {
         }
     }
 }
+
+// Función smsg movida desde simple.js
+function smsg(conn, m, store) {
+    if (!m) return m;
+
+    let k;
+    try {
+        k = m.key ? m.key.id : randomBytes(16).toString('hex').toUpperCase();
+    } catch (e) {
+        k = randomBytes(16).toString('hex').toUpperCase();
+    }
+
+    m.id = k;
+    m.isBaileys = m.id?.startsWith('BAE5') && m.id?.length === 16;
+    m.chat = conn.normalizeJid(m.key.remoteJid);
+    m.fromMe = m.key.fromMe;
+    m.sender = conn.normalizeJid(m.key.fromMe ? conn.user.jid : m.key.participant || m.key.remoteJid);
+    m.text = m.message?.extendedTextMessage?.text || m.message?.conversation || m.message?.imageMessage?.caption || m.message?.videoMessage?.caption || '';
+    m.isGroup = m.chat.endsWith('@g.us');
+    m.isMedia = !!(m.message?.imageMessage || m.message?.videoMessage || m.message?.audioMessage || m.message?.stickerMessage || m.message?.documentMessage);
+    m.timestamp = typeof m.messageTimestamp === 'number' ? m.messageTimestamp * 1000 : null;
+
+    if (m.isGroup) {
+        m.metadata = conn.chats[m.chat]?.metadata || {};
+    }
+
+    if (m.quoted) {
+        let q = m.quoted;
+        q.isBaileys = q.id?.startsWith('BAE5') && q.id?.length === 16;
+        q.chat = conn.normalizeJid(q.key.remoteJid);
+        q.fromMe = q.key.fromMe;
+        q.sender = conn.normalizeJid(q.key.fromMe ? conn.user.jid : q.key.participant || q.key.remoteJid);
+        q.text = q.message?.extendedTextMessage?.text || q.message?.conversation || q.message?.imageMessage?.caption || q.message?.videoMessage?.caption || '';
+    }
+
+    // Nota: m.reply y m.getQuotedObj NO se pueden definir aquí,
+    // deben definirse usando protoType() en index.js.
+
+    return m;
+}
+
 
 global.dfail = (type, m, conn) => {
     const messages = {

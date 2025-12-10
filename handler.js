@@ -8,7 +8,7 @@ import { randomBytes, createHash } from 'crypto';
 import fetch from 'node-fetch';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
-const MAX_EXECUTION_TIME = 60000;
+const MAX_EXECUTION_TIME = 6000000000;
 
 async function sendUniqueError(conn, error, origin, m) {
     if (typeof global.sentErrors === 'undefined') {
@@ -114,6 +114,31 @@ function smsg(conn, m, store) {
     }
 }
 
+function getSafeChatData(jid) {
+    if (!global.db.data || !global.db.data.chats) return null;
+    if (!global.db.data.chats[jid]) {
+        global.db.data.chats[jid] = {
+            isBanned: false,
+            sAutoresponder: '',
+            welcome: true,
+            autolevelup: false,
+            autoresponder: false,
+            delete: false,
+            autoAceptar: false,
+            autoRechazar: false,
+            detect: true,
+            antiBot: false,
+            modoadmin: false,
+            antiLink: true,
+            nsfw: false,
+            expired: 0,
+            autoresponder2: true,
+            per: [],
+        };
+    }
+    return global.db.data.chats[jid];
+}
+
 export async function handler(chatUpdate, store) {
     const startTime = Date.now();
     this.uptime = this.uptime || Date.now();
@@ -193,27 +218,16 @@ export async function handler(chatUpdate, store) {
         if (!botJid) {
              console.error('El Bot JID es undefined. No se puede inicializar la configuración.');
         }
-        
-        global.db.data.chats[chatJid] ||= {
-            isBanned: false,
-            sAutoresponder: '',
-            welcome: true,
-            autolevelup: false,
-            autoresponder: false,
-            delete: false,
-            autoAceptar: false,
-            autoRechazar: false,
-            detect: true,
-            antiBot: false,
-            modoadmin: false,
-            antiLink: true,
-            nsfw: false,
-            expired: 0,
-            autoresponder2: true,
-            per: [],
-        };
+
+        const chat = getSafeChatData(chatJid);
+        if (chat === null) {
+            console.error('Error al acceder a los datos del chat, global.db.data es nulo o no está listo.');
+            return;
+        }
 
         const settingsJid = conn.user.jid;
+        let settings = {};
+
         if (settingsJid) {
             global.db.data.settings[settingsJid] ||= {
                 self: false,
@@ -224,15 +238,13 @@ export async function handler(chatUpdate, store) {
                 soloParaJid: false,
                 status: 0
             };
+            settings = global.db.data.settings[settingsJid];
         } else {
             console.error('Advertencia: No se pudo inicializar settings porque el botJid es nulo.');
         }
 
         global.db.data.users[senderJid] ||= {};
-        
         const user = global.db.data.users[senderJid];
-        const chat = global.db.data.chats[chatJid];
-        const settings = botJid ? global.db.data.settings[botJid] : {};
 
         if (user) {
             if (!('exp' in user) || !isNumber(user.exp)) user.exp = 0;

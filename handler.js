@@ -339,7 +339,6 @@ function smsg(conn, m, store) {
 
     let k;
     try {
-        // Esto puede fallar si m.key es undefined, pero la comprobación está en el handler
         k = m.key?.id ? m.key.id : randomBytes(16).toString('hex').toUpperCase();
     } catch (e) {
         k = randomBytes(16).toString('hex').toUpperCase();
@@ -350,7 +349,9 @@ function smsg(conn, m, store) {
     // CORRECCIÓN CLAVE: Acceso seguro a m.key.remoteJid usando ?
     m.chat = conn.normalizeJid(m.key?.remoteJid || ''); 
     m.fromMe = m.key?.fromMe;
+    // Acceso seguro a m.key para definir el sender
     m.sender = conn.normalizeJid(m.key?.fromMe ? conn.user.jid : m.key?.participant || m.key?.remoteJid || '');
+
     m.text = m.message?.extendedTextMessage?.text || m.message?.conversation || m.message?.imageMessage?.caption || m.message?.videoMessage?.caption || '';
     m.text = m.text ? m.text.replace(/[\u200e\u200f]/g, '').trim() : ''; 
     m.mentionedJid = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []; 

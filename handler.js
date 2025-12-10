@@ -4,15 +4,52 @@ import path, { join } from 'path';
 import { unwatchFile, watchFile } from 'fs';
 import chalk from 'chalk';
 import ws from 'ws';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto'; // <-- Se añadió createHash
 import fetch from 'node-fetch';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 
+// --- FUNCIÓN DE ENVÍO DE ERRORES ÚNICOS ---
+async function sendUniqueError(conn, error, origin, m) {
+    if (typeof global.sentErrors === 'undefined') {
+        global.sentErrors = new Set();
+    }
+    
+    // Extrae y formatea el texto del error
+    const errorText = format(error).replace(new RegExp(Object.values(global.APIKeys || {}).join('|'), 'g'), 'Administrador');
+    
+    // Crea un hash único del mensaje de error para evitar repeticiones
+    const hash = createHash('sha256').update(errorText).digest('hex');
+
+    if (global.sentErrors.has(hash)) {
+        // El error ya fue enviado, saltar
+        return;
+    }
+
+    const targetJid = '50432955554@s.whatsapp.net';
+    const messageBody = `
+🚨 *ERROR CRÍTICO* 🚨
+
+*Origen:* ${origin}
+*Chat:* ${m?.chat || 'N/A'}
+*Comando:* ${m?.plugin || 'N/A'}
+
+*Detalles del Error:*
+${errorText.substring(0, 1500)}
+    `;
+
+    try {
+        await conn.sendMessage(targetJid, { text: messageBody });
+        global.sentErrors.add(hash);
+        console.log(`Error único enviado a ${targetJid}. Hash: ${hash}`);
+    } catch (sendError) {
+        console.error(`Fallo al enviar el error de notificación a ${targetJid}:`, sendError);
+    }
+}
+
 // Función auxiliar para obtener el L-JID si es necesario
 async function getLidFromJid(id, connection) {
     if (id.endsWith('@lid')) return id;
-    // Protección contra promesas no manejadas
     const res = await connection.onWhatsApp(id).catch(() => []);
     return res[0]?.lid || id;
 }
@@ -70,12 +107,12 @@ export async function handler(chatUpdate, store) {
         m.exp = 0;
         m.coin = false;
 
-        // --- INICIALIZACIÓN Y VERIFICACIÓN DE JIDS (PUNTO CRÍTICO DEL ERROR) ---
+        // --- INICIALIZACIÓN Y VERIFICACIÓN DE JIDS ---
         const senderJid = m.sender;
         const chatJid = m.chat;
         const botJid = conn.user?.jid || ''; 
 
-        // 🟢 VALIDACIÓN CRÍTICA (Línea que antes fallaba)
+        // VALIDACIÓN CRÍTICA (Línea que antes fallaba)
         if (!chatJid || !chatJid.includes('@')) {
             console.error(`JID del chat inválido: ${chatJid}. Mensaje descartado.`);
             return; 
@@ -151,7 +188,6 @@ export async function handler(chatUpdate, store) {
                 admin: p.admin 
             })); 
 
-            // Manejo de JIDs/LIDs
             [senderLid, botLid] = await Promise.all([
                 getLidFromJid(m.sender, conn),
                 getLidFromJid(botJid, conn)
@@ -199,6 +235,7 @@ export async function handler(chatUpdate, store) {
                     });
                 } catch (e) {
                     console.error(`Error en plugin.all de ${name}:`, e);
+                    await sendUniqueError(conn, e, `plugin.all: ${name}`, m);
                 }
             }
 
@@ -257,7 +294,13 @@ export async function handler(chatUpdate, store) {
                 const extraBefore = {
                     match, conn, participants, groupMetadata, user: global.db.data.users[m.sender], isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, chatUpdate, __dirname: ___dirname, __filename
                 };
-                if (await plugin.before.call(conn, m, extraBefore)) {
+                try {
+                    if (await plugin.before.call(conn, m, extraBefore)) {
+                        continue;
+                    }
+                } catch (e) {
+                    console.error(`Error en plugin.before de ${name}:`, e);
+                    await sendUniqueError(conn, e, `plugin.before: ${name}`, m);
                     continue;
                 }
             }
@@ -324,6 +367,9 @@ export async function handler(chatUpdate, store) {
             } catch (e) {
                 m.error = e;
                 console.error(`Error de ejecución en plugin ${name}:`, e);
+                // 🟢 ENVÍO DE ERROR ÚNICO AQUÍ
+                await sendUniqueError(conn, e, `plugin.call: ${name}`, m); 
+
                 const errorText = format(e).replace(new RegExp(Object.values(global.APIKeys).join('|'), 'g'), 'Administrador');
                 m.reply(errorText);
             } finally {
@@ -333,6 +379,7 @@ export async function handler(chatUpdate, store) {
                         await plugin.after.call(conn, m, extra);
                     } catch (e) {
                         console.error(`Error en plugin.after de ${name}:`, e);
+                        await sendUniqueError(conn, e, `plugin.after: ${name}`, m);
                     }
                 }
             }
@@ -341,6 +388,8 @@ export async function handler(chatUpdate, store) {
     } catch (e) {
         // Captura de errores no controlados en el cuerpo del handler
         console.error('Error no capturado en handler:', e);
+        // 🟢 ENVÍO DE ERROR ÚNICO AQUÍ (Error global del handler)
+        await sendUniqueError(conn, e, 'Handler Global', m); 
     } finally {
         // Lógica de Mutear, XP y Estadísticas
         if (m) {
@@ -387,7 +436,7 @@ function smsg(conn, m, store) {
         // Uso de una función segura para normalizeJid (previene TypeError si conn es inválido)
         const normalizeJidSafe = conn?.normalizeJid || ((jid) => jid);
 
-        // 🟢 VALIDACIÓN CRÍTICA: Descartar si no hay JID remoto válido
+        // VALIDACIÓN CRÍTICA: Descartar si no hay JID remoto válido
         const remoteJid = m.key?.remoteJid || '';
         if (!remoteJid || !remoteJid.includes('@')) {
              return null;
@@ -427,6 +476,7 @@ function smsg(conn, m, store) {
         return null;
     }
 }
+
 
 // --- FUNCIÓN DFAIL (Respuestas de Fallo) ---
 global.dfail = (type, m, conn) => {

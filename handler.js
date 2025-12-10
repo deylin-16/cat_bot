@@ -25,7 +25,7 @@ export async function handler(chatUpdate, store) {
 
     let m = chatUpdate.messages[chatUpdate.messages.length - 1];
     
-    // FILTRO CLAVE: Si no tiene la estructura básica de key, message o JID remoto, ignorar.
+    // FILTRO ESTRICTO: Si no tiene la estructura básica de key, message o JID remoto, ignorar.
     if (!m || !m.key || !m.message || !m.key.remoteJid) return;
 
     if (m.message) {
@@ -37,7 +37,7 @@ export async function handler(chatUpdate, store) {
 
     m = smsg(conn, m, store) || m; 
     
-    if (!m) return;
+    if (!m) return; // Captura cualquier fallo de smsg
 
     if (global.db.data == null) {
         await global.loadDatabase();
@@ -47,7 +47,6 @@ export async function handler(chatUpdate, store) {
     const now = Date.now();
     const lifeTime = 9000;
 
-    // Ya sabemos que m.key existe gracias al filtro de arriba
     const id = m.key.id;
 
     if (conn.processedMessages.has(id)) {
@@ -338,41 +337,47 @@ export async function handler(chatUpdate, store) {
 function smsg(conn, m, store) {
     if (!m) return m;
 
-    let k;
     try {
-        k = m.key?.id ? m.key.id : randomBytes(16).toString('hex').toUpperCase();
+        let k;
+        try {
+            k = m.key?.id ? m.key.id : randomBytes(16).toString('hex').toUpperCase();
+        } catch (e) {
+            k = randomBytes(16).toString('hex').toUpperCase();
+        }
+
+        m.id = k;
+        m.isBaileys = m.id?.startsWith('BAE5') && m.id?.length === 16;
+        m.chat = conn.normalizeJid(m.key?.remoteJid || ''); 
+        m.fromMe = m.key?.fromMe;
+        m.sender = conn.normalizeJid(m.key?.fromMe ? conn.user.jid : m.key?.participant || m.key?.remoteJid || '');
+
+        m.text = m.message?.extendedTextMessage?.text || m.message?.conversation || m.message?.imageMessage?.caption || m.message?.videoMessage?.caption || '';
+        m.text = m.text ? m.text.replace(/[\u200e\u200f]/g, '').trim() : ''; 
+        m.mentionedJid = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []; 
+        m.isGroup = m.chat.endsWith('@g.us');
+        m.isMedia = !!(m.message?.imageMessage || m.message?.videoMessage || m.message?.audioMessage || m.message?.stickerMessage || m.message?.documentMessage);
+        m.timestamp = typeof m.messageTimestamp === 'number' ? m.messageTimestamp * 1000 : null;
+
+        if (m.isGroup) {
+            m.metadata = conn.chats[m.chat]?.metadata || {};
+        }
+
+        if (m.quoted) {
+            let q = m.quoted;
+            q.isBaileys = q.id?.startsWith('BAE5') && q.id?.length === 16;
+            q.chat = conn.normalizeJid(q.key?.remoteJid || '');
+            q.fromMe = q.key?.fromMe;
+            q.sender = conn.normalizeJid(q.key?.fromMe ? conn.user.jid : q.key?.participant || q.key?.remoteJid || '');
+            q.text = q.message?.extendedTextMessage?.text || q.message?.conversation || q.message?.imageMessage?.caption || q.message?.videoMessage?.caption || '';
+        }
+
+        return m;
+        
     } catch (e) {
-        k = randomBytes(16).toString('hex').toUpperCase();
+        // CAPTURA DE FALLOS Y LOG DE DEBUG
+        console.error("Error en smsg - Objeto 'm' inválido:", m, e); 
+        return null;
     }
-
-    m.id = k;
-    m.isBaileys = m.id?.startsWith('BAE5') && m.id?.length === 16;
-    // Acceso seguro a m.key
-    m.chat = conn.normalizeJid(m.key?.remoteJid || ''); 
-    m.fromMe = m.key?.fromMe;
-    m.sender = conn.normalizeJid(m.key?.fromMe ? conn.user.jid : m.key?.participant || m.key?.remoteJid || '');
-
-    m.text = m.message?.extendedTextMessage?.text || m.message?.conversation || m.message?.imageMessage?.caption || m.message?.videoMessage?.caption || '';
-    m.text = m.text ? m.text.replace(/[\u200e\u200f]/g, '').trim() : ''; 
-    m.mentionedJid = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []; 
-    m.isGroup = m.chat.endsWith('@g.us');
-    m.isMedia = !!(m.message?.imageMessage || m.message?.videoMessage || m.message?.audioMessage || m.message?.stickerMessage || m.message?.documentMessage);
-    m.timestamp = typeof m.messageTimestamp === 'number' ? m.messageTimestamp * 1000 : null;
-
-    if (m.isGroup) {
-        m.metadata = conn.chats[m.chat]?.metadata || {};
-    }
-
-    if (m.quoted) {
-        let q = m.quoted;
-        q.isBaileys = q.id?.startsWith('BAE5') && q.id?.length === 16;
-        q.chat = conn.normalizeJid(q.key?.remoteJid || '');
-        q.fromMe = q.key?.fromMe;
-        q.sender = conn.normalizeJid(q.key?.fromMe ? conn.user.jid : q.key?.participant || q.key?.remoteJid || '');
-        q.text = q.message?.extendedTextMessage?.text || q.message?.conversation || q.message?.imageMessage?.caption || q.message?.videoMessage?.caption || '';
-    }
-
-    return m;
 }
 
 

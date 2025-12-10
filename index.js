@@ -15,7 +15,6 @@ import { format } from 'util'
 import pino from 'pino'
 import path, { join, dirname } from 'path'
 import { Boom } from '@hapi/boom'
-import { protoType, serialize } from './lib/simple.js'
 import { Low, JSONFile } from 'lowdb'
 import store from './lib/store.js'
 import pkg from 'google-libphonenumber'
@@ -24,8 +23,10 @@ import NodeCache from 'node-cache'
 import os from 'os'
 import cp from 'child_process'
 import cfonts from 'cfonts'
+import { randomBytes } from 'crypto' 
 
 const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, makeWASocket } = await import('@whiskeysockets/baileys')
+import proto from '@whiskeysockets/baileys/lib/WAProto/index.js'; 
 
 const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
@@ -33,6 +34,7 @@ const { CONNECTING } = ws
 const { chain } = lodash
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+const fs = await import('fs'); 
 
 global.sessions = 'sessions'
 global.botNumber = global.botNumber || ''
@@ -42,9 +44,6 @@ let { say } = cfonts
 console.log(chalk.bold.redBright(`\n Iniciando programa... \n`))
 say('WhatsApp-bot', { font: 'block', align: 'center', colors: ['magentaBright'] })
 say(`Developed By • Deylin`, { font: 'console', align: 'center', colors: ['blueBright'] })
-
-protoType()
-serialize()
 
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
     return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString()
@@ -151,6 +150,10 @@ const connectionOptions = {
 global.conn = makeWASocket(connectionOptions)
 global.conn.isInit = false
 global.isConnecting = false
+
+// LLAMADAS A LAS FUNCIONES DE SERIALIZACIÓN Y PROTOTIPO
+protoType()
+serialize(global.conn)
 
 if (!fs.existsSync(`./${global.sessions}/creds.json`)) {
     if (!global.conn.authState.creds.registered) {
@@ -437,5 +440,32 @@ async function isValidPhoneNumber(number) {
         return phoneUtil.isValidNumber(parsedNumber)
     } catch (error) {
         return false
+    }
+}
+
+const { protoType: WAProtoType } = proto;
+
+function protoType() {
+    Object.assign(WAProtoType, {
+        async delete(conn) {
+            await conn.sendMessage(this.chat, { delete: this.key });
+        },
+        reply: function(text, chat, options) {
+            return global.conn.sendMessage(chat ? chat : this.chat, { text: text }, { quoted: this, ...options });
+        },
+    });
+}
+
+function serialize(conn) {
+    if (!conn) return;
+
+    if (!conn.normalizeJid) {
+        conn.normalizeJid = jid => {
+            return jidNormalizedUser(jid);
+        }
+    }
+
+    if (!conn.generateMessageTag) {
+        conn.generateMessageTag = () => String(randomBytes(3).readUIntBE(0, 3)).padStart(6, 0);
     }
 }

@@ -56,13 +56,11 @@ function protoType() {
 
 function serialize(conn) {
     if (!conn) return;
-
     if (!conn.normalizeJid) {
         conn.normalizeJid = jid => {
             return jidNormalizedUser(jid);
         };
     }
-
     if (!conn.generateMessageTag) {
         conn.generateMessageTag = () => String(randomBytes(3).readUIntBE(0, 3)).padStart(6, 0);
     }
@@ -117,14 +115,10 @@ global.loadDatabase = async function loadDatabase() {
             }, 100);
         });
     }
-
     if (global.db.data !== null) return global.db.data;
-
     global.db.READ = true;
-
     try {
         await global.db.read();
-
         const defaultData = {
             users: {},
             chats: {},
@@ -133,12 +127,10 @@ global.loadDatabase = async function loadDatabase() {
             sticker: {},
             settings: {},
         };
-
         global.db.data = {
             ...defaultData,
             ...(global.db.data || {}),
         };
-
         global.db.chain = chain(global.db.data);
         console.log(chalk.bold.greenBright('✅ Base de datos cargada con éxito.'));
     } catch (error) {
@@ -218,6 +210,8 @@ let isHandlerActive = false;
 async function connectionUpdate(update) {
     const { connection, lastDisconnect, isNewLogin } = update;
     global.stopped = connection;
+    
+    console.log(chalk.bold.white(`\n>>> ESTADO DE CONEXIÓN: ${connection} <<<`));
 
     if (isNewLogin) global.conn.isInit = true;
 
@@ -322,7 +316,7 @@ global.reloadHandler = async function(restatConn) {
     global.conn.ev.on('connection.update', global.conn.connectionUpdate);
     global.conn.ev.on('creds.update', global.conn.credsUpdate);
     
-    // CORRECCIÓN FINAL: Asignación directa e inmediata del listener de mensajes
+    // CORRECCIÓN FINAL CRÍTICA
     if (!isHandlerActive) {
         global.conn.ev.on('messages.upsert', global.conn.handler);
         isHandlerActive = true;

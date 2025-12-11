@@ -35,9 +35,8 @@ Eres Jiji, un gato negro parlante muy listo y con una personalidad cínica, inge
                 parts: [{ text: text }]
             }
         ],
-        config: {
-            systemInstruction: systemInstruction
-        },
+        
+        systemInstruction: systemInstruction,
         tools: [
             {
                 googleSearch: {}

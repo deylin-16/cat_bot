@@ -210,7 +210,7 @@ let isHandlerActive = false;
 async function connectionUpdate(update) {
     const { connection, lastDisconnect, isNewLogin } = update;
     global.stopped = connection;
-    
+
     console.log(chalk.bold.white(`\n>>> ESTADO DE CONEXIÓN: ${connection} <<<`));
 
     if (isNewLogin) global.conn.isInit = true;
@@ -280,15 +280,28 @@ async function connectionUpdate(update) {
 }
 
 let isInit = true;
-let handler = await import('./handler.js');
+let handler = {};
+try {
+    const handlerModule = await import('./handler.js');
+    if (Object.keys(handlerModule || {}).length) handler = handlerModule;
+    else throw new Error("Handler module is empty.");
+} catch(e) {
+    console.error(chalk.bold.bgRed('❌ ERROR CRÍTICO: No se pudo cargar el handler inicial:'), e);
+    exit(1);
+}
 
 global.reloadHandler = async function(restatConn) {
     console.log(chalk.bold.yellow('Recargando Handler...'));
+    
     try {
         const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
-        if (Object.keys(Handler || {}).length) handler = Handler;
+        if (Handler && Handler.handler) { 
+            handler = Handler;
+        } else {
+             console.log(chalk.red('⚠️ Advertencia: Recarga fallida o módulo handler vacío.'));
+        }
     } catch (e) {
-        console.error(chalk.bold.bgRed('❌ ERROR al cargar el handler:'), e);
+        console.error(chalk.bold.bgRed('❌ ERROR al recargar el handler:'), e);
     }
 
     if (restatConn) {
@@ -315,8 +328,7 @@ global.reloadHandler = async function(restatConn) {
 
     global.conn.ev.on('connection.update', global.conn.connectionUpdate);
     global.conn.ev.on('creds.update', global.conn.credsUpdate);
-    
-    // CORRECCIÓN FINAL CRÍTICA
+
     if (!isHandlerActive) {
         global.conn.ev.on('messages.upsert', global.conn.handler);
         isHandlerActive = true;
@@ -336,7 +348,7 @@ async function filesInit() {
     console.log(chalk.bold.blueBright('Cargando Plugins...'));
     global.plugins = {};
     const pluginsDir = join(global.__dirname(import.meta.url), 'plugins');
-    
+
     const readDirRecursive = (dir) => {
         const files = readdirSync(dir, { withFileTypes: true });
         for (const file of files) {
@@ -353,7 +365,7 @@ async function filesInit() {
             }
         }
     };
-    
+
     readDirRecursive(pluginsDir);
 
     let loadedPlugins = {};
@@ -366,7 +378,7 @@ async function filesInit() {
          }
     }
     global.plugins = loadedPlugins;
-    
+
     console.log(chalk.bold.greenBright(`✅ ${Object.keys(global.plugins).length} Plugins cargados.`));
 }
 

@@ -70,6 +70,7 @@ Eres Jiji, un gato negro parlante muy listo y con una personalidad cínica, inge
     let result = data.candidates?.[0]?.content?.parts?.[0]?.text || data.error?.message || null;
 
     if (result && result.trim().length > 0) {
+      // Nota: Usamos 'm' como contexto para evitar el fkontak que requería variables no definidas.
       await conn.reply(m.chat, result, m)
     } else {
       await conn.reply(m.chat, '🐱 Hmph. ¿Acaso me despertaste para preguntar *eso*? Sé más específico.', m)

@@ -7,6 +7,8 @@ import ws from 'ws';
 import { randomBytes, createHash } from 'crypto';
 import fetch from 'node-fetch';
 
+// --- Funciones Auxiliares ---
+
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 const MAX_EXECUTION_TIME = 60000;
 
@@ -142,6 +144,8 @@ function getSafeChatData(jid) {
     }
     return global.db.data.chats[jid];
 }
+
+// --- Función Principal Handler ---
 
 export async function handler(chatUpdate) {
     const startTime = Date.now();
@@ -490,6 +494,8 @@ export async function handler(chatUpdate) {
     }
 }
 
+// --- Fallback Default ---
+
 global.dfail = (type, m, conn) => {
     const messages = {
         rowner: `Solo con Deylin-Eliac hablo de eso w.`,
@@ -503,6 +509,8 @@ global.dfail = (type, m, conn) => {
         conn.reply(m.chat, messages[type], m);
     }
 };
+
+// --- WatchFile ---
 
 let file = global.__filename(import.meta.url, true);
 watchFile(file, async () => {

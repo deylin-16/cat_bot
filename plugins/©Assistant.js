@@ -29,23 +29,22 @@ Eres Jiji, un gato negro parlante muy listo y con una personalidad cínica, inge
 `.trim()
 
     const geminiBody = {
+        // La instrucción del sistema va en este campo de nivel superior.
+        systemInstruction: systemInstruction, 
         contents: [
-            // CÓDIGO CORREGIDO: Usamos rol 'system' para la instrucción inicial
             {
-                role: "system",
-                parts: [{ text: systemInstruction }]
-            },
-            {
-                role: "user",
+                role: "user", // Único rol permitido para la entrada del usuario.
                 parts: [{ text: text }]
             }
         ],
-        // Eliminamos el campo systemInstruction de nivel superior
-        tools: [
-            {
-                googleSearch: {}
-            }
-        ],
+        // Las herramientas de búsqueda van dentro de una configuración.
+        config: { 
+             tools: [
+                 {
+                     googleSearch: {}
+                 }
+             ],
+        }
     };
 
     try {
@@ -81,4 +80,3 @@ Eres Jiji, un gato negro parlante muy listo y con una personalidad cínica, inge
     return true;
 
 }
-

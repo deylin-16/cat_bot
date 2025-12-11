@@ -1,6 +1,3 @@
-import { fileURLToPath } from 'url';
-import path, { join } from 'path';
-import { unwatchFile, watchFile } from 'fs';
 import chalk from 'chalk';
 import urlRegex from 'url-regex-safe';
 
@@ -23,14 +20,14 @@ function minimalSmsg(conn, m) {
     }
 }
 
-async function menu(conn, m, extra) {
+async function menu(conn, m) {
     const texto = `Hola, soy el bot Kirito.
     
 ✅ *¡Comando Ejecutado con Éxito!*
     
-El bot ha respondido desde la función aislada.
+El bot ha respondido. Esto confirma que el bot está totalmente funcional.
     
-*Tu bot está conectado y el handler funciona.*`;
+*Ahora puedes reintroducir tu lógica de plugins.*`;
     
     await conn.reply(m.chat, texto, m);
 }
@@ -51,54 +48,37 @@ export async function handler(chatUpdate) {
         m = minimalSmsg(conn, m); 
         if (!m || !m.chat || !m.sender) return; 
         
-        // --- INICIO DE IMPRESIÓN ---
+        // --- INICIO DE IMPRESIÓN FORZADA ---
         try {
-            const groupMetadata = m.isGroup ? (conn.chats[m.chat] || {}).metadata || await conn.groupMetadata(m.chat).catch(_ => null) || {} : {};
-            const senderName = m.isGroup ? m.sender.split('@')[0] : 'N/A'; 
-            const chatName = m.isGroup ? (groupMetadata.subject || 'Grupo') : 'Privado';
+            const senderName = m.sender.split('@')[0]; 
+            const chatName = m.isGroup ? m.chat.substring(0, 10) : 'Privado';
 
             const now = new Date();
             const formattedTime = now.toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const chatLabel = m.isGroup ? `[G]` : `[P]`;
-            let logText = m.text.replace(/\u200e+/g, '');
-            logText = logText.replace(urlRegex({ strict: false }), (url) => chalk.blueBright(url));
-
-            const logLine = chalk.bold.hex('#00FFFF')(`[${formattedTime}] `) +
-                            chalk.hex('#7FFF00').bold(chatLabel) + ' ' +
-                            chalk.hex('#FF4500')(`${chatName ? chatName.substring(0, 15) : 'N/A'}: `) +
+            const logLine = chalk.bold.green('✅ EVENTO RECIBIDO ') +
+                            chalk.hex('#FF4500')(`${chatName}: `) +
                             chalk.hex('#FFFF00')(`${senderName}: `) +
-                            (m.isCommand ? chalk.yellow(logText) : logText.substring(0, 60));
+                            (m.text.substring(0, 40));
 
-            console.log(chalk.bold.green('✅ EVENTO RECIBIDO'));
             console.log(logLine);
             
         } catch (printError) {
-            console.error(chalk.red('Error al imprimir mensaje en consola:'), printError);
+            console.error(chalk.red('Error al imprimir mensaje en consola (AÚN HAY BLOQUEO):'), printError);
         }
         // --- FIN DE IMPRESIÓN ---
         
-        // Lógica de comando manual para la función de prueba (no requiere DB)
+        // Lógica de comando manual de prueba
         if (m.isCommand) {
              const command = m.text.toLowerCase().split(/\s+/)[0].replace(global.prefix || '!', '');
-             if (command === 'menu') {
-                 const usedPrefix = m.text.charAt(0);
-                 const extra = { usedPrefix };
-                 return await menu(conn, m, extra);
+             if (command === 'menu' || command === 'up') {
+                 return await menu(conn, m);
              }
         }
         
 
 
     } catch (e) {
-        console.error(chalk.bold.bgRed('❌ ERROR CRÍTICO EN HANDLER (CAPTURA GLOBAL) ❌'));
+        console.error(chalk.bold.bgRed('❌ ERROR CRÍTICO NO MANEJADO EN HANDLER ❌'));
         console.error(e);
     }
 }
-
-
-let file = global.__filename(import.meta.url, true);
-watchFile(file, async () => {
-    unwatchFile(file);
-    console.log(chalk.magenta("Se actualizo 'handler.js'"));
-    if (global.reloadHandler) console.log(await global.reloadHandler());
-});

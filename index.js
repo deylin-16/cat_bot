@@ -101,7 +101,8 @@ console.info = () => {};
 console.debug = () => {};
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
-global.prefix = new RegExp('^[#/!]');
+// PREFIJO CRÍTICO: Agregando un RegExp más amplio para emojis como ⚡ y 👍
+global.prefix = new RegExp('^[#/!]|[\\p{So}]', 'u'); // Captura #, /, !, y cualquier Símbolo (emoji)
 
 global.db = new Low(/https?:\/\//.test(global.opts['db'] || '') ? new cloudDBAdapter(global.opts['db']) : new JSONFile('./lib/1.json'));
 
@@ -150,7 +151,6 @@ global.loadDatabase = async function loadDatabase() {
     return global.db.data;
 };
 
-// **CRÍTICO:** Aseguramos que la DB esté cargada ANTES de la conexión
 await loadDatabase();
 
 const { state, saveState, saveCreds } = await useMultiFileAuthState(global.sessions);
@@ -232,11 +232,18 @@ async function connectionUpdate(update) {
         global.timestamp.connect = new Date;
         global.isConnecting = false;
 
-        // **CORRECCIÓN CRÍTICA:** Asignar el handler SÓLO si el JID está disponible
+        // CRÍTICO: Asignación del handler
         if (global.conn.user?.jid && !isHandlerActive) {
-            global.conn.ev.on('messages.upsert', global.conn.handler);
+            
+            // Verificamos si el handler ya está vinculado para evitar duplicados
+            if (global.conn.ev.listeners('messages.upsert').length === 0) {
+                 global.conn.ev.on('messages.upsert', global.conn.handler);
+                 console.log(chalk.bold.yellowBright('✨ Handler de mensajes ACTIVADO (messages.upsert listener asignado).'));
+            } else {
+                 console.log(chalk.bold.yellowBright('✨ Handler ya estaba ACTIVO (listener existente).'));
+            }
+            
             isHandlerActive = true;
-            console.log(chalk.bold.yellowBright('✨ Handler de mensajes ACTIVADO. El bot está listo para responder.'));
         } else if (!global.conn.user?.jid) {
             // El JID aún no está disponible, esperamos un poco más.
             setTimeout(() => connectionUpdate(update), 1000);
@@ -246,7 +253,7 @@ async function connectionUpdate(update) {
 
     if (connection === 'close') {
         global.isConnecting = true;
-        
+
         // Desactivar handler si la conexión se cierra
         if (isHandlerActive) {
             global.conn.ev.off('messages.upsert', global.conn.handler);
@@ -333,7 +340,8 @@ global.reloadHandler = async function(restatConn) {
 };
 
 const __dirname = global.__dirname(import.meta.url);
-const pluginFolder = global.__dirname(join(__dirname, './plugins/index'));
+// CRÍTICO: Se corrigió la carpeta de plugins. Si tus plugins están directamente en './plugins', usa solo './plugins'
+const pluginFolder = global.__dirname(join(__dirname, './plugins')); 
 const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
 

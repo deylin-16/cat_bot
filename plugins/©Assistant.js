@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import { sticker } from '../lib/sticker.js';
 
-const GEMINI_API_KEY = 'TU_CLAVE_REAL'; 
+const GEMINI_API_KEY = 'AIzaSyD1V090ya1hDnW8ODQwdJ9RG5y8qK_Lmx0'; 
 const MODEL_NAME = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
 

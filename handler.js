@@ -155,13 +155,20 @@ export async function handler(chatUpdate) {
 
             if (typeof plugin.all === 'function') {
                 try {
+                    if (plugin.all.toString().includes('conn.user') && !conn.user) {
+                        return 
+                    }
+                    
                     await plugin.all.call(conn, m, {
                         chatUpdate,
                         __dirname: ___dirname,
                         __filename
                     });
                 } catch (e) {
-                    console.error(`Error en plugin.all de ${name}:`, e);
+                    if (e instanceof TypeError && e.message.includes('user')) {
+                    } else {
+                        console.error(`Error en plugin.all de ${name}:`, e);
+                    }
                 }
             }
 

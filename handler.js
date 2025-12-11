@@ -6,8 +6,8 @@ import chalk from 'chalk';
 import ws from 'ws';
 import { randomBytes, createHash } from 'crypto';
 import fetch from 'node-fetch';
-
-// --- Funciones Auxiliares ---
+import PhoneNumber from 'awesome-phonenumber';
+import urlRegex from 'url-regex-safe';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 const MAX_EXECUTION_TIME = 60000;
@@ -28,7 +28,6 @@ async function sendUniqueError(conn, error, origin, m) {
         return;
     }
 
-    // JID del Owner/Dev para notificaciones
     const targetJid = '50432955554@s.whatsapp.net'; 
     const messageBody = `
 🚨 *ERROR CRÍTICO DETECTADO* 🚨
@@ -80,10 +79,8 @@ function smsg(conn, m) {
         m.chat = normalizeJidSafe(remoteJid); 
         m.fromMe = m.key?.fromMe;
         
-        // Obtener JID del bot de forma segura
         const botJid = conn?.user?.jid || global.conn?.user?.jid || ''; 
         if (!botJid) {
-             // Permitimos pasar el mensaje para que el handler pueda intentar cargar la DB si falla.
         }
         
         m.sender = normalizeJidSafe(m.key?.fromMe ? botJid : m.key?.participant || remoteJid);
@@ -117,7 +114,6 @@ function smsg(conn, m) {
 }
 
 function getSafeChatData(jid) {
-    // BLINDAJE CRÍTICO: Si la DB no está cargada (undefined), devolvemos null para evitar el TypeError
     if (!global.db || !global.db.data || !global.db.data.chats) {
         return null; 
     }
@@ -144,8 +140,6 @@ function getSafeChatData(jid) {
     }
     return global.db.data.chats[jid];
 }
-
-// --- Función Principal Handler ---
 
 export async function handler(chatUpdate) {
     const startTime = Date.now();
@@ -177,7 +171,6 @@ export async function handler(chatUpdate) {
         return; 
     } 
 
-    // Revisión y carga de DB, en caso de fallo crítico de sincronización
     if (global.db.data == null) {
         try {
             await global.loadDatabase();
@@ -255,6 +248,41 @@ export async function handler(chatUpdate) {
         if (opts['swonly'] && m.chat !== 'status@broadcast') return;
         if (typeof m.text !== 'string') m.text = '';
 
+        // INICIO: LÓGICA DE IMPRESIÓN DE MENSAJES EN CONSOLA (Estilo Sencillo)
+        try {
+            const groupMetadata = m.isGroup ? (conn.chats[m.chat] || {}).metadata || await conn.groupMetadata(m.chat).catch(_ => null) || {} : {};
+            const senderName = m.isGroup ? m.sender.split('@')[0] : await conn.getName(m.sender);
+            const chatName = m.isGroup ? groupMetadata.subject : await conn.getName(m.chat);
+
+            const now = new Date();
+            const formattedTime = now.toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const formattedDate = now.toLocaleString('es-ES', { day: '2-digit', month: 'short' });
+
+            const isGroup = m.isGroup;
+            const chatLabel = isGroup ? `[G]` : `[P]`;
+            const senderNumber = new PhoneNumber('+' + m.sender.replace('@s.whatsapp.net', '')).getNumber('international');
+            
+            let logText = m.text.replace(/\u200e+/g, '');
+            logText = logText.replace(urlRegex({ strict: false }), (url) => chalk.blueBright(url));
+            
+            const logLine = chalk.bold.hex('#00FFFF')(`[${formattedTime}] `) +
+                            chalk.hex('#7FFF00').bold(chatLabel) + ' ' +
+                            chalk.hex('#FF4500')(`${chatName ? chatName.substring(0, 15) : 'N/A'}: `) +
+                            chalk.hex('#FFFF00')(`${senderName || senderNumber}: `) +
+                            (m.isCommand ? chalk.yellow(logText) : logText.substring(0, 60));
+            
+            console.log(logLine);
+            
+            if (m.isMedia) {
+                console.log(chalk.cyanBright(`\t\t\t [Tipo: ${m.mtype}]`));
+            }
+            
+        } catch (printError) {
+            console.error(chalk.red('Error al imprimir mensaje en consola:', printError));
+        }
+        // FIN: LÓGICA DE IMPRESIÓN DE MENSAJES EN CONSOLA
+
+
         let senderLid, botLid, groupMetadata, participants, user2, bot, isRAdmin, isAdmin, isBotAdmin;
 
         if (m.isGroup) {
@@ -308,7 +336,6 @@ export async function handler(chatUpdate) {
 
             const __filename = join(___dirname, name);
 
-            // 1. EJECUCIÓN DEL AUTORESPONDER (plugin.all)
             if (typeof plugin.all === 'function') {
                 try {
                     await plugin.all.call(conn, m, {
@@ -345,10 +372,9 @@ export async function handler(chatUpdate) {
                 [command, ...args] = noPrefix.trim().split(/\s+/).filter(v => v);
                 text = args.join(' ');
                 
-                // CRÍTICO: Detección de comando si solo se usa el prefijo (como un emoji)
                 if (!command && usedPrefix.length > 0 && Array.isArray(plugin.command) && plugin.command.includes(usedPrefix)) {
                     command = usedPrefix;
-                    usedPrefix = ''; // El prefijo es el comando en sí.
+                    usedPrefix = '';
                 } else {
                     command = (command || '').toLowerCase();
                 }
@@ -377,7 +403,6 @@ export async function handler(chatUpdate) {
                 if (!isNewDetection) continue;
             }
 
-            // 2. EJECUCIÓN DEL FILTRO ANTICOMANDOS (plugin.before)
             if (typeof plugin.before === 'function') {
                 const extraBefore = {
                     match, conn, participants, groupMetadata, user: global.db.data.users[m.sender], isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, chatUpdate, __dirname: ___dirname, __filename
@@ -412,7 +437,6 @@ export async function handler(chatUpdate) {
 
             m.plugin = name;
 
-            // Filtros de Baneo
             if (chat?.isBanned && !isROwner) return;
             if (chat?.modoadmin && !isOwner && !isROwner && m.isGroup && !isAdmin) return;
 
@@ -494,8 +518,6 @@ export async function handler(chatUpdate) {
     }
 }
 
-// --- Fallback Default ---
-
 global.dfail = (type, m, conn) => {
     const messages = {
         rowner: `Solo con Deylin-Eliac hablo de eso w.`,
@@ -509,8 +531,6 @@ global.dfail = (type, m, conn) => {
         conn.reply(m.chat, messages[type], m);
     }
 };
-
-// --- WatchFile ---
 
 let file = global.__filename(import.meta.url, true);
 watchFile(file, async () => {

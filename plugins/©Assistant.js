@@ -1,84 +1,71 @@
-import fetch from 'node-fetch';
-import { sticker } from '../lib/sticker.js';
+import fetch from 'node-fetch'
+import { sticker } from '../lib/sticker.js'
+
+let handler = m => m
 
 const POLLINATIONS_BASE_URL = 'https://text.pollinations.ai';
 
-export async function before(m, { conn }) {
-    if (!conn.user) return true;
+handler.all = async function (m, { conn }) {
+  let user = global.db.data.users[m.sender]
+  let chat = global.db.data.chats[m.chat]
 
-    let user = global.db.data.users[m.sender];
-    let chat = global.db.data.chats[m.chat];
 
-    let mentionedJidSafe = Array.isArray(m.mentionedJid) ? m.mentionedJid : [];
 
-    let botJid = conn.user.jid;
-    let botNumber = botJid.split('@')[0];
-    let text = m.text || '';
+  m.isBot = m.id.startsWith('BAE5') && m.id.length === 16 
+          || m.id.startsWith('3EB0') && (m.id.length === 12 || m.id.length === 20 || m.id.length === 22) 
+          || m.id.startsWith('B24E') && m.id.length === 20
+  if (m.isBot) return 
 
-    // CONDICIÓN DE ACTIVACIÓN: Activamos si el mensaje empieza con '@' (detección agresiva que funciona en tu entorno)
-    let isMentionedAtAll = text.trim().startsWith('@');
+  let prefixRegex = new RegExp('^[' + (opts?.prefix || '‎z/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.,\\-').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']')
+  if (prefixRegex.test(m.text)) return true
+
+  if (m.sender?.toLowerCase().includes('bot')) return true
+
+  if (!chat.isBanned && chat.autoresponder) {
+    if (m.fromMe) return
+
+    let query = m.text || ''
+    let username = m.pushName || 'Usuario'
+
+    let isOrBot = /bot/i.test(query)
+    let isReply = m.quoted && m.quoted.sender === this.user.jid
+    let isMention = m.mentionedJid && m.mentionedJid.includes(this.user.jid) 
+
+    if (!(isOrBot || isReply || isMention)) return
+
+    await this.sendPresenceUpdate('composing', m.chat)
+
     
-    if (!isMentionedAtAll) {
-        return true;
-    }
-
-    // --- FILTRO ESTRICTO: Si el bot NO está en la lista OFICIAL, y SI HAY otras JIDs, ignoramos. ---
-    
-    // Si la lista de menciones *no* incluye al bot, y esa lista no está vacía (alguien más fue mencionado),
-    // asumimos que no es para nosotros y salimos.
-    if (!mentionedJidSafe.includes(botJid) && mentionedJidSafe.length > 0) {
-        return true;
-    }
-
-    // --- El bot debe responder. Procedemos a limpiar la consulta. ---
-
-    let query = text;
-
-    // Limpiamos la mención del bot y de otros usuarios (solo por JID)
-    for (let jid of mentionedJidSafe) {
-        query = query.replace(new RegExp(`@${jid.split('@')[0]}(\\s|$)`, 'g'), ' ').trim();
-    }
-    
-    // Limpiamos cualquier rastro de @ al inicio que pueda haber quedado (maneja la mención al bot por nombre)
-    if (query.startsWith('@')) {
-        query = query.replace(/^@\S+\s?/, '').trim();
-    }
-    
-    let username = m.pushName || 'Usuario';
-
-    if (query.length === 0) return false;
-
     let jijiPrompt = `Eres Jiji, un gato negro sarcástico y leal, como el de Kiki: Entregas a Domicilio. Responde a ${username}: ${query}. 
     
     nota: si vas a resaltar un texto solo usas un * en cada esquina no **.`;
+    
+    let promptToSend = chat.sAutoresponder ? chat.sAutoresponder : jijiPrompt;
 
     try {
-        conn.sendPresenceUpdate('composing', m.chat);
-
-        const url = `${POLLINATIONS_BASE_URL}/${encodeURIComponent(jijiPrompt)}`;
-
-        const res = await fetch(url);
-
-        if (!res.ok) {
+      
+      const url = `${POLLINATIONS_BASE_URL}/${encodeURIComponent(promptToSend)}`;
+      const res = await fetch(url)
+      
+      if (!res.ok) {
             throw new Error(`Error HTTP: ${res.status}`);
-        }
+      }
+      
+      let result = await res.text()
 
-        let result = await res.text();
+      if (result && result.trim().length > 0) {
+        
+        result = result.replace(/\*\*(.*?)\*\*/g, '*$1*').trim(); 
+        result = result.replace(/([.?!])\s*/g, '$1\n\n').trim();
 
-        if (result && result.trim().length > 0) {
-            
-            result = result.replace(/\*\*(.*?)\*\*/g, '*$1*').trim(); 
-            
-            result = result.replace(/([.?!])\s*/g, '$1\n\n').trim();
-
-            await conn.reply(m.chat, result, m);
-            await conn.readMessages([m.key]);
-        } else {
-            await conn.reply(m.chat, `🐱 Hmph. La IA no tiene nada ingenioso que decir sobre *eso*.`, m);
-        }
+        await this.reply(m.chat, result, m)
+      }
     } catch (e) {
-        await conn.reply(m.chat, '⚠️ ¡Rayos! No puedo contactar con la nube de la IA. Parece que mis antenas felinas están fallando temporalmente.', m);
+      console.error(e)
+      await this.reply(m.chat, '⚠️ ¡Rayos! No puedo contactar con la nube de la IA. Parece que mis antenas felinas están fallando temporalmente.', m)
     }
-
-    return false;
+  }
+  return true
 }
+
+export default handler

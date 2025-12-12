@@ -15,24 +15,15 @@ export async function before(m, { conn }) {
     let botNumber = botJid.split('@')[0];
     let text = m.text || '';
     
-    // ----------------------------------------------------------------
-    // VERIFICACIÓN CRÍTICA: DETECCIÓN AGRESIVA
-    // ----------------------------------------------------------------
-    // 1. Verificar si el JID del bot está en la lista de menciones.
-    // 2. Si no lo está, verificar si el mensaje comienza con '@' seguido de cualquier número (JID falsa).
-    
     let isBotExplicitlyMentioned = mentionedJidSafe.includes(botJid) || text.trim().startsWith('@');
 
     if (!isBotExplicitlyMentioned) {
         return true;
     }
     
-    // Si la mención es la JID del bot, la quitamos.
     let query = text.replace(new RegExp(`@${botNumber}`, 'g'), '').trim();
     
-    // Si es una mención genérica (@algúnotroJID o @nombre) la limpiamos del inicio del texto.
     if (query.startsWith('@')) {
-        // Expresión regular para eliminar el primer "@" seguido de cualquier cosa hasta el primer espacio
         query = query.replace(/^@\S+\s?/, '').trim();
     }
     
@@ -42,7 +33,6 @@ export async function before(m, { conn }) {
 
     let jijiPrompt = `Eres Jiji, un gato negro sarcástico y leal, como el de Kiki: Entregas a Domicilio. Responde a ${username}: ${query}`;
 
-    // EJECUCIÓN DE LA API
     try {
         conn.sendPresenceUpdate('composing', m.chat);
         

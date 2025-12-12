@@ -10,7 +10,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
     const who = m.messageStubParameters?.[0]
     
     if (!who) {
-        // En algunos casos de comunidad/solicitudes, who viene vacío. Se ignora.
+        
         return
     }
 

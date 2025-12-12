@@ -5,7 +5,7 @@ let quoted = m.quoted
 if (!quoted) return 
 
 try {
-   await m.react('⌛')
+  // await m.react('')
 
 let viewOnceMessage = quoted.viewOnce ? quoted : quoted.mediaMessage?.imageMessage || quoted.mediaMessage?.videoMessage || quoted.mediaMessage?.audioMessage
 let messageType = viewOnceMessage.mimetype || quoted.mtype
@@ -42,7 +42,7 @@ await conn.sendMessage(destinationJid, {
 }, { quoted: m })  
 }
 
-await m.react('✔️')
+//await m.react('✔️')
 
 } catch (e) {
     await m.react('✖️')

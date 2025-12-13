@@ -1,5 +1,3 @@
-/*
-
 import fetch from 'node-fetch'
 import { sticker } from '../lib/sticker.js'
 
@@ -7,12 +5,24 @@ let handler = m => m
 
 const POLLINATIONS_BASE_URL = 'https://text.pollinations.ai';
 
+const ACTION_KEYWORDS = [
+    'cierra', 'cerrar', 'bloquea', 'ciérralo', 'silencia', 'modo-admin',
+    'abre', 'abrir', 'desbloquea', 'ábrelo', 'quita modo-admin',
+    'cambia el nombre', 'renombrar', 'ponle nombre', 'nuevo nombre', 'actualiza nombre',
+    'cambia la descripción', 'pon descripción', 'nueva descripción', 'descr',
+    'cambia la foto', 'pon foto', 'cambiar imagen',
+    'elimina', 'sacar', 'kickea', 'expulsa', 'saca', 'fuera',
+    'menciona todos', 'tagall', 'menciónalos', 'aviso a todos'
+];
+
+const DIRECT_COMMAND_REGEX = new RegExp(`^(jiji|gato|asistente)\\s+(${ACTION_KEYWORDS.join('|')})`, 'i');
+
+
 handler.all = async function (m, { conn }) {
   let user = global.db.data.users[m.sender]
   let chat = global.db.data.chats[m.chat]
 
-
-
+  
   m.isBot = m.id.startsWith('BAE5') && m.id.length === 16 
           || m.id.startsWith('3EB0') && (m.id.length === 12 || m.id.length === 20 || m.id.length === 22) 
           || m.id.startsWith('B24E') && m.id.length === 20
@@ -35,6 +45,12 @@ handler.all = async function (m, { conn }) {
 
     if (!(isOrBot || isReply || isMention)) return
 
+    if (DIRECT_COMMAND_REGEX.test(query.trim())) {
+        if (!/(como|cómo|que|qué|donde|dónde|porque|por qué|porqué|quisiera)/i.test(query.trim())) {
+            return true; 
+        }
+    }
+
     await this.sendPresenceUpdate('composing', m.chat)
 
 
@@ -56,8 +72,6 @@ handler.all = async function (m, { conn }) {
       let result = await res.text()
 
       if (result && result.trim().length > 0) {
-
-
         await this.reply(m.chat, result, m)
       }
     } catch (e) {
@@ -69,4 +83,3 @@ handler.all = async function (m, { conn }) {
 }
 
 export default handler
-*/

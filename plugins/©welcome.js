@@ -8,9 +8,8 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
     const totalMembers = participants.length
     const who = m.messageStubParameters?.[0]
-    
+
     if (!who) {
-        
         return
     }
 
@@ -29,14 +28,21 @@ export async function before(m, { conn, participants, groupMetadata }) {
     const defaultPp = 'https://i.ibb.co/jPSF32Pz/9005bfa156f1f56fb2ac661101d748a5.jpg'
 
     try {
+        
         ppUrl = await conn.profilePictureUrl(who, 'image')
     } catch {
-        ppUrl = defaultPp
+        try {
+            
+            ppUrl = await conn.profilePictureUrl(m.chat, 'image')
+        } catch {
+            
+            ppUrl = defaultPp
+        }
     }
-
+    
     const welcomeText = chat.customWelcome
     const nombreDelGrupo = groupMetadata.subject
-    
+
     let finalCaption = welcomeText
         .replace(/\\n/g, '\n')
         .replace(/@user/g, mentionListText)
@@ -51,7 +57,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
             message: { locationMessage: { name: `BIENVENID@ A _ ${nombreDelGrupo}`} }
         }
     } catch (e) {
-        
+
     }
 
     const jid = m.chat

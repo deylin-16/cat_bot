@@ -156,7 +156,7 @@ const handler = async (m, { conn, text, isROwner, isOwner, isRAdmin, isAdmin, is
         }, { quoted: m })
 
     } else {
-        m.reply('🙄 No entendí. Si vas a molestarme, al menos hazlo bien.')
+        //m.reply('🙄 No entendí. Si vas a molestarme, al menos hazlo bien.')
     }
 }
 

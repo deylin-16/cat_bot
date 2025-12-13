@@ -12,7 +12,10 @@ export const ACTION_SYNONYMS = {
     TAGALL: ['menciona todos', 'tagall', 'mencionar', 'aviso', 'notificar', 'menciónalos']
 };
 
-export async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, participants, groupMetadata, command }) {
+// **CORRECCIÓN AQUÍ:** Recibir un único objeto desestructurado
+export async function handleJijiCommand(m, { conn, isROwner, isOwner, isRAdmin, participants, groupMetadata, command }) {
+    
+    // Si m.reply no existe, garantizamos que usamos conn.reply
     const replyFunction = m.reply || ((text, quote, options) => conn.reply(m.chat, text, quote || m, options));
 
     if (!m.isGroup) {

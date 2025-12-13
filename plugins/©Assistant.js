@@ -17,40 +17,58 @@ const ACTION_SYNONYMS = {
 };
 
 async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, participants, groupMetadata, command }) {
-    if (!m.isGroup) return m.reply('😒 ¿De verdad esperabas que hiciera algo en privado? Solo sirvo para grupos.')
+    if (!m.isGroup) {
+        m.reply('😒 ¿De verdad esperabas que hiciera algo en privado? Solo sirvo para grupos.');
+        return true; 
+    }
     
-    if (!isAdmin) return m.reply('😼 Te crees importante, ¿verdad? Solo hablo con los administradores, humano.')
+    if (!isAdmin) {
+        m.reply('😼 Te crees importante, ¿verdad? Solo hablo con los administradores, humano.');
+        return true; 
+    }
     
-    if (!isBotAdmin) return m.reply('🙄 Soy un gato ocupado. Necesito ser administrador para molestarte y hacer estas cosas. ¡Arregla eso!')
+    if (!isBotAdmin) {
+        m.reply('🙄 Soy un gato ocupado. Necesito ser administrador para molestarte y hacer estas cosas. ¡Arregla eso!');
+        return true; 
+    }
 
     let actionText = m.text.substring(command.length).toLowerCase().trim()
-    if (!actionText) return m.reply(`*Instrucciones de Jiji. No me hagas repetirlo:*\n\n🔑 *Grupo:* jiji cierra el grupo | jiji abre el grupo\n📝 *Metadatos:* jiji cambia el nombre a [nombre] | jiji cambia la foto (responde a una imagen)\n✂️ *Mantenimiento:* jiji elimina a @user | jiji menciona a todos`)
+    if (!actionText) {
+        m.reply(`*Instrucciones de Jiji. No me hagas repetirlo:*\n\n🔑 *Grupo:* jiji cierra el grupo | jiji abre el grupo\n📝 *Metadatos:* jiji cambia el nombre a [nombre] | jiji cambia la foto (responde a una imagen)\n✂️ *Mantenimiento:* jiji elimina a @user | jiji menciona a todos`);
+        return true;
+    }
 
     const actionWords = actionText.split(/\s+/).slice(0, 3).join(' ')
-    let actionFound = false;
+    let actionExecuted = false;
 
     // --- CERRAR GRUPO ---
     if (ACTION_SYNONYMS.CLOSE.some(syn => actionWords.includes(syn))) {
         await conn.groupSettingUpdate(m.chat, 'announcement')
         m.reply('🔒 Hecho. Silencio total. Ahora, hazme caso.')
-        actionFound = true;
+        actionExecuted = true;
 
     // --- ABRIR GRUPO ---
     } else if (ACTION_SYNONYMS.OPEN.some(syn => actionWords.includes(syn))) {
         await conn.groupSettingUpdate(m.chat, 'not_announcement')
         m.reply('🔓 ¡Qué fastidio! Grupo abierto. Que empiece el ruido.')
-        actionFound = true;
+        actionExecuted = true;
 
     // --- CAMBIAR NOMBRE DEL GRUPO ---
     } else if (ACTION_SYNONYMS.RENAME.some(syn => actionWords.includes(syn))) {
         let newSubject = actionText.replace(new RegExp(ACTION_SYNONYMS.RENAME.join('|'), 'gi'), '').trim()
         
-        if (!newSubject) return m.reply('😒 ¿Acaso esperas que adivine el nombre? Dímelo.')
-        if (newSubject.length > 25) return m.reply('🙄 El nombre no es una novela. Menos de 25 caracteres.')
+        if (!newSubject) {
+            m.reply('😒 ¿Acaso esperas que adivine el nombre? Dímelo.');
+            return true;
+        }
+        if (newSubject.length > 25) {
+            m.reply('🙄 El nombre no es una novela. Menos de 25 caracteres.');
+            return true;
+        }
 
         await conn.groupUpdateSubject(m.chat, newSubject)
         m.reply(`✅ Título cambiado a: *${newSubject}*. Qué creatividad.`)
-        actionFound = true;
+        actionExecuted = true;
 
     // --- CAMBIAR DESCRIPCIÓN DEL GRUPO ---
     } else if (ACTION_SYNONYMS.DESC.some(syn => actionWords.includes(syn))) {
@@ -60,11 +78,14 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
             newDesc = m.quoted.text.trim()
         }
         
-        if (!newDesc) return m.reply('😒 Necesito el texto. ¿Respondiste a algo? ¿O vas a escribirlo?')
+        if (!newDesc) {
+            m.reply('😒 Necesito el texto. ¿Respondiste a algo? ¿O vas a escribirlo?');
+            return true;
+        }
         
         await conn.groupUpdateDescription(m.chat, newDesc)
         m.reply('✅ Descripción actualizada. Espero que sirva de algo.')
-        actionFound = true;
+        actionExecuted = true;
 
     // --- CAMBIAR FOTO DEL GRUPO ---
     } else if (ACTION_SYNONYMS.PHOTO.some(syn => actionWords.includes(syn))) {
@@ -72,7 +93,8 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
         let mime = (q.msg || q).mimetype || q.mediaType || ''
         
         if (!/image\/(jpe?g|png)|webp/.test(mime)) {
-            return m.reply('🖼️ Tienes que responder a una imagen, ¿o esperas que ponga una foto mía? Nunca.')
+            m.reply('🖼️ Tienes que responder a una imagen, ¿o esperas que ponga una foto mía? Nunca.')
+            return true;
         }
 
         try {
@@ -88,7 +110,7 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
             console.error(e)
             m.reply('❌ Falló. Problema de la imagen. No es mi culpa.')
         }
-        actionFound = true;
+        actionExecuted = true;
         
     // --- ELIMINAR USUARIOS ---
     } else if (ACTION_SYNONYMS.REMOVE.some(syn => actionWords.includes(syn))) {
@@ -101,7 +123,10 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
             }
         }
         
-        if (users.length === 0) return m.reply('🤦 Menciona al culpable (o responde a su mensaje). Pierdo mi tiempo.')
+        if (users.length === 0) {
+            m.reply('🤦 Menciona al culpable (o responde a su mensaje). Pierdo mi tiempo.');
+            return true;
+        }
 
         for (let user of users) {
             const isTargetAdmin = groupMetadata.participants.find(p => p.id === user)?.admin
@@ -113,7 +138,7 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
             await conn.groupParticipantsUpdate(m.chat, [user], 'remove')
             m.reply(`🧹 Uno menos. @${user.split('@')[0]} ha sido expulsado. La paz sea contigo (por ahora).`)
         }
-        actionFound = true;
+        actionExecuted = true;
 
     // --- MENCIONAR A TODOS (TAGALL) ---
     } else if (ACTION_SYNONYMS.TAGALL.some(syn => actionWords.includes(syn))) {
@@ -128,14 +153,11 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
             text: mentionText, 
             contextInfo: { mentionedJid: members } 
         }, { quoted: m })
-        actionFound = true;
+        actionExecuted = true;
     }
     
-    // Si se encontró una palabra de acción, pero la acción falló, la IA no debe responder.
-    if (actionFound) return true;
-    
-    // Si no se encontró ninguna acción específica, se pasa a la IA.
-    return false;
+    // Si se ejecutó una acción de moderación, devolvemos TRUE para detener la IA.
+    return actionExecuted;
 }
 
 
@@ -178,7 +200,7 @@ handler.all = async function (m, { conn, isROwner, isOwner, isRAdmin, isAdmin, i
 
         await this.sendPresenceUpdate('composing', m.chat)
 
-        const adminKeywords = new RegExp(`(${Object.values(ACTION_SYNONYMS).flat().join('|')})`, 'i');
+        const adminKeywords = new RegExp(`(jiji|${Object.values(ACTION_SYNONYMS).flat().join('|')})`, 'i');
 
         if (adminKeywords.test(query)) {
              await this.reply(m.chat, '🙄 Eso es trabajo de mantenimiento, no una pregunta existencial. No me mezcles en tus tareas de administrador.', m);

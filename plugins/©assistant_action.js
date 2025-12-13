@@ -1,3 +1,4 @@
+
 import { webp2png } from '../lib/webp2mp4.js'
 import fetch from 'node-fetch'
 import { isJidGroup } from '@whiskeysockets/baileys'
@@ -61,15 +62,6 @@ const randomResponse = (key, ...args) => {
 
 const handler = async (m, { conn, text, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, participants, groupMetadata, command }) => {
 
-    if (m.isGroup && typeof global.getGroupAssistantConfig === 'function') {
-        const config = global.getGroupAssistantConfig(m.chat);
-        const configuredCommand = config.assistantCommand; 
-        
-        if (command !== configuredCommand) {
-            return;
-        }
-    }
-
     if (!m.isGroup) return m.reply(randomResponse('NO_GROUP'), m.chat, { quoted: m })
     if (!isAdmin) return m.reply(randomResponse('NO_ADMIN'), m.chat, { quoted: m })
     if (!isBotAdmin) return m.reply(randomResponse('NO_BOT_ADMIN'), m.chat, { quoted: m })
@@ -77,8 +69,7 @@ const handler = async (m, { conn, text, isROwner, isOwner, isRAdmin, isAdmin, is
     const actionText = text.toLowerCase().trim()
 
     if (!actionText) {
-        const commandUsed = m.isGroup ? global.getGroupAssistantConfig(m.chat).assistantCommand : command;
-        return m.reply(randomResponse('USAGE_HINT', commandUsed), m.chat, { quoted: m })
+        return m.reply(randomResponse('USAGE_HINT', command), m.chat, { quoted: m })
     }
 
     let actionKey = null;
@@ -97,9 +88,7 @@ const handler = async (m, { conn, text, isROwner, isOwner, isRAdmin, isAdmin, is
     }
 
     const cleanArgument = (fullText, usedPhrase) => {
-        const actualCommand = m.isGroup ? global.getGroupAssistantConfig(m.chat).assistantCommand : command;
-        
-        return fullText.replace(actualCommand, '').trim()
+        return fullText.replace(command, '').trim()
                        .replace(usedPhrase, '').trim()
                        .replace(new RegExp(usedPhrase, 'gi'), '').trim();
     };
@@ -229,7 +218,6 @@ const handler = async (m, { conn, text, isROwner, isOwner, isRAdmin, isAdmin, is
     } else if (actionKey === 'TAGALL') {
         let members = participants.map(p => p.id)
 
-        const actualCommand = m.isGroup ? global.getGroupAssistantConfig(m.chat).assistantCommand : command;
         let customText = cleanArgument(actionText, commandPhraseUsed);
 
         let mentionText = customText ? 
@@ -253,3 +241,4 @@ handler.group = true
 handler.admin = true
 
 export default handler
+

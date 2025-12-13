@@ -185,17 +185,17 @@ handler.all = async function (m, { conn, isROwner, isOwner, isRAdmin, isAdmin, i
         let username = m.pushName || 'Usuario'
 
         let isOrBot = /(jiji|gato|asistente)/i.test(query)
-        let isReply = m.quoted && m.quoted.sender === this.user.jid
-        let isMention = m.mentionedJid && m.mentionedJid.includes(this.user.jid) 
+        let isReply = m.quoted && m.quoted.sender === conn.user.jid
+        let isMention = m.mentionedJid && m.mentionedJid.includes(conn.user.jid) 
 
         if (!(isOrBot || isReply || isMention)) return
 
-        await this.sendPresenceUpdate('composing', m.chat)
+        await conn.sendPresenceUpdate('composing', m.chat)
 
         const adminKeywords = new RegExp(`(jiji|${Object.values(ACTION_SYNONYMS).flat().join('|')})`, 'i');
 
         if (adminKeywords.test(query)) {
-             await this.reply(m.chat, '🙄 Eso es trabajo de mantenimiento, no una pregunta existencial. No me mezcles en tus tareas de administrador.', m);
+             await conn.reply(m.chat, '🙄 Eso es trabajo de mantenimiento, no una pregunta existencial. No me mezcles en tus tareas de administrador.', m);
              return;
         }
 
@@ -217,11 +217,11 @@ handler.all = async function (m, { conn, isROwner, isOwner, isRAdmin, isAdmin, i
             let result = await res.text()
 
             if (result && result.trim().length > 0) {
-                await this.reply(m.chat, result, m)
+                await conn.reply(m.chat, result, m)
             }
         } catch (e) {
             console.error(e)
-            await this.reply(m.chat, '⚠️ ¡Rayos! No puedo contactar con la nube de la IA. Parece que mis antenas felinas están fallando temporalmente.', m)
+            await conn.reply(m.chat, '⚠️ ¡Rayos! No puedo contactar con la nube de la IA. Parece que mis antenas felinas están fallando temporalmente.', m)
         }
     }
     return true

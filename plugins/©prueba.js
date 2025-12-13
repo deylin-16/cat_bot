@@ -10,12 +10,12 @@ const loadConfigs = () => {
     if (fs.existsSync(DB_PATH)) {
         content = fs.readFileSync(DB_PATH, 'utf8').trim()
     }
-    
+
     if (content === '') {
         fs.writeFileSync(DB_PATH, JSON.stringify({}), 'utf8')
         return {}
     }
-    
+
     try {
         return JSON.parse(content)
     } catch (e) {
@@ -30,13 +30,13 @@ const saveConfigs = (configs) => {
 }
 
 const handler = async (m, { conn, text, command, isROwner }) => {
-    
+
     if (!isROwner) return m.reply('❌ Este comando solo puede ser ejecutado por el Propietario/Desarrollador del bot.')
     if (!m.isGroup) return m.reply('❌ Esta personalización es específica para grupos.')
-    
+
     const chatId = m.chat
     const configs = loadConfigs()
-    
+
     const args = text.split(' ')
     const action = args[0].toLowerCase()
     const value = args.slice(1).join(' ').trim()
@@ -45,17 +45,18 @@ const handler = async (m, { conn, text, command, isROwner }) => {
         return m.reply(`*Uso:*
 *${command} nombre* [Nuevo Nombre del Asistente]
 *${command} imagen* (Responde a una imagen para guardarla como logo del asistente)
+*${command} comando* [Nuevo Comando de una sola palabra]
 *${command} reset* (Para volver a la configuración predeterminada)
 `)
     }
 
     if (!configs[chatId]) {
-        configs[chatId] = { assistantName: null, assistantImage: null }
+        configs[chatId] = { assistantName: null, assistantImage: null, assistantCommand: null }
     }
-    
+
     if (action === 'nombre') {
         if (!value) return m.reply('⚠️ Por favor, introduce el nuevo nombre del asistente para este grupo.')
-        
+
         configs[chatId].assistantName = value
         saveConfigs(configs)
         m.reply(`✅ Nombre del asistente para este grupo cambiado a: *${value}*.`)
@@ -67,28 +68,43 @@ const handler = async (m, { conn, text, command, isROwner }) => {
         if (!/image\/(jpe?g|png)|webp/.test(mime)) {
             return m.reply('🖼️ Debe responder a una imagen para guardarla como logo/imagen del asistente en este grupo.')
         }
-        
+
         try {
             let media = await q.download?.()
             const base64Image = media.toString('base64') 
 
             configs[chatId].assistantImage = base64Image
             saveConfigs(configs)
-            
+
             m.reply('✅ Imagen del asistente guardada exitosamente para este grupo.')
-            
+
         } catch (e) {
             console.error(e)
             m.reply('❌ Falló la descarga o guardado de la imagen.')
         }
-        
+
+    } else if (action === 'comando') {
+        if (!value) return m.reply('⚠️ Por favor, introduce el nuevo comando de una sola palabra.')
+
+        if (value.includes(' ')) {
+            return m.reply('🚫 El comando debe ser una única palabra (ej: kiki, bot, jarvis).')
+        }
+
+        if (!/^[a-zA-Z0-9]+$/.test(value)) {
+            return m.reply('🚫 El comando solo debe contener letras y números.')
+        }
+
+        configs[chatId].assistantCommand = value.toLowerCase()
+        saveConfigs(configs)
+        m.reply(`✅ Comando principal del asistente para este grupo cambiado a: *${value.toLowerCase()}*.`)
+
     } else if (action === 'reset') {
         delete configs[chatId]
         saveConfigs(configs)
-        m.reply('✅ Configuración del asistente restablecida a la identidad predeterminada.')
-        
+        m.reply('✅ Configuración del asistente restablecida a la identidad predeterminada (Nombre: Jiji, Comando: jiji).')
+
     } else {
-        return m.reply(`*Acción desconocida:* '${action}'. Use 'nombre', 'imagen', o 'reset'.`)
+        return m.reply(`*Acción desconocida:* '${action}'. Use 'nombre', 'imagen', 'comando' o 'reset'.`)
     }
 }
 

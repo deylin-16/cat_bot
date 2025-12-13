@@ -101,19 +101,13 @@ const handler = async (m, { conn, text, isROwner, isOwner, isRAdmin, isAdmin, is
 
     } else if (actionKey === 'REMOVE') {
         let users = m.mentionedJid.filter(u => u.endsWith('@s.whatsapp.net'))
-        let targetJid = null;
-
-        if (users.length === 0) {
-            const jidRegex = /\d+@s\.whatsapp\.net/g; 
-            const jidsInText = text.match(jidRegex);
-            
-            if (jidsInText) {
-                users.push(...jidsInText.filter(jid => participants.some(p => p.id === jid)));
-            }
+        
+        if (users.length === 0 && m.message && m.message.extendedTextMessage && m.message.extendedTextMessage.contextInfo && m.message.extendedTextMessage.contextInfo.mentionedJid) {
+             users.push(...m.message.extendedTextMessage.contextInfo.mentionedJid.filter(u => u.endsWith('@s.whatsapp.net')));
         }
         
         if (users.length === 0 && m.quoted) {
-            targetJid = m.quoted.sender
+            let targetJid = m.quoted.sender
             if (targetJid.endsWith('@s.whatsapp.net')) {
                 users.push(targetJid)
             }
@@ -125,24 +119,29 @@ const handler = async (m, { conn, text, isROwner, isOwner, isRAdmin, isAdmin, is
 
         for (let user of users) {
             const isTargetAdmin = groupMetadata.participants.find(p => p.id === user)?.admin
-            
+
             if (isTargetAdmin === 'admin' && !isRAdmin && !isOwner) {
-                m.reply(`😼 No soy tu guardián. No puedo sacar a @${user.split('@')[0]} porque también es administrador.`)
+                conn.sendMessage(m.chat, { text: `😼 No soy tu guardián. No puedo sacar a @${user.split('@')[0]} porque también es administrador.`, contextInfo: { mentionedJid: [user] } }, { quoted: m })
                 continue
             }
-            
+
             if (user === conn.user.jid) {
                  m.reply('😒 No puedo sacarme a mí mismo, ¿estás intentando bromear?')
                 continue
             }
-            
+
             await conn.groupParticipantsUpdate(m.chat, [user], 'remove')
-            m.reply(`🧹 Uno menos. @${user.split('@')[0]} ha sido expulsado. La paz sea contigo (por ahora).`)
+            
+            // CORRECCIÓN: Usar conn.sendMessage para forzar la mención
+            conn.sendMessage(m.chat, { 
+                text: `🧹 Uno menos. @${user.split('@')[0]} ha sido expulsado. La paz sea contigo (por ahora).`,
+                contextInfo: { mentionedJid: [user] } 
+            }, { quoted: m })
         }
 
     } else if (actionKey === 'TAGALL') {
         let members = participants.map(p => p.id)
-        
+
         let customText = cleanArgument(actionText, commandPhraseUsed);
 
         let mentionText = customText ? 

@@ -17,15 +17,6 @@ const ACTION_SYNONYMS = {
 };
 
 async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, participants, groupMetadata, command }) {
-    if (!m.isGroup) {
-        m.reply('😒 ¿De verdad esperabas que hiciera algo en privado? Solo sirvo para grupos.');
-        return true; 
-    }
-    
-    if (!isAdmin) {
-        m.reply('😼 Te crees importante, ¿verdad? Solo hablo con los administradores, humano.');
-        return true; 
-    }
     
     if (!isBotAdmin) {
         m.reply('🙄 Soy un gato ocupado. Necesito ser administrador para molestarte y hacer estas cosas. ¡Arregla eso!');
@@ -41,19 +32,16 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
     const actionWords = actionText.split(/\s+/).slice(0, 3).join(' ')
     let actionExecuted = false;
 
-    // --- CERRAR GRUPO ---
     if (ACTION_SYNONYMS.CLOSE.some(syn => actionWords.includes(syn))) {
         await conn.groupSettingUpdate(m.chat, 'announcement')
         m.reply('🔒 Hecho. Silencio total. Ahora, hazme caso.')
         actionExecuted = true;
 
-    // --- ABRIR GRUPO ---
     } else if (ACTION_SYNONYMS.OPEN.some(syn => actionWords.includes(syn))) {
         await conn.groupSettingUpdate(m.chat, 'not_announcement')
         m.reply('🔓 ¡Qué fastidio! Grupo abierto. Que empiece el ruido.')
         actionExecuted = true;
 
-    // --- CAMBIAR NOMBRE DEL GRUPO ---
     } else if (ACTION_SYNONYMS.RENAME.some(syn => actionWords.includes(syn))) {
         let newSubject = actionText.replace(new RegExp(ACTION_SYNONYMS.RENAME.join('|'), 'gi'), '').trim()
         
@@ -70,7 +58,6 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
         m.reply(`✅ Título cambiado a: *${newSubject}*. Qué creatividad.`)
         actionExecuted = true;
 
-    // --- CAMBIAR DESCRIPCIÓN DEL GRUPO ---
     } else if (ACTION_SYNONYMS.DESC.some(syn => actionWords.includes(syn))) {
         let newDesc = actionText.replace(new RegExp(ACTION_SYNONYMS.DESC.join('|'), 'gi'), '').trim()
         
@@ -87,7 +74,6 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
         m.reply('✅ Descripción actualizada. Espero que sirva de algo.')
         actionExecuted = true;
 
-    // --- CAMBIAR FOTO DEL GRUPO ---
     } else if (ACTION_SYNONYMS.PHOTO.some(syn => actionWords.includes(syn))) {
         let q = m.quoted ? m.quoted : m
         let mime = (q.msg || q).mimetype || q.mediaType || ''
@@ -112,7 +98,6 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
         }
         actionExecuted = true;
         
-    // --- ELIMINAR USUARIOS ---
     } else if (ACTION_SYNONYMS.REMOVE.some(syn => actionWords.includes(syn))) {
         let users = m.mentionedJid.filter(u => u.endsWith('@s.whatsapp.net'))
         
@@ -140,7 +125,6 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
         }
         actionExecuted = true;
 
-    // --- MENCIONAR A TODOS (TAGALL) ---
     } else if (ACTION_SYNONYMS.TAGALL.some(syn => actionWords.includes(syn))) {
         let members = participants.map(p => p.id)
         
@@ -156,7 +140,6 @@ async function handleJijiCommand(m, conn, { isROwner, isOwner, isRAdmin, isAdmin
         actionExecuted = true;
     }
     
-    // Si se ejecutó una acción de moderación, devolvemos TRUE para detener la IA.
     return actionExecuted;
 }
 
@@ -175,6 +158,15 @@ handler.all = async function (m, { conn, isROwner, isOwner, isRAdmin, isAdmin, i
     let [mainCommand] = (m.text || '').trim().toLowerCase().split(/\s+/);
     
     if (mainCommand === 'jiji') {
+        if (!m.isGroup) {
+            conn.reply(m.chat, '😒 ¿De verdad esperabas que hiciera algo en privado? Solo sirvo para grupos.', m);
+            return true;
+        }
+        if (!isAdmin) {
+            conn.reply(m.chat, '😼 Te crees importante, ¿verdad? Solo hablo con los administradores, humano.', m);
+            return true;
+        }
+
         const commandParams = { isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, participants, groupMetadata, command: 'jiji' };
         const executedAction = await handleJijiCommand(m, conn, commandParams);
         if (executedAction) return true; 

@@ -46,12 +46,13 @@ global.getGroupAssistantConfig = (chatId) => {
     } catch (e) {
         console.error("Error al leer group_configs.json:", e)
     }
-    
+
     const groupConfig = configs[chatId]
-    
+
     return {
         assistantName: groupConfig?.assistantName || global.bot,
-        assistantImage: groupConfig?.assistantImage || null 
+        assistantImage: groupConfig?.assistantImage || null,
+        assistantCommand: groupConfig?.assistantCommand || 'jiji' 
     }
 }
 

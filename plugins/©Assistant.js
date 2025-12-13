@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import { handleJijiCommand, ACTION_SYNONYMS } from './© prueba.js' 
+import { handleJijiCommand, ACTION_SYNONYMS } from './©prueba.js' 
 
 const POLLINATIONS_BASE_URL = 'https://text.pollinations.ai';
 

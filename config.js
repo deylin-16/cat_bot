@@ -6,7 +6,7 @@ import cheerio from 'cheerio'
 import fetch from 'node-fetch'
 import axios from 'axios'
 import moment from 'moment-timezone' 
-
+import path from 'path'
 
 global.owner = [
   [ '50432955554', 'Eliac', true ]
@@ -26,19 +26,34 @@ let Names = [
     '🅹🅸🅹🅸 - 🄰🅂🅂🄸🅂🅃🄰🅽🆃', 
     '𝐉𝐢𝐣𝐢 - 𝐀𝐬𝐬𝐢𝐬𝐭𝐚𝐧𝐭', 
     'Ⓙⓘⓙⓘ - Ⓐⓢⓢⓘⓢⓣⓐⓝⓣ', 
-    '𝙹𝙸𝙹𝙸 - 𝙰𝚂𝚂𝙸𝚂𝚃𝙰𝙽𝚃', 
+    '𝙹𝙸𝹹𝙸 - 𝙰𝚂𝚂𝙸𝚂𝚃𝙰𝙽𝚃', 
     '¡ſıſı - ʇuɐʇsıssɐ', 
-    'J I J I - A S S I S T A N T', 
+    'J I J I - A S S I S T A N T',
 ];
 
 let randomIndex = Math.floor(Math.random() * Names.length);
 global.bot = Names[randomIndex];
 
-  
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const DB_PATH = path.join(__dirname, 'db/group_configs.json')
 
-
-
-
+global.getGroupAssistantConfig = (chatId) => {
+    let configs = {}
+    try {
+        if (fs.existsSync(DB_PATH)) {
+            configs = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'))
+        }
+    } catch (e) {
+        console.error("Error al leer group_configs.json:", e)
+    }
+    
+    const groupConfig = configs[chatId]
+    
+    return {
+        assistantName: groupConfig?.assistantName || global.bot,
+        assistantImage: groupConfig?.assistantImage || null 
+    }
+}
 
 let file = fileURLToPath(import.meta.url)
 watchFile(file, () => {

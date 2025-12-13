@@ -6,11 +6,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DB_PATH = path.join(__dirname, '../db/group_configs.json')
 
 const loadConfigs = () => {
-    if (!fs.existsSync(DB_PATH)) {
+    let content = '{}'
+    if (fs.existsSync(DB_PATH)) {
+        content = fs.readFileSync(DB_PATH, 'utf8').trim()
+    }
+    
+    if (content === '') {
         fs.writeFileSync(DB_PATH, JSON.stringify({}), 'utf8')
         return {}
     }
-    return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'))
+    
+    try {
+        return JSON.parse(content)
+    } catch (e) {
+        console.error("El archivo group_configs.json está corrupto. Restableciendo a {}.", e)
+        fs.writeFileSync(DB_PATH, JSON.stringify({}), 'utf8')
+        return {}
+    }
 }
 
 const saveConfigs = (configs) => {

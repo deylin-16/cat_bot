@@ -123,7 +123,7 @@ const savetube = {
   }
 };
 
-const handler = async (m, { conn, text, command }) => {
+const handler = async (m, { conn, text, command, usedPrefix }) => {
   await m.react("🔎");
   if (!text?.trim()) {
     return conn.reply(m.chat, "🎧 Dame el link de YouTube o el nombre de la canción/video", m);

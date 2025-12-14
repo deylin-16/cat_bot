@@ -113,9 +113,8 @@ var handler = async (m, { conn, args }) => {
     }
 };
 
-handler.help = ['descargar'].map(v => v + ' <link>');
-handler.tags = ['descargas'];
-handler.command = ['descargar', 'dl'];
+
+handler.command = ['descargar', 'dl', 'descarga'];
 handler.register = true;
 handler.group = true;
 

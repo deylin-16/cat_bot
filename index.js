@@ -148,9 +148,92 @@ console.log(chalk.bold.white(chalk.bgMagenta(`\n🌟 CÓDIGO DE 8 DÍGITOS 🌟`
 }, 3000)
 }}}
 
+global.conns = new Map();
+global.authCodeMap = new Map();
+global.authCodeNumber = 1;
+global.usedNumbers = new Set();
 
-conn.isInit = false;
-conn.well = false;
+async function connectionUpdateJadibot(update) {
+    const conn = this;
+    const { connection, lastDisconnect, isNewLogin } = update;
+    if (isNewLogin) conn.isInit = true;
+
+    const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode;
+    if (code && code !== DisconnectReason.loggedOut && conn?.ws.socket == null) {
+        setTimeout(() => global.subreloadHandler(true).catch(console.error), 1000); 
+    }
+    
+    if (connection == 'open') {
+        console.log(chalk.bold.hex('#00FF00')(`\n✅ SUBSECCIÓN ${conn.numberConn || 'N/A'} CONECTADA (${conn.user.jid})`));
+    }
+
+    if (connection === 'close') {
+        const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+        console.log(chalk.bold.hex('#FF0000')(`\n❌ SUBSECCIÓN ${conn.numberConn || 'N/A'} DESCONECTADA: ${reason}`));
+
+        if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.badSession) {
+            const sessionPath = `./${global.sessions}/jadibot-${conn.numberConn}`;
+            if (fs.existsSync(sessionPath)) {
+                rmSync(sessionPath, { recursive: true, force: true });
+            }
+            global.conns.delete(conn.user.jid);
+            global.usedNumbers.delete(conn.numberConn);
+        } else {
+            setTimeout(() => global.subreloadHandler(true).catch(console.error), 1000);
+        }
+    }
+}
+
+async function loadJadibotSessions() {
+    const jadibotDir = `./${global.sessions}/`;
+    if (!fs.existsSync(jadibotDir)) return;
+
+    const files = fs.readdirSync(jadibotDir).filter(f => f.startsWith('jadibot-') && fs.statSync(path.join(jadibotDir, f)).isDirectory());
+    
+    for (const folder of files) {
+        const numberMatch = folder.match(/jadibot-(\d+)/);
+        if (!numberMatch) continue;
+        const numberConn = numberMatch[1];
+        
+        try {
+            const { state, saveState, saveCreds } = await useMultiFileAuthState(`./${global.sessions}/${folder}`);
+            
+            const subConn = makeWASocket({
+                ...connectionOptions,
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
+                },
+                getMessage: async (clave) => {
+                    let jid = jidNormalizedUser(clave.remoteJid);
+                    let msg = await store.loadMessage(jid, clave.id);
+                    return msg?.message || "";
+                },
+            });
+            
+            subConn.numberConn = numberConn;
+            subConn.saveCreds = saveCreds;
+            global.conns.set(subConn.user.jid, subConn);
+            global.usedNumbers.add(numberConn);
+            
+            subConn.ev.on('connection.update', connectionUpdateJadibot.bind(subConn));
+            subConn.ev.on('creds.update', subConn.saveCreds.bind(subConn, true));
+            
+            console.log(chalk.bold.hex('#00FFFF')(`\n⚙️ CARGANDO SUBSECCIÓN NÚMERO ${numberConn}...`));
+            
+        } catch (e) {
+            console.error(`Error al cargar la subsesión ${numberConn}:`, e);
+        }
+    }
+    
+    if (global.usedNumbers.size > 0) {
+        const maxNumber = Math.max(...Array.from(global.usedNumbers).map(Number));
+        global.authCodeNumber = maxNumber + 1;
+    }
+}
+
+global.conn.isInit = false;
+global.conn.well = false;
 
 if (!opts['test']) {
 if (global.db) setInterval(async () => {
@@ -201,6 +284,35 @@ process.on('uncaughtException', console.error)
 
 let isInit = true;
 let handler = await import('./handler.js')
+
+global.subreloadHandler = async function(restart) {
+    console.log(chalk.bold.hex('#FFA500')(`\n🔄 RECARGANDO LÓGICA DE SUBSECCIONES...`));
+    try {
+        const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
+        if (Object.keys(Handler || {}).length) handler = Handler;
+    } catch (e) {
+        console.error(e);
+    }
+
+    for (const [jid, subConn] of global.conns.entries()) {
+        if (!subConn.user) continue;
+        if (!subConn.isInit) {
+            subConn.ev.off('messages.upsert', subConn.handler);
+            subConn.ev.off('connection.update', subConn.connectionUpdate);
+            subConn.ev.off('creds.update', subConn.credsUpdate);
+        }
+
+        subConn.handler = handler.handler.bind(subConn);
+        subConn.connectionUpdate = connectionUpdateJadibot.bind(subConn);
+        subConn.credsUpdate = subConn.saveCreds.bind(subConn, true);
+
+        subConn.ev.on('messages.upsert', subConn.handler);
+        subConn.ev.on('connection.update', subConn.connectionUpdate);
+        subConn.ev.on('creds.update', subConn.credsUpdate);
+        subConn.isInit = false;
+    }
+};
+
 global.reloadHandler = async function(restatConn) {
 try {
 const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
@@ -240,8 +352,13 @@ conn.ev.on('messages.upsert', conn.handler)
 conn.ev.on('connection.update', conn.connectionUpdate)
 conn.ev.on('creds.update', conn.credsUpdate)
 isInit = false
+await global.subreloadHandler(false);
 return true
 };
+
+loadJadibotSessions().then(() => {
+    global.subreloadHandler(false);
+});
 
 const pluginFolder = global.__dirname(join(__dirname, './plugins/index'))
 const pluginFilter = (filename) => /\.js$/.test(filename)

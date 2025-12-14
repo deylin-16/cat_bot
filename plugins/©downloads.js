@@ -11,7 +11,6 @@ const processingResponses = [
     "Módulo de rastreo activo. Recuperando información del vídeo solicitado."
 ];
 
-
 const errorResponses = {
     general: [
         "Fallo de acceso al recurso. Verifique la sintaxis y disponibilidad del enlace.",
@@ -28,9 +27,12 @@ const errorResponses = {
     ]
 };
 
+function getRandomResponse(array) {
+    return array[Math.floor(Math.random() * array.length)];
+}
+
 function getErrorResponse(type = 'general') {
-    const responses = errorResponses[type];
-    return responses[Math.floor(Math.random() * responses.length)];
+    return getRandomResponse(errorResponses[type]);
 }
 
 async function tiktokdl(url) {
@@ -54,45 +56,38 @@ var handler = async (m, { conn, args }) => {
     }
 
     const url = args[0];
-    let platform = '';
     let result = null;
 
     try {
         await m.react('⏳');
-        await conn.reply(m.chat, processingResponse, m);
+        await conn.reply(m.chat, getRandomResponse(processingResponses), m);
 
         if (url.includes('tiktok.com')) {
-            platform = 'TikTok';
             const data = await tiktokdl(url);
-            
+
             const videoURL = data.play || data.hdplay; 
-            const title = data.title || 'Información de título no disponible';
-            const author = data.author.nickname || 'Autor no especificado';
 
             if (!videoURL) throw new Error("El sistema de TikTok no suministró una URL de video ejecutable.");
 
             result = {
                 url: videoURL,
                 filename: 'tiktok.mp4',
-                platform: platform
             };
 
         } else if (url.includes('instagram.com')) {
-            platform = 'Instagram';
             const data = await igfb_dl(url);
 
             for (let media of data) {
                 const filename = media.type === 'video' ? 'instagram_video.mp4' : 'instagram_image.jpg';
                 
-
-                await conn.sendFile(m.chat, media.url, filename, info, m);
+                
+                await conn.sendFile(m.chat, media.url, filename, '', m);
             }
             if (data.length > 0) return; 
 
         } else if (url.includes('facebook.com') || url.includes('fb.watch')) {
-            platform = 'Facebook';
             const data = await igfb_dl(url);
-            
+
             const videoData = data.find(i => i.resolution === "720p (HD)") || data.find(i => i.resolution === "360p (SD)") || data[0];
 
             if (!videoData || !videoData.url) throw new Error("No se pudo resolver una URL de video ejecutable para Facebook.");
@@ -100,23 +95,21 @@ var handler = async (m, { conn, args }) => {
             result = {
                 url: videoData.url,
                 filename: 'facebook.mp4',
-                platform: platform
             };
 
         } else {
-            
             await m.react('❌');
             return conn.reply(m.chat, getErrorResponse('unknown'), m);
         }
 
         if (result) {
-            await conn.sendFile(m.chat, result.url, result.filename, result.info, m);
+            
+            await conn.sendFile(m.chat, result.url, result.filename, '', m);
         }
         await m.react('✅');
 
     } catch (error) {
         console.error(error);
-        
         await m.react('❌');
         return conn.reply(m.chat, getErrorResponse('general'), m);
     }

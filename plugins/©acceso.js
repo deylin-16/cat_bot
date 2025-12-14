@@ -9,9 +9,8 @@ import { makeWASocket } from '../lib/simple.js'
 import { fileURLToPath } from 'url'
 import * as baileys from "@whiskeysockets/baileys" 
 import { fork } from 'child_process' 
-import { unlinkSync, existsSync } from 'fs'; // Importación correcta
+import { unlinkSync, existsSync } from 'fs'; 
 
-// Importar el handler principal para usarlo en las nuevas sesiones
 let mainHandlerModule = await import('../handler.js').catch(e => console.error('Error al cargar handler principal:', e))
 let mainHandlerFunction = mainHandlerModule?.handler || (() => {})
 
@@ -40,7 +39,6 @@ if (!isROwner) return m.reply(`❌ Solo el creador puede gestionar sesiones adic
 
 const normalizedCommand = command ? command.toLowerCase() : '';
 
-// --- CONECTAR (INICIA SESIÓN AISLADA) ---
 if (normalizedCommand === 'conectar') {
     let sessionId = args[0] ? args[0].replace(/[^0-9]/g, '') : m.sender.split('@')[0]
     if (sessionId.length < 8) return conn.reply(m.chat, `⚠️ Proporcione un identificador válido para la sesión.`, m)
@@ -66,7 +64,6 @@ if (normalizedCommand === 'conectar') {
     ConnectAdditionalSession({ pathSubSession, m, conn })
 } 
 
-// --- ELIMINAR CONEXIÓN ---
 if (normalizedCommand === 'eliminar_conexion') {
     let sessionId = args[0] ? args[0].replace(/[^0-9]/g, '') : ''
 
@@ -114,11 +111,11 @@ export async function ConnectAdditionalSession(options) {
         printQRInTerminal: false,
         auth: { 
             creds: state.creds, 
-            keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" }))
         },
         msgRetry,
         msgRetryCache,
-        browser: [`Sesión Adicional ${sessionId}`, 'Chrome','2.0.0'],
+        browser: [`Sesión Adicional ${sessionId}`, 'Chrome','20.0.04'],
         version: version,
         generateHighQualityLinkPreview: true,
         defaultQueryTimeoutMs: undefined,
@@ -129,15 +126,14 @@ export async function ConnectAdditionalSession(options) {
     let isInit = true
     let codeSent = false 
 
-    // --- LÓGICA DE SOLICITUD DE CÓDIGO INMEDIATA ---
-    // Usamos un proceso externo para intentar solicitar el código inmediatamente después de la conexión.
-    // Esto es más seguro que esperar al connectionUpdate.
-    if (!sock.authState.creds.me) {
+    // --- LÓGICA DE SOLICITUD DE CÓDIGO INMEDIATA (COMO EN INDEX.JS) ---
+    if (!sock.authState.creds.registered) {
         (async () => {
-            await delay(1000); // Esperar 1 segundo para la inicialización
+            // Utilizamos el mismo retraso de 3 segundos que en index.js para estabilizar la conexión.
+            await delay(3000); 
             try {
                 let secret = await sock.requestPairingCode(sessionId) 
-                secret = secret.match(/.{1,4}/g)?.join("-")
+                secret = secret?.match(/.{1,4}/g)?.join("-") || secret
 
                 const rtx2 = `
 ✅ *CÓDIGO WHATSAPP PARA VINCULAR*
@@ -152,16 +148,14 @@ export async function ConnectAdditionalSession(options) {
                 await conn.reply(m.chat, rtx2.trim(), m);
                 codeSent = true 
             } catch (e) {
-                // Si falla (como el error 428/Connection Closed), el connectionUpdate se encargará de reconectar.
                 console.error(`Error al solicitar pairing code para ${sessionId}:`, e);
-                await conn.reply(m.chat, `⚠️ Error inicial al obtener código. Reintentando la conexión...`, m);
-                // Si falla, cerramos el socket para forzar un reintento a través de connectionUpdate.
+                await conn.reply(m.chat, `⚠️ Error al obtener código. Intente *${options.usedPrefix}eliminar_conexion ${sessionId}* y vuelva a *${options.usedPrefix}conectar ${sessionId}*.`, m);
+                // Si falla, cerramos el socket para evitar que se quede pegado.
                 sock.ws.close(); 
             }
         })();
     }
     // --- FIN LÓGICA DE SOLICITUD DE CÓDIGO INMEDIATA ---
-
 
     async function connectionUpdate(update) {
         const { connection, lastDisconnect, isNewLogin, qr } = update
@@ -169,7 +163,10 @@ export async function ConnectAdditionalSession(options) {
         if (isNewLogin) sock.isInit = false
 
         if (qr && !codeSent) { 
-            console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] QR recibido para ${sessionId}. Usando código de emparejamiento como primario.`));
+            // Si el QR aparece y el código NO se ha enviado, forzamos el cierre para que se reintente la conexión
+            // y la lógica de arriba vuelva a intentar obtener el código de emparejamiento.
+            console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] QR recibido para ${sessionId}. Cerrando para forzar modo código...`));
+            sock.ws.close();
         } 
 
         if (connection === 'close') {

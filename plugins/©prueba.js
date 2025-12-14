@@ -16,59 +16,65 @@ const handler = async (m, { conn, text, command, isROwner }) => {
 
     switch (command) {
         case 'crear_acceso':
-            if (args.length < 1 || args[0] !== '1') {
-                return conn.reply(m.chat, `*Comando inválido.* Usa: Crear_acceso 1`, m);
+            if (args.length !== 1 || !/^\d+$/.test(args[0])) {
+                return conn.reply(m.chat, `*Comando inválido.* Usa: Crear_acceso (número de teléfono sin el +)`, m);
             }
             
-            const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const numberConn = global.authCodeNumber.toString();
+            const targetNumberCreate = args[0].replace(/\D/g, ''); // Asegura solo dígitos
+            const newCode = Math.random().toString(36).substring(2, 7).toUpperCase(); // Código de 5 dígitos
             
+            if (global.usedNumbers.has(targetNumberCreate)) {
+                return conn.reply(m.chat, `⚠️ *ADVERTENCIA*: El número *${targetNumberCreate}* ya tiene una sesión activa o pendiente.`, m);
+            }
+
             global.authCodeMap.set(newCode, {
-                number: numberConn,
+                number: targetNumberCreate,
                 used: false,
                 creatorJid: m.sender,
                 createdAt: Date.now()
             });
             
-            global.authCodeNumber++;
-
             conn.reply(m.chat, 
                 `*🔑 CÓDIGO DE ACCESO GENERADO*:\n\n` +
-                `*Número de Conexión (Dirección):* ${numberConn}\n` +
-                `*Código de Acceso (Contraseña):* ${newCode}\n\n` +
+                `*Número Asociado:* ${targetNumberCreate}\n` +
+                `*Código de Acceso (5 dígitos):* ${newCode}\n\n` +
                 `_Solo puede usarse una vez con el comando:_ \n` +
-                `*Vincular ${numberConn} ${newCode}*`, m);
+                `*Vincular ${targetNumberCreate} ${newCode}*`, m);
             break;
 
         case 'vincular':
             if (args.length !== 2) {
-                return conn.reply(m.chat, `*Comando inválido.* Usa: Vincular (número) (contraseña de acceso)`, m);
+                return conn.reply(m.chat, `*Comando inválido.* Usa: Vincular (número de teléfono) (código de acceso)`, m);
             }
             
             const [targetNumber, targetCode] = args;
-            const authData = global.authCodeMap.get(targetCode.toUpperCase());
+            const targetNumberClean = targetNumber.replace(/\D/g, '');
+            const targetCodeUpper = targetCode.toUpperCase();
+            
+            const authData = global.authCodeMap.get(targetCodeUpper);
 
-            if (!authData || authData.used || authData.number !== targetNumber) {
-                return conn.reply(m.chat, `❌ *ERROR DE CONEXIÓN*:\n\nNúmero de conexión o código de acceso inválido/usado.`, m);
+            if (!authData || authData.used || authData.number !== targetNumberClean) {
+                return conn.reply(m.chat, `❌ *ERROR DE CONEXIÓN*:\n\nNúmero asociado o código de acceso inválido/usado.`, m);
             }
             
             authData.used = true;
-            global.authCodeMap.set(targetCode.toUpperCase(), authData);
+            global.authCodeMap.set(targetCodeUpper, authData);
             
-            if (global.usedNumbers.has(targetNumber)) {
-                return conn.reply(m.chat, `⚠️ *ADVERTENCIA*: El número de conexión *${targetNumber}* ya está en uso.`, m);
+            if (global.usedNumbers.has(targetNumberClean)) {
+                return conn.reply(m.chat, `⚠️ *ADVERTENCIA*: El número *${targetNumberClean}* ya está en uso.`, m);
             }
             
-            global.usedNumbers.add(targetNumber);
+            global.usedNumbers.add(targetNumberClean);
 
-            const sessionID = `${global.ACCESS_SESSION_PREFIX}${targetNumber}`;
+            const sessionID = `${global.ACCESS_SESSION_PREFIX}${targetNumberClean}`;
             const sessionPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', global.sessions, sessionID);
             
             const { state, saveState, saveCreds } = await useMultiFileAuthState(sessionPath);
             
             const connectionOptionsJadibot = {
                 logger: Pino({ level: 'silent' }),
-                printQRInTerminal: true,
+                printQRInTerminal: false, // Ahora el QR va por mensaje, no por terminal
+                mobile: true, // Debe ser móvil para emparejar por código de 8 dígitos
                 browser: ['WhatsApp-bot-Subsession', 'Edge', '20.0.04'],
                 auth: {
                     creds: state.creds,
@@ -85,7 +91,7 @@ const handler = async (m, { conn, text, command, isROwner }) => {
 
             const subConn = makeWASocket(connectionOptionsJadibot);
             
-            subConn.numberConn = targetNumber;
+            subConn.numberConn = targetNumberClean;
             subConn.saveCreds = saveCreds;
             global.conns.set(subConn.user.jid, subConn);
             
@@ -94,11 +100,16 @@ const handler = async (m, { conn, text, command, isROwner }) => {
             
             await global.subreloadHandler(false);
 
-            conn.reply(m.chat, `✅ *VINCULACIÓN INICIADA*:\n\nEl usuario que usó el código recibirá un QR en la terminal. Debe escanearlo *rápidamente*.`, m);
-
-            subConn.ev.on('qr', qr => {
-                conn.sendMessage(m.chat, { image: qr, caption: `*ESCANEE ESTE QR RÁPIDAMENTE*\n\nSesión: *${targetNumber}*` }, { quoted: m });
-            });
+            // Iniciar solicitud de código de emparejamiento (8 dígitos)
+            let codeBot = await subConn.requestPairingCode(targetNumberClean)
+            codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+            
+            conn.reply(m.chat, 
+                `✅ *VINCULACIÓN INICIADA*\n\n` +
+                `*Número:* ${targetNumberClean}\n\n` +
+                `El usuario debe usar el siguiente código *dentro de WhatsApp* (Dispositivos Vinculados > Vincular con número de teléfono):\n\n` +
+                `*Código de Emparejamiento (8 dígitos):* \n\n` +
+                `*${codeBot}*`, m);
             
             break;
 

@@ -5,14 +5,14 @@ import path from "path"
 import pino from 'pino'
 import chalk from 'chalk'
 import * as ws from 'ws'
-import util from 'util' 
 import { makeWASocket } from '../lib/simple.js'
 import { fileURLToPath } from 'url'
 import * as baileys from "@whiskeysockets/baileys" 
+import { fork } from 'child_process' 
 
-// Ajusta la ruta si tu handler de sub-bots tiene un nombre diferente
-let subBotHandlerModule = await import('../sub-handler.js').catch(e => console.error('Error al cargar sub-handler inicial:', e))
-let subBotHandlerFunction = subBotHandlerModule?.subBotHandler || (() => {})
+// Importar el handler principal para usarlo en las nuevas sesiones
+let mainHandlerModule = await import('../handler.js').catch(e => console.error('Error al cargar handler principal:', e))
+let mainHandlerFunction = mainHandlerModule?.handler || (() => {})
 
 const { 
     useMultiFileAuthState, 
@@ -23,68 +23,88 @@ const {
 
 const logger = pino({ level: "fatal" }) 
 const { CONNECTING } = ws
-const SESSIONS_FOLDER = 'assistant_access' // Tu identificador
+const SESSIONS_FOLDER = 'assistant_access' 
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-if (global.subConns instanceof Array) console.log()
-else global.subConns = []
+if (global.additionalConns instanceof Array) console.log()
+else global.additionalConns = []
 const msgRetryCache = new NodeCache()
 
-const fkontak = {
-    key: {
-        participants: "0@s.whatsapp.net",
-        remoteJid: "status@broadcast",
-        fromMe: false,
-        id: "Halo"
-    },
-    message: {
-        locationMessage: {
-            name: `SUB-SESIÓN CÓDIGO ✦ 8`,
-            jpegThumbnail: global.thumb // Asume que tienes un thumbnail global
-        }
-    },
-    participant: "0@s.whatsapp.net"
-};
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 let handler = async (m, { conn, args, usedPrefix, command, isROwner }) => {
-if (!isROwner) return m.reply(`❌ Solo el creador puede iniciar nuevas sesiones.`);
+if (!isROwner) return m.reply(`❌ Solo el creador puede gestionar sesiones adicionales.`);
 
-// Usamos el número del creador como ID de sesión temporalmente si no se proporciona otro ID
-let sessionId = args[0] ? args[0].replace(/[^0-9]/g, '') : m.sender.split('@')[0]
-if (sessionId.length < 8) return conn.reply(m.chat, `⚠️ Proporcione un identificador válido para la sesión.`, m)
+const normalizedCommand = command ? command.toLowerCase() : '';
 
-const subConnsCount = global.subConns.length
-const MAX_SUB_SESSIONS = 30 
-if (subConnsCount >= MAX_SUB_SESSIONS) {
-return conn.reply(m.chat, `❌ Máximo de ${MAX_SUB_SESSIONS} sub-sesiones alcanzado.`, m)
-}
+// --- CONECTAR (INICIA SESIÓN AISLADA) ---
+if (normalizedCommand === 'conectar') {
+    let sessionId = args[0] ? args[0].replace(/[^0-9]/g, '') : m.sender.split('@')[0]
+    if (sessionId.length < 8) return conn.reply(m.chat, `⚠️ Proporcione un identificador válido para la sesión.`, m)
 
-let pathSubSession = path.join(`./${SESSIONS_FOLDER}/`, sessionId)
+    const additionalConnsCount = global.additionalConns.length
+    const MAX_SESSIONS = 30 
+    if (additionalConnsCount >= MAX_SESSIONS) {
+    return conn.reply(m.chat, `❌ Máximo de ${MAX_SESSIONS} sesiones adicionales alcanzado.`, m)
+    }
 
-if (fs.existsSync(pathSubSession) && fs.existsSync(path.join(pathSubSession, "creds.json"))) {
-    return conn.reply(m.chat, `⚠️ Ya existe una sesión activa o previa con el ID *${sessionId}*. Si desea eliminarla use *${usedPrefix}eliminar_conexion ${sessionId}*`, m)
-}
+    let pathSubSession = path.join(`./${SESSIONS_FOLDER}/`, sessionId)
 
-if (!fs.existsSync(pathSubSession)){
-    fs.mkdirSync(pathSubSession, { recursive: true })
-}
+    if (fs.existsSync(pathSubSession) && fs.existsSync(path.join(pathSubSession, "creds.json"))) {
+        return conn.reply(m.chat, `⚠️ Ya existe una sesión activa o previa con el ID *${sessionId}*. Si desea eliminarla use *${usedPrefix}eliminar_conexion ${sessionId}*`, m)
+    }
 
-// Llama a la función principal que maneja la conexión
-SubSessionConnect({ pathSubSession, m, conn, usedPrefix, command })
+    if (!fs.existsSync(pathSubSession)){
+        fs.mkdirSync(pathSubSession, { recursive: true })
+    }
+    
+    await conn.reply(m.chat, `⌛ Iniciando nueva sesión aislada para ID: *${sessionId}*...`, m);
+
+    // Llama a la función principal que maneja la conexión
+    ConnectAdditionalSession({ pathSubSession, m, conn })
 } 
-handler.help = ['conectar [id]']
-handler.tags = ['subsession']
-handler.command = ['conectar']
+
+// --- ELIMINAR CONEXIÓN ---
+if (normalizedCommand === 'eliminar_conexion') {
+    let sessionId = args[0] ? args[0].replace(/[^0-9]/g, '') : ''
+
+    if (!sessionId) return m.reply(`⚠️ Uso: *${usedPrefix}eliminar_conexion [ID de Sesión]*`);
+
+    const pathSubSession = path.join(`./${SESSIONS_FOLDER}/`, sessionId)
+    
+    if (fs.existsSync(pathSubSession)) {
+         try {
+            const activeConnIndex = global.additionalConns.findIndex(c => path.basename(c.authState.path) === sessionId);
+            if (activeConnIndex !== -1) {
+                const connToDelete = global.additionalConns[activeConnIndex];
+                await connToDelete.ws.close();
+                global.additionalConns.splice(activeConnIndex, 1);
+                m.reply(`🗑️ Sesión activa ${sessionId} cerrada.`);
+            }
+
+            fs.rmdirSync(pathSubSession, { recursive: true });
+            m.reply(`🗑️ Carpeta de sesión ${sessionId} eliminada por completo.`);
+         } catch (e) {
+            console.error(e);
+            m.reply(`⚠️ Error al borrar la carpeta física de la sesión ${sessionId}.`);
+         }
+    } else {
+        m.reply(`❌ No se encontró ninguna sesión con el ID ${sessionId}.`);
+    }
+}
+} 
+handler.help = ['conectar [id]', 'eliminar_conexion [id]']
+handler.tags = ['session']
+handler.command = ['conectar', 'eliminar_conexion']
 handler.owner = true
 export default handler 
 
-export async function SubSessionConnect(options) {
-    let { pathSubSession, m, conn, usedPrefix, command } = options
+export async function ConnectAdditionalSession(options) {
+    let { pathSubSession, m, conn } = options
     let sessionId = path.basename(pathSubSession)
     
-    // 1. Opciones de conexión
     let { version } = await fetchLatestBaileysVersion()
     const msgRetry = (MessageRetryMap) => { }
     const { state, saveState, saveCreds } = await useMultiFileAuthState(pathSubSession)
@@ -98,7 +118,7 @@ export async function SubSessionConnect(options) {
         },
         msgRetry,
         msgRetryCache,
-        browser: [`Sub-Sesión ${sessionId}`, 'Chrome','2.0.0'],
+        browser: [`Sesión Adicional ${sessionId}`, 'Chrome','2.0.0'],
         version: version,
         generateHighQualityLinkPreview: true,
         defaultQueryTimeoutMs: undefined,
@@ -109,41 +129,36 @@ export async function SubSessionConnect(options) {
     let isInit = true
     let codeSent = false 
 
-    // 2. Función de Actualización de Conexión
     async function connectionUpdate(update) {
         const { connection, lastDisconnect, isNewLogin, qr } = update
 
         if (isNewLogin) sock.isInit = false
 
         if (qr && !codeSent) { 
-            // ⚠️ La sesión se inició en modo QR. Esto no debería ocurrir si forzamos el modo código.
-            // Si ves este QR, significa que el modo pairing code falló o no se implementó correctamente en la primera conexión.
             const qrBuffer = await qrcode.toBuffer(qr, { scale: 8 });
             await conn.sendMessage(m.chat, {
                 image: qrBuffer,
                 caption: `⚠️ Sesión ${sessionId}: Falló el modo código. Escanea este QR para vincular.`,
-                ...fkontak,
             }, { quoted: m });
             codeSent = true 
             return
         } 
 
         if (sock.authState.creds.me == null && connection === 'open' && !codeSent) {
-            // Este bloque solo se ejecuta después de la primera conexión "open" pero antes de que se registren las credenciales.
             
-            let secret = await sock.requestPairingCode(sessionId) // Usamos el ID de sesión como número si no se especificó un número real
+            let secret = await sock.requestPairingCode(sessionId) 
             secret = secret.match(/.{1,4}/g)?.join("-")
 
             const rtx2 = `
-*CÓDIGO WHATSAPP PARA VINCULAR*
+✅ *CÓDIGO WHATSAPP PARA VINCULAR*
 
 💻 〢 Sesión ID: *${sessionId}*
-⏳ 〢 El código expira en 60s.
+⏳ 〢 Ingresa el código en 60s.
 
 > 🔑 CÓDIGO: *${secret}*
 `;
            
-            await conn.reply(m.chat, rtx2.trim(), m, { contextInfo: { mentionedJid: [m.sender] } });
+            await conn.reply(m.chat, rtx2.trim(), m);
             codeSent = true 
         }
 
@@ -167,11 +182,6 @@ export async function SubSessionConnect(options) {
             if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 405) {
                 console.log(chalk.bold.magentaBright(`\n[ASSISTANT_ACCESS] SESIÓN CERRADA (+${sessionId}). Borrando datos.`))
                 
-                try {
-                    await conn.sendMessage(`${sessionId}@s.whatsapp.net`, {text : '*SESIÓN CERRADA O INVÁLIDA*' }) 
-                } catch (error) {
-                    console.error(chalk.bold.yellow(`Error al notificar cierre a: +${sessionId}`))
-                }
                 fs.rmdirSync(pathSubSession, { recursive: true })
             }
         }
@@ -180,23 +190,18 @@ export async function SubSessionConnect(options) {
         if (connection == `open`) {
             let userName = sock.authState.creds.me.name || 'Anónimo'
             
-            console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-SESIÓN •】⸺⸺⸺⸺❒\n│ 🟢 ${userName} (+${sessionId}) CONECTADO exitosamente.\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
+            console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SESIÓN ADICIONAL •】⸺⸺⸺⸺❒\n│ 🟢 ${userName} (+${sessionId}) CONECTADO exitosamente.\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
 
             sock.isInit = true
-            if (!global.subConns.some(c => c.user?.jid === sock.user?.jid)) {
-                global.subConns.push(sock)
+            if (!global.additionalConns.some(c => c.user?.jid === sock.user?.jid)) {
+                global.additionalConns.push(sock)
             }
         }
     }
 
-    // 3. Lógica del Handler y Reload
     let creloadHandler = async function (restatConn) {
-        let NewSubHandler = subBotHandlerFunction 
-        // Lógica de recarga de sub-handler omitida por brevedad
-        if (typeof NewSubHandler !== 'function') {
-             NewSubHandler = () => {}
-        }
-
+        let currentHandler = mainHandlerFunction 
+        
         if (restatConn) {
             const oldChats = sock.chats
             try { sock.ws.close() } catch { }
@@ -210,7 +215,7 @@ export async function SubSessionConnect(options) {
             sock.ev.off('creds.update', sock.credsUpdate)
         }
 
-        sock.handler = NewSubHandler.bind(sock)
+        sock.handler = currentHandler.bind(sock)
         sock.connectionUpdate = connectionUpdate.bind(sock)
         sock.credsUpdate = saveCreds.bind(sock, true)
         sock.ev.on("messages.upsert", sock.handler)
@@ -220,40 +225,4 @@ export async function SubSessionConnect(options) {
         return true
     }
     creloadHandler(false)
-}
-
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-
-// 4. Handler para eliminar sesiones
-handler.command.push('eliminar_conexion')
-
-handler.eliminar_conexion = async (m, { conn, args, usedPrefix, isROwner }) => {
-    if (!isROwner) return m.reply(`❌ Solo el creador puede eliminar sesiones.`);
-    
-    let sessionId = args[0] ? args[0].replace(/[^0-9]/g, '') : ''
-
-    if (!sessionId) return m.reply(`⚠️ Uso: *${usedPrefix}eliminar_conexion [ID de Sesión]*`);
-
-    const pathSubSession = path.join(`./${SESSIONS_FOLDER}/`, sessionId)
-    
-    if (fs.existsSync(pathSubSession)) {
-         try {
-            // Eliminar la conexión activa si existe
-            const activeConnIndex = global.subConns.findIndex(c => path.basename(c.authState.path) === sessionId);
-            if (activeConnIndex !== -1) {
-                const connToDelete = global.subConns[activeConnIndex];
-                await connToDelete.ws.close();
-                global.subConns.splice(activeConnIndex, 1);
-                m.reply(`🗑️ Sesión activa ${sessionId} cerrada.`);
-            }
-
-            fs.rmdirSync(pathSubSession, { recursive: true });
-            m.reply(`🗑️ Carpeta de sesión ${sessionId} eliminada por completo.`);
-         } catch (e) {
-            console.error(e);
-            m.reply(`⚠️ Error al borrar la carpeta física de la sesión ${sessionId}.`);
-         }
-    } else {
-        m.reply(`❌ No se encontró ninguna sesión con el ID ${sessionId}.`);
-    }
 }

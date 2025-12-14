@@ -172,7 +172,7 @@ async function connectionUpdateJadibot(update) {
         const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
         console.log(chalk.bold.hex('#FF0000')(`\n❌ SUBSECCIÓN ${conn.numberConn || 'N/A'} DESCONECTADA: ${reason}`));
 
-        if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.badSession) {
+        if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.badSession || reason === 401) {
             const sessionPath = `./${global.sessions}/${global.ACCESS_SESSION_PREFIX}${conn.numberConn}`;
             if (fs.existsSync(sessionPath)) {
                 rmSync(sessionPath, { recursive: true, force: true });
@@ -210,6 +210,7 @@ async function loadJadibotSessions() {
                     let msg = await store.loadMessage(jid, clave.id);
                     return msg?.message || "";
                 },
+                mobile: true,
             });
             
             subConn.numberConn = numberConn;
@@ -297,20 +298,29 @@ global.subreloadHandler = async function(restart) {
 
     for (const [jid, subConn] of global.conns.entries()) {
         if (!subConn.user) continue;
+        
         if (!subConn.isInit) {
-            subConn.ev.off('messages.upsert', subConn.handler);
-            subConn.ev.off('connection.update', subConn.connectionUpdate);
-            subConn.ev.off('creds.update', subConn.credsUpdate);
+            try {
+                subConn.ev.off('messages.upsert', subConn.handler);
+                subConn.ev.off('connection.update', subConn.connectionUpdate);
+                subConn.ev.off('creds.update', subConn.credsUpdate);
+            } catch (e) {
+                console.error(`Error al quitar listeners de ${subConn.numberConn}:`, e);
+            }
         }
 
         subConn.handler = handler.handler.bind(subConn);
         subConn.connectionUpdate = connectionUpdateJadibot.bind(subConn);
         subConn.credsUpdate = subConn.saveCreds.bind(subConn, true);
 
-        subConn.ev.on('messages.upsert', subConn.handler);
-        subConn.ev.on('connection.update', subConn.connectionUpdate);
-        subConn.ev.on('creds.update', subConn.credsUpdate);
-        subConn.isInit = false;
+        try {
+            subConn.ev.on('messages.upsert', subConn.handler);
+            subConn.ev.on('connection.update', subConn.connectionUpdate);
+            subConn.ev.on('creds.update', subConn.credsUpdate);
+            subConn.isInit = false;
+        } catch (e) {
+             console.error(`Error al añadir listeners a ${subConn.numberConn}:`, e);
+        }
     }
 };
 

@@ -152,6 +152,7 @@ global.conns = new Map();
 global.authCodeMap = new Map();
 global.authCodeNumber = 1;
 global.usedNumbers = new Set();
+global.ACCESS_SESSION_PREFIX = 'access_assistant_sub-';
 
 async function connectionUpdateJadibot(update) {
     const conn = this;
@@ -172,7 +173,7 @@ async function connectionUpdateJadibot(update) {
         console.log(chalk.bold.hex('#FF0000')(`\n❌ SUBSECCIÓN ${conn.numberConn || 'N/A'} DESCONECTADA: ${reason}`));
 
         if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.badSession) {
-            const sessionPath = `./${global.sessions}/jadibot-${conn.numberConn}`;
+            const sessionPath = `./${global.sessions}/${global.ACCESS_SESSION_PREFIX}${conn.numberConn}`;
             if (fs.existsSync(sessionPath)) {
                 rmSync(sessionPath, { recursive: true, force: true });
             }
@@ -188,10 +189,10 @@ async function loadJadibotSessions() {
     const jadibotDir = `./${global.sessions}/`;
     if (!fs.existsSync(jadibotDir)) return;
 
-    const files = fs.readdirSync(jadibotDir).filter(f => f.startsWith('jadibot-') && fs.statSync(path.join(jadibotDir, f)).isDirectory());
+    const files = fs.readdirSync(jadibotDir).filter(f => f.startsWith(global.ACCESS_SESSION_PREFIX) && fs.statSync(path.join(jadibotDir, f)).isDirectory());
     
     for (const folder of files) {
-        const numberMatch = folder.match(/jadibot-(\d+)/);
+        const numberMatch = folder.match(new RegExp(global.ACCESS_SESSION_PREFIX + '(\\d+)'));
         if (!numberMatch) continue;
         const numberConn = numberMatch[1];
         

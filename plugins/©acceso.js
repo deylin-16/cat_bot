@@ -10,6 +10,9 @@ const generateCode = (length) => randomBytes(Math.ceil(length / 2)).toString('he
 
 let handler = async (m, { conn, text, command, isROwner }) => {
     
+    // Normalizar el comando para evitar problemas de mayúsculas/minúsculas
+    const normalizedCommand = command ? command.toLowerCase() : '';
+
     if (!isROwner) {
         return m.reply('❌ Acceso denegado. Solo el Creador puede gestionar las conexiones.');
     }
@@ -18,7 +21,10 @@ let handler = async (m, { conn, text, command, isROwner }) => {
         return m.reply('❌ La base de datos de sesiones no está cargada correctamente.');
     }
 
-    if (command === 'conectar') {
+    // --- CONECTAR ---
+    if (normalizedCommand === 'conectar') {
+        
+        // Extraemos el texto después de la primera palabra (el comando)
         let numberToPair = text.trim().split(/\s+/).slice(1).join(' ').trim() || '';
         
         if (numberToPair.startsWith('+')) {
@@ -65,10 +71,12 @@ let handler = async (m, { conn, text, command, isROwner }) => {
         return m.reply(responseText.trim());
     }
 
-    if (command === 'vincular') {
+    // --- VINCULAR ---
+    if (normalizedCommand === 'vincular') {
         if (isROwner) return m.reply('Este comando es para el cliente, no para ti, Creador.');
 
-        const [commandUsed, clientNumber, clientCode] = text.trim().split(/\s+/);
+        const args = text.trim().split(/\s+/).slice(1);
+        const [clientNumber, clientCode] = args;
 
         if (!clientNumber || !clientCode || clientCode.length !== 8) {
             return m.reply('❌ Uso inválido. El formato es: *jiji vincular [número] [código de 8 dígitos]*');
@@ -103,9 +111,10 @@ La sesión *${sessionId}* ha sido marcada como activa. El bot secundario se cone
         `);
     }
 
-
-    if (command === 'eliminar_conexion') {
-        const [commandUsed, sessionId, creatorCode] = text.trim().split(/\s+/);
+    // --- ELIMINAR_CONEXION ---
+    if (normalizedCommand === 'eliminar_conexion') {
+        const args = text.trim().split(/\s+/).slice(1);
+        const [sessionId, creatorCode] = args;
 
         if (!sessionId || !creatorCode || creatorCode.length !== 4) {
             return m.reply('⚠️ Uso: *jiji eliminar_conexion [ID de Sesión] [Código de 4 dígitos]*.');

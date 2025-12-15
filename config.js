@@ -17,6 +17,7 @@ global.fs = fs
 global.fetch = fetch
 global.axios = axios
 global.moment = moment 
+global.session = session
 
 let Names = [
     'ᴊɪᴊɪ - ᴀssɪsᴛᴀɴᴛ', 

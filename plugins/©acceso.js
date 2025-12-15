@@ -3,7 +3,6 @@ import NodeCache from "node-cache"
 import fs from "fs"
 import path from "path"
 import pino from 'pino'
-import chalk from 'chalk'
 import util from 'util'
 import * as ws from 'ws'
 const { child, spawn, exec } = await import('child_process')
@@ -25,14 +24,16 @@ function isSubBotConnected(jid) { return global.conns.some(sock => sock?.user?.j
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 if (!globalThis.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`El comando *${command}* está desactivado.`)
 let time = global.db.data.users[m.sender].Subs + 120000
-//if (new Date - global.db.data.users[m.sender].Subs < 120000) return conn.reply(m.chat, `Debes esperar ${msToTime(time - new Date())} para volver a vincular un Sub-Bot.`, m)
 let socklimit = global.conns.filter(sock => sock?.user).length
 if (socklimit >= 50) {
 return m.reply(`No se han encontrado espacios para Sub-Bots disponibles.`)
 }
-let mentionedJid = await m.mentionedJid
-let who = mentionedJid && mentionedJid[0] ? mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender
-let id = `${who.split`@`[0]}`
+if (!args[0]) return m.reply(`Por favor, proporciona el número de teléfono. Ejemplo: ${usedPrefix + command} 50432955554`)
+
+let phoneNumber = args[0].replace(/[^0-9]/g, '')
+if (!phoneNumber) return m.reply(`Número de teléfono no válido.`)
+
+let id = phoneNumber
 let pathAssistantAccess = path.join(`./${jadi}/`, id)
 if (!fs.existsSync(pathAssistantAccess)){
 fs.mkdirSync(pathAssistantAccess, { recursive: true })
@@ -44,6 +45,7 @@ assistant_accessJBOptions.args = args
 assistant_accessJBOptions.usedPrefix = usedPrefix
 assistant_accessJBOptions.command = command
 assistant_accessJBOptions.fromCommand = true
+assistant_accessJBOptions.phoneNumber = phoneNumber // Pasar el número para la generación del código
 assistant_accessJadiBot(assistant_accessJBOptions)
 global.db.data.users[m.sender].Subs = new Date * 1
 }
@@ -53,16 +55,16 @@ handler.command = ['code']
 export default handler 
 
 export async function assistant_accessJadiBot(options) {
-let { pathAssistantAccess, m, conn, args, usedPrefix, command } = options
+let { pathAssistantAccess, m, conn, args, usedPrefix, command, phoneNumber } = options
 const mcode = true 
-let txtCode, codeBot
+let codeBot
 const pathCreds = path.join(pathAssistantAccess, "creds.json")
 if (!fs.existsSync(pathAssistantAccess)){
 fs.mkdirSync(pathAssistantAccess, { recursive: true })}
 try {
-args[0] && args[0] != undefined ? fs.writeFileSync(pathCreds, JSON.stringify(JSON.parse(Buffer.from(args[0], "base64").toString("utf-8")), null, '\t')) : ""
+args[1] && args[1] != undefined ? fs.writeFileSync(pathCreds, JSON.stringify(JSON.parse(Buffer.from(args[1], "base64").toString("utf-8")), null, '\t')) : ""
 } catch {
-conn.reply(m.chat, `Use correctamente el comando » ${usedPrefix + command}`, m)
+conn.reply(m.chat, `Use correctamente el comando » ${usedPrefix + command} [número] [sesión base64 opcional]`, m)
 return
 }
 const comb = Buffer.from(crm1 + crm2 + crm3 + crm4, "base64")
@@ -98,9 +100,9 @@ async function connectionUpdate(update) {
 const { connection, lastDisconnect, isNewLogin, qr } = update
 if (isNewLogin) sock.isInit = false
 if (qr && mcode) {
-let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
+let secret = await sock.requestPairingCode(phoneNumber) // Genera el código para el phoneNumber pasado
 secret = secret.match(/.{1,4}/g)?.join("-")
-codeBot = await m.reply(`*CÓDIGO DE EMPAREJAMIENTO:*\n${secret}`)
+codeBot = await m.reply(`*CÓDIGO DE EMPAREJAMIENTO para +${phoneNumber}:*\n${secret}`)
 console.log(`[CODE] Sesión ${path.basename(pathAssistantAccess)}: ${secret}`)
 }
 const endSesion = async (loaded) => {
@@ -213,8 +215,3 @@ seconds = (seconds < 10) ? '0' + seconds : seconds
 return minutes + ' m y ' + seconds + ' s '
 }
 
-async function joinChannels(sock) {
-for (const value of Object.values(global.ch)) {
-if (typeof value === 'string' && value.endsWith('@newsletter')) {
-await sock.newsletterFollow(value).catch(() => {})
-}}}

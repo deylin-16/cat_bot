@@ -11,7 +11,7 @@ import { readdirSync, statSync, unlinkSync, existsSync, mkdirSync, readFileSync,
 import yargs from 'yargs';
 import { spawn, execSync } from 'child_process';
 import lodash from 'lodash';
-import { startAssistant } from './plugins/©access.js'; // Nueva importación con el nombre de la función exportada
+import { startAssistant } from './plugins/©acceso.js'; // Nueva importación con el nombre de la función exportada
 import chalk from 'chalk';
 import syntaxerror from 'syntax-error';
 import { tmpdir } from 'os';

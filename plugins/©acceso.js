@@ -43,14 +43,6 @@ if (isNaN(args[0])) return m.reply(`El número ingresado no es válido.`)
 let number = args[0].replace(/[^0-9]/g, '')
 if (number.length < 8) return m.reply(`El número es demasiado corto.`)
 who = number + '@s.whatsapp.net'
-if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {}
-if (!global.db.data.users[m.sender].Subs) global.db.data.users[m.sender].Subs = 0
-let time = global.db.data.users[m.sender].Subs + 120000
-const subBots = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn)])]
-const subBotsCount = subBots.length
-if (subBotsCount === 21) {
-return conn.reply(m.chat, `No se han encontrado espacios para assistants disponibles. Espera a que un assistant se desconecte e intenta más tarde.`, m)
-}
 let id = `${number}`
 let pathAssistant = path.join(`./assistant/`, id)
 if (!fs.existsSync(pathAssistant)){
@@ -65,7 +57,6 @@ JBOptions.command = command
 JBOptions.fromCommand = true
 JBOptions.targetJid = who 
 startAssistant(JBOptions)
-global.db.data.users[m.sender].Subs = new Date * 1
 } 
 handler.help = ['conectar']
 handler.tags = ['assistant']

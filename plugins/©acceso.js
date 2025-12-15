@@ -9,7 +9,8 @@ import { makeWASocket } from '../lib/simple.js'
 import { fileURLToPath } from 'url'
 import * as baileys from "@whiskeysockets/baileys" 
 import { fork } from 'child_process' 
-import { unlinkSync, existsSync } from 'fs'; 
+import { unlinkSync, existsSync, rmdirSync } from 'fs'; 
+import { loadDatabase } from '../index.js'; // Importar loadDatabase
 
 let mainHandlerModule = await import('../handler.js').catch(e => console.error('Error al cargar handler principal:', e))
 let mainHandlerFunction = mainHandlerModule?.handler || (() => {})
@@ -80,12 +81,12 @@ if (normalizedCommand === 'eliminar_conexion') {
             const activeConnIndex = global.additionalConns.findIndex(c => path.basename(c.authState.path) === folderId);
             if (activeConnIndex !== -1) {
                 const connToDelete = global.additionalConns[activeConnIndex];
-                await connToDelete.ws.close();
+                connToDelete.ws.close();
                 global.additionalConns.splice(activeConnIndex, 1);
                 m.reply(`🗑️ Sesión activa ${folderId} cerrada.`);
             }
 
-            fs.rmdirSync(pathSubSession, { recursive: true });
+            rmdirSync(pathSubSession, { recursive: true });
             m.reply(`🗑️ Carpeta de sesión ${folderId} eliminada por completo.`);
          } catch (e) {
             console.error(e);
@@ -122,13 +123,15 @@ export async function ConnectAdditionalSession(options) {
         version: version,
         generateHighQualityLinkPreview: true,
         defaultQueryTimeoutMs: undefined,
+        // Usar la función getMessage de la conexión principal si es necesaria
+        getMessage: conn.options.getMessage, 
     };
 
     let sock = makeWASocket(connectionOptions)
     sock.isInit = false
     let isInit = true
     let codeSent = false 
-
+    sock.authState = { path: pathSubSession } // Añadir la ruta del estado para el findIndex
 
 
     async function connectionUpdate(update) {
@@ -137,15 +140,12 @@ export async function ConnectAdditionalSession(options) {
         if (isNewLogin) sock.isInit = false
 
 
-        if (qr && !codeSent && !sock.authState.creds.registered) {
-
-            console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] QR recibido para ${folderId}. Llamando a requestPairingCode para ${sessionId}...`));
-
-            try {
-
+        // *** Lógica clave de emparejamiento por código de 8 dígitos ***
+        if (connection === 'open' && isInit && !sock.authState.creds.registered) {
+             console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] Conexión abierta (nueva sesión) para ${folderId}. Solicitando pairing code...`));
+             try {
                 let secret = await sock.requestPairingCode(sessionId) 
                 secret = secret?.match(/.{1,4}/g)?.join("-") || secret
-
 
                 await conn.reply(m.chat, secret, m)
 
@@ -156,13 +156,19 @@ export async function ConnectAdditionalSession(options) {
 
                 if (e.message.includes('Connection Closed') || e.message.includes('428')) {
                     await conn.reply(m.chat, `⚠️ Fallo en la conexión (*428*). Reintentando sesión *${folderId}*...`, m);
-                    sock.ws.close();
+                    // No cerrar aquí, dejar que el flujo 'close' lo maneje
                 } else {
                      await conn.reply(m.chat, `⚠️ Error al obtener código. Intente *${usedPrefix}eliminar_conexion ${folderId}* y vuelva a *${usedPrefix}conectar ${folderId}*.`, m);
                      sock.ws.close();
                 }
             }
-        } 
+        }
+        
+        // Si hay QR, aunque no debería usarse con pairing code
+        if (qr && !codeSent && !sock.authState.creds.registered) {
+            console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] QR recibido para ${folderId}. Ignorando, se usará Pairing Code.`));
+        }
+        // *** Fin Lógica clave de emparejamiento ***
 
 
         if (connection === 'close') {
@@ -185,7 +191,12 @@ export async function ConnectAdditionalSession(options) {
             if (reason === DisconnectReason.loggedOut || reason === 401 || reason === 405) {
                 console.log(chalk.bold.magentaBright(`\n[ASSISTANT_ACCESS] SESIÓN CERRADA (+${folderId}). Borrando datos.`))
 
-                fs.rmdirSync(pathSubSession, { recursive: true })
+                rmdirSync(pathSubSession, { recursive: true })
+
+                const activeConnIndex = global.additionalConns.findIndex(c => c.authState.path === pathSubSession);
+                if (activeConnIndex !== -1) {
+                    global.additionalConns.splice(activeConnIndex, 1);
+                }
             }
         }
 
@@ -213,9 +224,24 @@ export async function ConnectAdditionalSession(options) {
             const oldChats = sock.chats
             try { sock.ws.close() } catch { }
             sock.ev.removeAllListeners()
+            
+            // Re-leer el estado de autenticación al reconectar
+            const { state, saveCreds } = await useMultiFileAuthState(pathSubSession) 
+            connectionOptions.auth = { 
+                creds: state.creds, 
+                keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" }))
+            }
+
             sock = makeWASocket(connectionOptions, { chats: oldChats }) 
+            sock.isInit = false
+            sock.authState = { path: pathSubSession } 
             isInit = true
+            
+            // Re-agregar 'saveCreds' después de re-crear el socket
+            sock.credsUpdate = saveCreds.bind(sock, true)
+            sock.ev.on("creds.update", sock.credsUpdate)
         }
+        
         if (!isInit) {
             sock.ev.off("messages.upsert", sock.handler)
             sock.ev.off("connection.update", sock.connectionUpdate)
@@ -224,7 +250,12 @@ export async function ConnectAdditionalSession(options) {
 
         sock.handler = currentHandler.bind(sock)
         sock.connectionUpdate = connectionUpdate.bind(sock)
-        sock.credsUpdate = saveCreds.bind(sock, true)
+        
+        // Si no se reinició, asignar los listeners
+        if (!restatConn) {
+            sock.credsUpdate = saveCreds.bind(sock, true)
+        }
+
         sock.ev.on("messages.upsert", sock.handler)
         sock.ev.on("connection.update", sock.connectionUpdate)
         sock.ev.on("creds.update", sock.credsUpdate)

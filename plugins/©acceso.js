@@ -16,9 +16,51 @@ let crm3 = "SBpbmZvLWRvbmFyLmpz"
 let crm4 = "IF9hdXRvcmVzcG9uZGVyLmpzIGluZm8tYm90Lmpz"
 let drm1 = ""
 let drm2 = ""
+let rtx2 = `
+*「 Assistant_Access 」*
 
-        
-          
+💻 〢 Modo Código ▣ Assistant ⌬ Temporal
+
+→ Dispositivos vinculados  
+→ Vincular con número  
+→ Ingresa el código
+
+Código expira en *5s* ⏳
+
+> 🔗 Canal Oficial ↓
+`;
+    const res = await fetch('https://i.postimg.cc/vHqc5x17/1756169140993.jpg');
+    const thumb2 = Buffer.from(await res.arrayBuffer());
+    const fkontak = {
+        key: {
+            participants: "0@s.whatsapp.net",
+            remoteJid: "status@broadcast",
+            fromMe: false,
+            id: "Halo"
+        },
+        message: {
+            locationMessage: {
+                name: `ASSISTANT MODE CODE ✦ 8\n Assistant_Access`,
+                jpegThumbnail: thumb2
+            }
+        },
+        participant: "0@s.whatsapp.net"
+    };
+const res1 = await fetch('https://files.catbox.moe/dz34fo.jpg');
+const thumb3 = Buffer.from(await res1.arrayBuffer());
+    const fkontak1 = {
+      key: { fromMe: false, participant: "0@s.whatsapp.net" },
+      message: {
+        orderMessage: {
+          itemCount: 1,
+          status: 1,
+          surface: 1,
+          message: `CONECTADO CON WHATSAPP`,
+          orderTitle: "Mejor Assistant",
+          jpegThumbnail: thumb3
+        }
+      }
+    };
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const JBOptions = {}
@@ -39,11 +81,11 @@ if (subBotsCount === 21) {
 return conn.reply(m.chat, `No se han encontrado espacios para assistants disponibles. Espera a que un assistant se desconecte e intenta más tarde.`, m, racnal)
 }
 let id = `${number}`
-let pathJadiBot = path.join(`./assistant/`, id)
-if (!fs.existsSync(pathJadiBot)){
-fs.mkdirSync(pathJadiBot, { recursive: true })
+let pathAssistant = path.join(`./assistant/`, id) // ***RENOMBRADO***
+if (!fs.existsSync(pathAssistant)){
+fs.mkdirSync(pathAssistant, { recursive: true })
 }
-JBOptions.pathJadiBot = pathJadiBot
+JBOptions.pathAssistant = pathAssistant // ***RENOMBRADO***
 JBOptions.m = m
 JBOptions.conn = conn
 JBOptions.args = args
@@ -59,11 +101,11 @@ handler.tags = ['assistant']
 handler.command = ['conectar']
 export default handler 
 export async function JadiBot(options) {
-let { pathJadiBot, m, conn, args, usedPrefix, command, targetJid } = options
+let { pathAssistant, m, conn, args, usedPrefix, command, targetJid } = options // ***RENOMBRADO***
 let txtCode, codeBot
-const pathCreds = path.join(pathJadiBot, "creds.json")
-if (!fs.existsSync(pathJadiBot)){
-fs.mkdirSync(pathJadiBot, { recursive: true })}
+const pathCreds = path.join(pathAssistant, "creds.json") // ***RENOMBRADO***
+if (!fs.existsSync(pathAssistant)){ // ***RENOMBRADO***
+fs.mkdirSync(pathAssistant, { recursive: true })} // ***RENOMBRADO***
 try {
 args[1] && args[1] != undefined ? fs.writeFileSync(pathCreds, JSON.stringify(JSON.parse(Buffer.from(args[1], "base64").toString("utf-8")), null, '\t')) : ""
 } catch {
@@ -76,14 +118,14 @@ const drmer = Buffer.from(drm1 + drm2, `base64`)
 let { version, isLatest } = await fetchLatestBaileysVersion()
 const msgRetry = (MessageRetryMap) => { }
 const msgRetryCache = new NodeCache()
-const { state, saveState, saveCreds } = await useMultiFileAuthState(pathJadiBot)
+const { state, saveState, saveCreds } = await useMultiFileAuthState(pathAssistant) // ***RENOMBRADO***
 const connectionOptions = {
 logger: pino({ level: "fatal" }),
 printQRInTerminal: false,
 auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
 msgRetry,
 msgRetryCache,
-browser: ['Bot(Access-Assistant)', 'Chrome','2.0.0'],
+browser: ['Access-Assistant', 'Chrome','2.0.0'],
 version: version,
 generateHighQualityLinkPreview: true
 };
@@ -98,6 +140,12 @@ if (connection === 'connecting') {
 if (!sock.authState.creds.me) {
 let secret = await sock.requestPairingCode(targetJid.split`@`[0])
 secret = secret.match(/.{1,4}/g)?.join("-")
+txtCode = await conn.sendMessage(m.chat, {
+    image: { url: global.img },
+    caption: rtx2,
+    ...global.fake,
+    quoted: m,
+});
 const msg = generateWAMessageFromContent(m.chat, proto.Message.fromObject({
   interactiveMessage: {
     body: { text: `Tu código para vincular es:\n→ ${secret}` }, 
@@ -107,7 +155,7 @@ const msg = generateWAMessageFromContent(m.chat, proto.Message.fromObject({
         {
           name: 'cta_copy',
           buttonParamsJson: JSON.stringify({
-            display_text: `xx`,
+            display_text: `「 Assistant_Access 」`,
             copy_code: secret
           })
         }
@@ -140,58 +188,58 @@ global.conns.splice(i, 1)
 const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
 if (connection === 'close') {
 if (reason === 428) {
-console.log(chalk.rgb(255, 165, 0)(`\nLa conexión (+${path.basename(pathJadiBot)}) fue cerrada inesperadamente. Intentando reconectar...`))
+console.log(chalk.rgb(255, 165, 0)(`\nLa conexión (+${path.basename(pathAssistant)}) fue cerrada inesperadamente. Intentando reconectar...`)) // ***RENOMBRADO***
 await creloadHandler(true).catch(console.error)
 }
 if (reason === 408) {
-console.log(chalk.rgb(255, 165, 0)(`\nLa conexión (+${path.basename(pathJadiBot)}) se perdió o expiró. Razón: ${reason}. Intentando reconectar...`))
+console.log(chalk.rgb(255, 165, 0)(`\nLa conexión (+${path.basename(pathAssistant)}) se perdió o expiró. Razón: ${reason}. Intentando reconectar...`)) // ***RENOMBRADO***
 await creloadHandler(true).catch(console.error)
 }
 if (reason === 440) {
-console.log(chalk.rgb(255, 165, 0)(`\nLa conexión (+${path.basename(pathJadiBot)}) fue reemplazada por otra sesión activa.`))
+console.log(chalk.rgb(255, 165, 0)(`\nLa conexión (+${path.basename(pathAssistant)}) fue reemplazada por otra sesión activa.`)) // ***RENOMBRADO***
 try {
-if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathJadiBot)}@s.whatsapp.net`, {text : 'HEMOS DETECTADO UNA NUEVA SESIÓN, BORRE LA NUEVA SESIÓN PARA CONTINUAR\n\n> SI HAY ALGÚN PROBLEMA VUELVA A CONECTARSE' }, { quoted: m || null }) : ""
+if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathAssistant)}@s.whatsapp.net`, {text : 'HEMOS DETECTADO UNA NUEVA SESIÓN, BORRE LA NUEVA SESIÓN PARA CONTINUAR\n\n> SI HAY ALGÚN PROBLEMA VUELVA A CONECTARSE' }, { quoted: m || null }) : "" // ***RENOMBRADO***
 } catch (error) {
-console.error(chalk.rgb(255, 165, 0)(`Error 440 no se pudo enviar mensaje a: +${path.basename(pathJadiBot)}`))
+console.error(chalk.rgb(255, 165, 0)(`Error 440 no se pudo enviar mensaje a: +${path.basename(pathAssistant)}`)) // ***RENOMBRADO***
 }}
 if (reason == 405 || reason == 401) {
-console.log(chalk.rgb(255, 165, 0)(`\nLa sesión (+${path.basename(pathJadiBot)}) fue cerrada. Credenciales no válidas o dispositivo desconectado manualmente.`))
+console.log(chalk.rgb(255, 165, 0)(`\nLa sesión (+${path.basename(pathAssistant)}) fue cerrada. Credenciales no válidas o dispositivo desconectado manualmente.`)) // ***RENOMBRADO***
 try {
-if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathJadiBot)}@s.whatsapp.net`, {text : 'SESIÓN PENDIENTE\n\n> INTENTÉ NUEVAMENTE VOLVER A SER ASSISTANT' }, { quoted: m || null }) : ""
+if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathAssistant)}@s.whatsapp.net`, {text : 'SESIÓN PENDIENTE\n\n> INTENTÉ NUEVAMENTE VOLVER A SER ASSISTANT' }, { quoted: m || null }) : "" 
 } catch (error) {
-console.error(chalk.rgb(255, 165, 0)(`Error 405 no se pudo enviar mensaje a: +${path.basename(pathJadiBot)}`))
+console.error(chalk.rgb(255, 165, 0)(`Error 405 no se pudo enviar mensaje a: +${path.basename(pathAssistant)}`)) 
 }
-fs.rmdirSync(pathJadiBot, { recursive: true })
+fs.rmdirSync(pathAssistant, { recursive: true }) 
 }
 if (reason === 500) {
-console.log(chalk.rgb(255, 165, 0)(`\nConexión perdida en la sesión (+${path.basename(pathJadiBot)}). Borrando datos...`))
-if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathJadiBot)}@s.whatsapp.net`, {text : 'CONEXIÓN PÉRDIDA\n\n> INTENTÉ MANUALMENTE VOLVER A SER ASSISTANT' }, { quoted: m || null }) : ""
+console.log(chalk.rgb(255, 165, 0)(`\nConexión perdida en la sesión (+${path.basename(pathAssistant)}). Borrando datos...`)) 
+if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathAssistant)}@s.whatsapp.net`, {text : 'CONEXIÓN PÉRDIDA\n\n> INTENTÉ MANUALMENTE VOLVER A SER ASSISTANT' }, { quoted: m || null }) : "" 
 return creloadHandler(true).catch(console.error)
 }
 if (reason === 515) {
-console.log(chalk.rgb(255, 165, 0)(`\nRinicio automático para la sesión (+${path.basename(pathJadiBot)}).`))
+console.log(chalk.rgb(255, 165, 0)(`\nRinicio automático para la sesión (+${path.basename(pathAssistant)}).`)) 
 await creloadHandler(true).catch(console.error)
 }
 if (reason === 403) {
-console.log(chalk.rgb(255, 165, 0)(`\nSesión cerrada o cuenta en soporte para la sesión (+${path.basename(pathJadiBot)}).`))
-fs.rmdirSync(pathJadiBot, { recursive: true })
+console.log(chalk.rgb(255, 165, 0)(`\nSesión cerrada o cuenta en soporte para la sesión (+${path.basename(pathAssistant)}).`)) 
+fs.rmdirSync(pathAssistant, { recursive: true }) 
 }}
 if (global.db.data == null) loadDatabase()
 if (connection == `open`) {
 if (!global.db.data?.users) loadDatabase()
 let userName, userJid 
 userName = sock.authState.creds.me.name || 'Anónimo'
-userJid = sock.authState.creds.me.jid || `${path.basename(pathJadiBot)}@s.whatsapp.net`
-console.log(chalk.rgb(255, 165, 0)(`\nASSISTANT\n\n${userName} (+${path.basename(pathJadiBot)}) conectado exitosamente.\n\nCONECTADO`))
+userJid = sock.authState.creds.me.jid || `${path.basename(pathAssistant)}@s.whatsapp.net` 
+console.log(chalk.rgb(255, 165, 0)(`\nASSISTANT\n\n${userName} (+${path.basename(pathAssistant)}) conectado exitosamente.\n\nCONECTADO`)) 
 sock.isInit = true
 global.conns.push(sock)
 await joinChannels(sock)
 m?.chat ? await conn.sendMessage(m.chat, {text: args[1] ? `@${m.sender.split('@')[0]}, ya estás conectado, leyendo mensajes entrantes...` : ` 
 Bienvenido @${m.sender.split('@')[0]}, a la familia de 
- ${botname} disfruta del bot.
+ Assistant_Access disfruta del servicio.
  
  ${dev}
-`, mentions: [m.sender]}, { quoted: fkontak1 }) : ''
+`, mentions: [m.sender]}, { quoted: m }) : ''
 }}
 setInterval(async () => {
 if (!sock.user) {

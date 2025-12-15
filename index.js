@@ -2,6 +2,7 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
 import './config.js'
 import { setupMaster, fork } from 'cluster'
 import { watchFile, unwatchFile } from 'fs'
+import cfonts from 'cfonts'
 import {createRequire} from 'module'
 import {fileURLToPath, pathToFileURL} from 'url'
 import {platform} from 'process'
@@ -12,8 +13,9 @@ import {spawn} from 'child_process'
 import lodash from 'lodash'
 import chalk from 'chalk'
 import syntaxerror from 'syntax-error'
-import os, {tmpdir} from 'os'
+import {tmpdir} from 'os'
 import {format} from 'util'
+import boxen from 'boxen'
 import P from 'pino'
 import pino from 'pino'
 import Pino from 'pino'
@@ -34,11 +36,22 @@ const {CONNECTING} = ws
 const {chain} = lodash
 global.sessions = 'sessions' 
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
-const USER_IDENTIFIER = 'assistant_access'
 
-console.log(chalk.bold.hex('#FF00FF')(`\n👾 INICIANDO WHATSAPP-BOT ⚡\n`))
+let { say } = cfonts
 
-console.log(chalk.bold.hex('#00FFFF')(`⚙️ SISTEMA POTENTE Y ROBUSTO EN MARCHA`))
+console.log(chalk.bold.redBright(`\n🧃 Iniciando Pikachu-bot ⚡\n`))
+
+say('Pikachu Bot 🧃', {
+font: 'block',
+align: 'center',
+colors: ['magentaBright']
+})
+
+say(`Developed By • Deylin`, {
+font: 'console',
+align: 'center',
+colors: ['blueBright']
+})
 
 protoType()
 serialize()
@@ -58,22 +71,20 @@ global.timestamp = {start: new Date}
 const __dirname = global.__dirname(import.meta.url)
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-global.prefix = new RegExp('^[#/!]')
+global.prefix = new RegExp('^[#/!⚡.🧃]')
 
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile('./lib/1.json'))
-global.dbSessions = new Low(new JSONFile('./lib/sessions.json')); 
 
 global.DATABASE = global.db 
 global.loadDatabase = async function loadDatabase() {
-if (global.db.READ && global.dbSessions.READ) {
+if (global.db.READ) {
 return new Promise((resolve) => setInterval(async function() {
-if (!global.db.READ && !global.dbSessions.READ) {
+if (!global.db.READ) {
 clearInterval(this)
 resolve(global.db.data == null ? global.loadDatabase() : global.db.data);
 }}, 1 * 1000))
 }
-if (global.db.data !== null && global.dbSessions.data !== null) return
-
+if (global.db.data !== null) return
 global.db.READ = true
 await global.db.read().catch(console.error)
 global.db.READ = null
@@ -87,15 +98,6 @@ settings: {},
 ...(global.db.data || {}),
 }
 global.db.chain = chain(global.db.data)
-
-global.dbSessions.READ = true
-await global.dbSessions.read().catch(console.error);
-global.dbSessions.READ = null
-global.dbSessions.data = {
-    paired_sessions: {},
-    ...(global.dbSessions.data || {}),
-}
-global.dbSessions.chain = chain(global.dbSessions.data);
 }
 loadDatabase()
 
@@ -105,7 +107,9 @@ const msgRetryCounterCache = new NodeCache()
 const {version} = await fetchLatestBaileysVersion();
 let phoneNumber = global.botNumber
 
+const methodCode = true
 const MethodMobile = process.argv.includes("mobile")
+const colores = chalk.bgMagenta.white
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
 const question = (texto) => new Promise((resolver) => rl.question(texto, resolver))
 
@@ -118,7 +122,7 @@ const connectionOptions = {
 logger: pino({ level: 'silent' }),
 printQRInTerminal: false,
 mobile: MethodMobile, 
-browser: ['WhatsApp-bot', 'Edge', '20.0.04'],
+browser: ['Ubuntu', 'Edge', '110.0.1587.56'],
 auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
@@ -139,13 +143,15 @@ version,
 global.conn = makeWASocket(connectionOptions);
 
 if (!fs.existsSync(`./${sessions}/creds.json`)) {
+if (opcion === '2' || methodCode) {
+opcion = '2'
 if (!conn.authState.creds.registered) {
 let addNumber
 if (!!phoneNumber) {
 addNumber = phoneNumber.replace(/[^0-9]/g, '')
 } else {
 do {
-phoneNumber = await question(chalk.bgRed.bold.white(`\n🔑 INGRESE EL NÚMERO DE WHATSAPP PARA EMPAREJAR 🔑\n${chalk.bold.yellow(`\n👉 EJEMPLO: 57321×××××××`)}\n${chalk.bold.hex('#00FFFF')('---> ')}`))
+phoneNumber = await question(chalk.bgBlack(chalk.bold.greenBright(`⚡ Por favor, Ingrese el número de WhatsApp.\n${chalk.bold.yellowBright(`🧃 Ejemplo: 57321×××××××`)}\n${chalk.bold.magentaBright('---> ')}`)))
 phoneNumber = phoneNumber.replace(/\D/g,'')
 if (!phoneNumber.startsWith('+')) {
 phoneNumber = `+${phoneNumber}`
@@ -156,10 +162,10 @@ addNumber = phoneNumber.replace(/\D/g, '')
 setTimeout(async () => {
 let codeBot = await conn.requestPairingCode(addNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-console.log(chalk.bold.white(chalk.bgMagenta(`\n🌟 CÓDIGO DE 8 DÍGITOS 🌟`)), chalk.bold.yellowBright(codeBot))
+console.log(chalk.bold.white(chalk.bgMagenta(`🧃 CÓDIGO DE VINCULACIÓN `)), chalk.bold.white(chalk.white(codeBot)))
 }, 3000)
 }}}
-
+}
 
 conn.isInit = false;
 conn.well = false;
@@ -167,8 +173,7 @@ conn.well = false;
 if (!opts['test']) {
 if (global.db) setInterval(async () => {
 if (global.db.data) await global.db.write()
-if (global.dbSessions.data) await global.dbSessions.write()
-if (opts['autocleartmp'] && (global.support || {}).find) (tmp = [os.tmpdir(), 'tmp', `${USER_IDENTIFIER}`], tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete'])));
+if (opts['autocleartmp'] && (global.support || {}).find) (tmp = [os.tmpdir(), 'tmp', `${jadi}`], tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete'])));
 }, 30 * 1000);
 }
 
@@ -183,31 +188,31 @@ global.timestamp.connect = new Date;
 }
 if (global.db.data == null) loadDatabase();
 if (connection == 'open') {
-  console.log(chalk.bold.hex('#00FF00')('\n✅ WHATSAPP-BOT CONECTADA CON ÉXITO 🤖'))
+  console.log(chalk.bold.green('\n🧃 Pikachu-bot Conectada con éxito 🪽'))
 }
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
 if (reason === DisconnectReason.badSession) {
-console.log(chalk.bold.hex('#FF0000')(`\n❌ SESIÓN INVÁLIDA. BORRE LA CARPETA ${global.sessions} Y REINICIE.`))
+console.log(chalk.bold.cyanBright(`\n⚠︎ SIN CONEXIÓN, BORRE LA CARPETA ${global.sessions} Y ESCANEA EL CÓDIGO QR ⚠︎`))
 } else if (reason === DisconnectReason.connectionClosed) {
-console.log(chalk.bold.hex('#FF00FF')(`\n🔌 CONEXIÓN CERRADA. RECONECTANDO...`))
+console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ☹\n┆ ⚠︎ CONEXION CERRADA, RECONECTANDO....\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ☹`))
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.connectionLost) {
-console.log(chalk.bold.hex('#00FFFF')(`\n📡 CONEXIÓN PERDIDA. RECONECTANDO...`))
+console.log(chalk.bold.blueBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ☂\n┆ ⚠︎ CONEXIÓN PERDIDA CON EL SERVIDOR, RECONECTANDO....\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ☂`))
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.connectionReplaced) {
-console.log(chalk.bold.hex('#FFA500')(`\n⚠️ CONEXIÓN REEMPLAZADA. CIERRE OTRAS SESIONES.`))
+console.log(chalk.bold.yellowBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ✗\n┆ ⚠︎ CONEXIÓN REEMPLAZADA, SE HA ABIERTO OTRA NUEVA SESION, POR FAVOR, CIERRA LA SESIÓN ACTUAL PRIMERO.\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ✗`))
 } else if (reason === DisconnectReason.loggedOut) {
-console.log(chalk.bold.hex('#FF0000')(`\n❌ SESIÓN CERRADA. BORRE LA CARPETA ${global.sessions} Y REINICIE.`))
+console.log(chalk.bold.redBright(`\n⚠︎ SIN CONEXIÓN, BORRE LA CARPETA ${global.sessions} Y ESCANEA EL CÓDIGO QR ⚠︎`))
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.restartRequired) {
-console.log(chalk.bold.hex('#00FF00')(`\n🔄 REINICIO REQUERIDO. CONECTANDO AL SERVIDOR...`))
+console.log(chalk.bold.cyanBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ✓\n┆ ✧ CONECTANDO AL SERVIDOR...\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ✓`))
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.timedOut) {
-console.log(chalk.bold.hex('#FFA500')(`\n⏳ TIEMPO AGOTADO. RECONECTANDO...`))
+console.log(chalk.bold.yellowBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ▸\n┆ ⧖ TIEMPO DE CONEXIÓN AGOTADO, RECONECTANDO....\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄ ▸`))
 await global.reloadHandler(true).catch(console.error)
 } else {
-console.log(chalk.bold.hex('#FF0000')(`\n❌ RAZÓN DE DESCONEXIÓN DESCONOCIDA: ${reason || 'No encontrado'} >> ${connection || 'No encontrado'}`))
+console.log(chalk.bold.redBright(`\n⚠︎！ RAZON DE DESCONEXIÓN DESCONOCIDA: ${reason || 'No encontrado'} >> ${connection || 'No encontrado'}`))
 }}
 }
 process.on('uncaughtException', console.error)
@@ -275,22 +280,22 @@ global.reload = async (_ev, filename) => {
 if (pluginFilter(filename)) {
 const dir = global.__filename(join(pluginFolder, filename), true);
 if (filename in global.plugins) {
-if (existsSync(dir)) conn.logger.info(chalk.bold.hex('#FF00FF')(`🔄 PLUGIN ACTUALIZADO - '${filename}'`))
+if (existsSync(dir)) conn.logger.info(` updated plugin - '${filename}'`)
 else {
-conn.logger.warn(chalk.bold.hex('#FF0000')(`🗑️ PLUGIN ELIMINADO - '${filename}'`))
+conn.logger.warn(`deleted plugin - '${filename}'`)
 return delete global.plugins[filename]
-}} else conn.logger.info(chalk.bold.hex('#00FF00')(`✨ NUEVO PLUGIN - '${filename}'`));
+}} else conn.logger.info(`new plugin - '${filename}'`);
 const err = syntaxerror(readFileSync(dir), filename, {
 sourceType: 'module',
 allowAwaitOutsideFunction: true,
 });
-if (err) conn.logger.error(chalk.bold.hex('#FFA500')(`❌ ERROR DE SINTAXIS EN '${filename}'\n${format(err)}`))
+if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
 else {
 try {
 const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
 global.plugins[filename] = module.default || module;
 } catch (e) {
-conn.logger.error(chalk.bold.hex('#FF0000')(`🔥 ERROR AL CARGAR PLUGIN '${filename}\n${format(e)}'`))
+conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
 } finally {
 global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
 }}
@@ -353,9 +358,9 @@ if (file !== 'creds.json') {
 const filePath = path.join(dir, file);
 unlinkSync(filePath, err => {
 if (err) {
-console.log(chalk.bold.hex('#FF0000')(`\n❌ ERROR AL BORRAR ARCHIVO: ${file}`))
+console.log(chalk.bold.red(`\n╭» ❍ ARCHIVO ❍\n│→ ${file} NO SE LOGRÓ BORRAR\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ✘\n` + err))
 } else {
-console.log(chalk.bold.hex('#00FF00')(`\n🗑️ ARCHIVO BORRADO CON ÉXITO: ${file}`))
+console.log(chalk.bold.green(`\n╭» ❍ ARCHIVO ❍\n│→ ${file} BORRADO CON ÉXITO\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))
 } }) }
 }) }) }) }
 
@@ -372,19 +377,19 @@ originalConsoleMethod.apply(console, arguments)
 setInterval(async () => {
 if (stopped === 'close' || !conn || !conn.user) return
 await clearTmp()
-console.log(chalk.bold.hex('#00FFFF')(`\n✨ LIMPIEZA: ARCHIVOS TMP ELIMINADOS`))}, 1000 * 60 * 4)
+console.log(chalk.bold.cyanBright(`\n╭» ❍ MULTIMEDIA ❍\n│→ ARCHIVOS DE LA CARPETA TMP ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))}, 1000 * 60 * 4)
 
 setInterval(async () => {
 if (stopped === 'close' || !conn || !conn.user) return
 await purgeSession()
-console.log(chalk.bold.hex('#FF00FF')(`\n✨ LIMPIEZA: SESIONES NO ESENCIALES ELIMINADAS`))}, 1000 * 60 * 10)
+console.log(chalk.bold.cyanBright(`\n╭» ❍ ${global.sessions} ❍\n│→ SESIONES NO ESENCIALES ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))}, 1000 * 60 * 10)
 
 setInterval(async () => {
 if (stopped === 'close' || !conn || !conn.user) return
 await purgeOldFiles()
-console.log(chalk.bold.hex('#FFA500')(`\n✨ LIMPIEZA: ARCHIVOS RESIDUALES ELIMINADOS`))}, 1000 * 60 * 10)
+console.log(chalk.bold.cyanBright(`\n╭» ❍ ARCHIVOS ❍\n│→ ARCHIVOS RESIDUALES ELIMINADAS\n╰― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ― ⌫ ♻`))}, 1000 * 60 * 10)
 
-_quickTest().then(() => conn.logger.info(chalk.bold.hex('#00FF00')(`\n✅ SISTEMA INICIADO\n`.trim()))).catch(console.error)
+_quickTest().then(() => conn.logger.info(chalk.bold(`✦  H E C H O\n`.trim()))).catch(console.error)
 
 async function isValidPhoneNumber(number) {
 try {

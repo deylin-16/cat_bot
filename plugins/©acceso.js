@@ -21,7 +21,7 @@ let m2 = '✎';
 let m3 = '♛';
 let emoji1 = [m1, m2, m3];
 let emoji = emoji1[Math.floor(Math.random() * emoji1.length)];
-let botname = global.botname
+
 
     const res = await fetch('https://i.postimg.cc/vHqc5x17/1756169140993.jpg');
     const thumb2 = Buffer.from(await res.arrayBuffer());
@@ -35,7 +35,7 @@ let botname = global.botname
         },
         message: {
             locationMessage: {
-                name: `𝗦𝗨𝗕𝗔𝗦𝗦𝗜𝗦𝗧𝗔𝗡𝗧 𝗠𝗢𝗗𝗘 𝗖𝗢𝗗𝗘 ✦ 8\n ${botname}`,
+                name: `𝗦𝗨𝗕𝗔𝗦𝗦𝗜𝗦𝗧𝗔𝗡𝗧 𝗠𝗢𝗗𝗘 𝗖𝗢𝗗𝗘 ✦ 8`,
                 jpegThumbnail: thumb2
             }
         },

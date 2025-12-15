@@ -51,6 +51,5 @@ await conn.sendMessage(destinationJid, {
 
 
 handler.command = /^(👍)$/i
-handler.rowner = true;
 
 export default handler

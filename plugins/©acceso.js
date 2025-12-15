@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url'
 import * as baileys from "@whiskeysockets/baileys" 
 import { fork } from 'child_process' 
 import { rmdirSync } from 'fs'; 
-import { loadDatabase } from '../index.js'; 
+import { loadDatabase } from '../index.js'; // Importar loadDatabase
 
 let mainHandlerModule = await import('../handler.js').catch(e => console.error('Error al cargar handler principal:', e))
 let mainHandlerFunction = mainHandlerModule?.handler || (() => {})
@@ -43,7 +43,6 @@ const normalizedCommand = command ? command.toLowerCase() : '';
 if (normalizedCommand === 'conectar') {
     let rawId = args[0] ? args[0].replace(/[^0-9]/g, '') : m.sender.split('@')[0].replace(/[^0-9]/g, '')
     if (rawId.length < 8) return conn.reply(m.chat, `⚠️ Proporcione un identificador válido para la sesión.`, m)
-
 
     let sessionId = rawId.startsWith('+') ? rawId : `+${rawId}` 
     let folderId = rawId
@@ -110,13 +109,13 @@ export async function ConnectAdditionalSession(options) {
     const msgRetry = (MessageRetryMap) => { }
     let { state, saveCreds } = await useMultiFileAuthState(pathSubSession) 
 
-    // **CORRECCIÓN 1: Evita el TypeError de 'getMessage'**
+    // Corrección para el TypeError: 'getMessage'
     const getMessageFunction = (conn && conn.options && conn.options.getMessage) ? conn.options.getMessage : undefined;
     
     const connectionOptions = {
         logger: logger,
         printQRInTerminal: false,
-        mobile: false, // **CORRECCIÓN 2: Evita el error 'Mobile API is not supported anymore'**
+        // **IMPORTANTE**: No usar 'mobile: true' ni 'mobile: false'
         auth: { 
             creds: state.creds, 
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" }))
@@ -136,23 +135,7 @@ export async function ConnectAdditionalSession(options) {
     let codeSent = false 
     sock.authState = { path: pathSubSession, creds: state.creds } 
 
-    const requestCode = async () => {
-        if (!sock.authState.creds.registered && !codeSent) {
-            console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] Solicitando Pairing Code para +${folderId}...`));
-            try {
-                let secret = await sock.requestPairingCode(sessionId) 
-                secret = secret?.match(/.{1,4}/g)?.join("-") || secret
-
-                await conn.reply(m.chat, secret, m)
-
-                console.log(chalk.bold.white(chalk.bgMagenta(`\n🌟 CÓDIGO FUNCIONAL (+${folderId}) 🌟`)), chalk.bold.yellowBright(secret))
-                codeSent = true 
-            } catch (e) {
-                console.error(`Error al solicitar pairing code para +${folderId}:`, e);
-
-            }
-        }
-    }
+    // Aquí ya no necesitamos requestCode(), la lógica se mueve a connectionUpdate como en el código funcional.
 
 
     async function connectionUpdate(update) {
@@ -160,18 +143,28 @@ export async function ConnectAdditionalSession(options) {
 
         if (isNewLogin) sock.isInit = false
 
+        // **CORRECCIÓN DE EMPAREJAMIENTO** (Similar al código funcional)
+        if (connection === 'connecting' && !sock.authState.creds.registered && !codeSent) {
+             console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] Conectando para +${folderId}. Solicitando código de emparejamiento...`));
+             try {
+                // Pedir el código directamente al iniciar la conexión si no está registrado
+                let secret = await sock.requestPairingCode(sessionId) 
+                secret = secret?.match(/.{1,4}/g)?.join("-") || secret
 
-        if (connection === 'connecting' && isInit) {
-             console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] Conectando para +${folderId}. Preparando solicitud de código...`));
+                await conn.reply(m.chat, `**CÓDIGO DE VINCULACIÓN (+${folderId})**:\n\n*${secret}*`, m)
+
+                console.log(chalk.bold.white(chalk.bgMagenta(`\n🌟 CÓDIGO FUNCIONAL (+${folderId}) 🌟`)), chalk.bold.yellowBright(secret))
+                codeSent = true 
+            } catch (e) {
+                console.error(`Error al solicitar pairing code para +${folderId}:`, e);
+            }
         }
         
         if (connection === 'open') {
             let userName = sock.authState.creds.me.name || 'Anónimo'
             console.log(chalk.bold.cyanBright(` 🪐 ${userName} (+${folderId}) CONECTADO exitosamente.`))
 
-            if (!sock.authState.creds.registered && !codeSent) {
-                 await requestCode();
-            } else if (sock.authState.creds.registered) {
+            if (sock.authState.creds.registered) {
                 if (!global.additionalConns.some(c => c.user?.jid === sock.user?.jid)) {
                     global.additionalConns.push(sock)
                 }
@@ -257,10 +250,6 @@ export async function ConnectAdditionalSession(options) {
         sock.ev.on("connection.update", sock.connectionUpdate)
         sock.ev.on("creds.update", sock.credsUpdate)
         isInit = false
-
-        if (!sock.authState.creds.registered) {
-             await requestCode();
-        }
 
         return true
     }

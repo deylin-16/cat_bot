@@ -67,7 +67,7 @@ const JBOptions = {}
 if (global.conns instanceof Array) console.log()
 else global.conns = []
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
-if (!globalThis.db.data.settings[conn.user.jid].accessassistant) return m.reply(`Comando desactivado temporalmente.`)
+//if (!globalThis.db.data.settings[conn.user.jid].accessassistant) return m.reply(`Comando desactivado temporalmente.`)
 let who
 if (!args[0]) return m.reply(`*Ingrese el número de WhatsApp para vincular el Assistant.*\n\nEjemplo: ${usedPrefix + command} 521XXXXXXXXXX`)
 if (isNaN(args[0])) return m.reply(`El número ingresado no es válido.`)

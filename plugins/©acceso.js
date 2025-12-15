@@ -1,3 +1,4 @@
+import qrcode from "qrcode"
 import NodeCache from "node-cache"
 import fs from "fs"
 import path from "path"
@@ -127,52 +128,45 @@ export async function ConnectAdditionalSession(options) {
     sock.isInit = false
     let isInit = true
     let codeSent = false 
-    let codeRequested = false 
 
-    async function requestCode() {
-        if (codeRequested || sock.authState.creds.registered || sock.ws.readyState !== CONNECTING) return
 
-        codeRequested = true
-        console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] Solicitando código de emparejamiento para ${sessionId}...`));
-
-        try {
-            let secret = await sock.requestPairingCode(sessionId) 
-            secret = secret?.match(/.{1,4}/g)?.join("-") || secret
-
-            await conn.reply(m.chat, secret, m)
-
-            console.log(chalk.bold.white(chalk.bgMagenta(`\n🌟 CÓDIGO FUNCIONAL (+${folderId}) 🌟`)), chalk.bold.yellowBright(secret))
-            codeSent = true 
-        } catch (e) {
-            codeRequested = false
-            console.error(`Error al solicitar pairing code para ${folderId}:`, e);
-
-            const reason = e?.output?.statusCode;
-            if (reason === 428 || e.message.includes('Connection Closed')) {
-                await conn.reply(m.chat, `⚠️ Fallo en la conexión (*428*). Reintentando sesión *${folderId}*...`, m);
-                // No cerramos el socket inmediatamente, dejamos que el connectionUpdate lo maneje
-            } else {
-                 await conn.reply(m.chat, `⚠️ Error grave al obtener código. Intente *${usedPrefix}eliminar_conexion ${folderId}* y vuelva a *${usedPrefix}conectar ${folderId}*.`, m);
-                 sock.ws.close();
-            }
-        }
-    }
 
     async function connectionUpdate(update) {
-        const { connection, lastDisconnect, isNewLogin } = update
+        const { connection, lastDisconnect, isNewLogin, qr } = update
 
         if (isNewLogin) sock.isInit = false
-        
-        // Disparar la solicitud de código después de un pequeño retraso si la conexión está inicializando
-        if (connection === 'connecting' && !codeRequested && !sock.authState.creds.registered) {
-            await delay(5000)
-            await requestCode()
-        }
+
+
+        if (qr && !codeSent && !sock.authState.creds.registered) {
+
+            console.log(chalk.bold.yellow(`[ASSISTANT_ACCESS] QR recibido para ${folderId}. Llamando a requestPairingCode para ${sessionId}...`));
+
+            try {
+
+                let secret = await sock.requestPairingCode(sessionId) 
+                secret = secret?.match(/.{1,4}/g)?.join("-") || secret
+
+
+                await conn.reply(m.chat, secret, m)
+
+                console.log(chalk.bold.white(chalk.bgMagenta(`\n🌟 CÓDIGO FUNCIONAL (+${folderId}) 🌟`)), chalk.bold.yellowBright(secret))
+                codeSent = true 
+            } catch (e) {
+                console.error(`Error al solicitar pairing code para ${folderId}:`, e);
+
+                if (e.message.includes('Connection Closed') || e.message.includes('428')) {
+                    await conn.reply(m.chat, `⚠️ Fallo en la conexión (*428*). Reintentando sesión *${folderId}*...`, m);
+                    sock.ws.close();
+                } else {
+                     await conn.reply(m.chat, `⚠️ Error al obtener código. Intente *${usedPrefix}eliminar_conexion ${folderId}* y vuelva a *${usedPrefix}conectar ${folderId}*.`, m);
+                     sock.ws.close();
+                }
+            }
+        } 
 
 
         if (connection === 'close') {
             codeSent = false;
-            codeRequested = false;
             const reason = lastDisconnect?.error?.output?.statusCode; 
 
             const shouldReconnect = [

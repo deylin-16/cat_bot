@@ -15,6 +15,8 @@ async function getLidFromJid(id, connection) {
     return res[0]?.lid || id;
 }
 
+const mainBotJid = global.conn?.user?.jid; 
+
 export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now();
     const conn = this;
@@ -28,6 +30,13 @@ export async function handler(chatUpdate) {
 
     m = smsg(conn, m) || m;
     if (!m) return;
+
+    const currentJid = conn.user.jid;
+    const isSubAssistant = currentJid !== mainBotJid; 
+
+    if (m.isGroup && isSubAssistant) {
+        return; 
+    }
 
     if (global.db.data == null) {
         await global.loadDatabase();
@@ -143,7 +152,7 @@ export async function handler(chatUpdate) {
         }
 
         const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
-        let usedPrefix = ''; // Siempre vacío al no usar prefijo
+        let usedPrefix = ''; 
 
         for (const name in global.plugins) {
             const plugin = global.plugins[name];
@@ -185,13 +194,12 @@ export async function handler(chatUpdate) {
 
             if (typeof plugin !== 'function') continue;
 
-            // --- Lógica de Detección de Comando SIN PREFIJO ---
             let noPrefix = m.text.trim();
             if (noPrefix.length === 0) continue; 
-            
+
             let [command, ...args] = noPrefix.split(/\s+/).filter(v => v);
             command = (command || '').toLowerCase();
-            
+
             const isAccept = plugin.command instanceof RegExp ?
                 plugin.command.test(command) :
                 Array.isArray(plugin.command) ?
@@ -201,21 +209,18 @@ export async function handler(chatUpdate) {
                         false;
 
             if (!isAccept) continue;
-            
-            // Si el comando coincide, ajustamos noPrefix y text
+
             noPrefix = m.text.trim().substring(command.length).trim();
             let text = args.join(' ');
-            
-            // Aseguramos que 'args' contenga todo lo que va después del comando
+
             if (noPrefix.length > 0) {
                args = noPrefix.split(/\s+/).filter(v => v);
             } else {
                args = [];
             }
-            // --- FIN Lógica de Detección de Comando SIN PREFIJO ---
 
             m.plugin = name;
-            
+
             const fail = plugin.fail || global.dfail;
             global.comando = command;
 

@@ -53,9 +53,8 @@ ${customCommands}`
     }
 }
 
-handler.help = ['menu']
-handler.tags = ['main']
-handler.command = ['menu']
+
+handler.command = ['menu', 'comandos', 'funcioned', 'ayuda']
 
 export default handler
 

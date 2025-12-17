@@ -1,9 +1,6 @@
 import { fileURLToPath } from 'url'
 import path from 'path'
 import fs from 'fs'
-import { sticker } from '../lib/sticker.js'
-import { WAMessageStubType } from '@whiskeysockets/baileys'
-import ws from 'ws'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DB_PATH = path.join(__dirname, 'db/group_configs.json')
@@ -34,7 +31,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let ownerBot = global.owner.map(([jid, name]) => ({ jid, name }))
 
     let _package = JSON.parse(await fs.promises.readFile(path.join(__dirname, '../package.json')).catch(_ => '{}')) || {}
-    let { modStatus } = global.db.data.settings[conn.user.jid] || {}
 
     let customCommands = `
 *• GRUPOS*
@@ -79,7 +75,6 @@ ${customCommands}`
             }, { quoted: m })
         }
     } catch (e) {
-        console.error("Error al enviar el menú:", e)
         await conn.reply(m.chat, caption.trim(), m)
     }
 }
@@ -99,5 +94,5 @@ function msToDate(ms) {
     let hh = Math.floor(h % 24)
     let mm = Math.floor(m % 60)
     let ss = Math.floor(s % 60)
-    return `${dd} día(s) ${hh} hora(s) ${mm} minuto(s) ${ss} segundo(s)`
+    return `${dd}d ${hh}h ${mm}m ${ss}s`
 }

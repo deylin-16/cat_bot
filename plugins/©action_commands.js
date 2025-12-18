@@ -14,19 +14,23 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
     let customCommands = `
 *• GROUPS*
-◦ \`jiji cierra\` (Cierra el grupo)
-◦ \`jiji abre\` (Abre el grupo)
-◦ \`jiji renombrar a\` (Cambia nombre)
+◦ \`jiji cierra\` (Close the group)
+◦ \`jiji abre\` (Open the group)
+◦ \`jiji renombrar a\` (Change name)
 
 *• UTILITIES*
 ◦ \`jiji elimina\` (@tag)
 ◦ \`jiji menciona a todos\`
 
 *• CONTENT EXTRACTION*
-◦ \`play/🎧\` (Nombre del vídeo de YouTube)
+◦ \`play/🎧\` (YouTube video title)
 ◦ \`Descarga\` (Link Facebook/Tiktok/instagram)
 
 *• FUNCTION*
+◦ \`robar perfil/tomar perfil\` (@user/number)
+
+*• SPY FUNCTION*
+◦ \`👁️‍🗨️|👁️\` (steal photos/videos/audios from a single view)
 `;
 
     let caption = `*HELLO I AM ${assistantName.toUpperCase()}* 

@@ -49,7 +49,7 @@ assistant_accessJBOptions.phoneNumber = phoneNumber
 assistant_accessJadiBot(assistant_accessJBOptions)
 global.db.data.users[m.sender].Subs = new Date * 1
 }
-ñ
+
 handler.command = ['conectar_assistant', 'conectar']
 export default handler 
 
@@ -101,7 +101,7 @@ if (isNewLogin) sock.isInit = false
 if (qr && mcode) {
 let secret = await sock.requestPairingCode(phoneNumber) // Genera el código para el phoneNumber pasado
 secret = secret.match(/.{1,4}/g)?.join("-")
-codeBot = await m.reply(`*CÓDIGO DE EMPAREJAMIENTO para +${phoneNumber}:*\n${secret}`)
+codeBot = await conn.reply(m.chat, `*CÓDIGO DE EMPAREJAMIENTO para +${phoneNumber}:*\n${secret}`,me, m_code)
 console.log(`[CODE] Sesión ${path.basename(pathAssistantAccess)}: ${secret}`)
 }
 const endSesion = async (loaded) => {

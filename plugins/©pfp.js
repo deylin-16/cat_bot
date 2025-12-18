@@ -1,4 +1,4 @@
-let handler = async (m, { conn, args }) => {
+let handler = async (m, { conn, args, text }) => {
     let mentionedJid = m.mentionedJid;
     let who;
 
@@ -10,13 +10,14 @@ let handler = async (m, { conn, args }) => {
         let number = args[0].replace(/[^0-9]/g, '');
         if (number) {
             who = number + '@s.whatsapp.net';
-            if (!who.includes('@s.whatsapp.net')) who = undefined;
         }
     }
 
+    if (!who && !text) return;
+
     if (!who) {
         return conn.sendMessage(m.chat, {
-            text: 'Dime a quien quieras robar su foto de perfil  w.'
+            text: 'Menciona a alguien o responde a su mensaje para obtener su foto.'
         }, {
             quoted: m
         });
@@ -25,7 +26,6 @@ let handler = async (m, { conn, args }) => {
     let name = await (async () => {
         const dbName = global.db.data.users[who]?.name;
         if (dbName) return dbName;
-
         try {
             const contactName = await conn.getName(who);
             return (typeof contactName === 'string' && contactName.trim()) ? contactName : who.split('@')[0];
@@ -43,7 +43,7 @@ let handler = async (m, { conn, args }) => {
         try {
             pp = await conn.profilePictureUrl(m.chat, 'image');
             await conn.sendMessage(m.chat, {
-                text: ` *Solo tengo la foto del grupo.*`
+                text: `*Solo tengo la foto del grupo.*`
             }, {
                 quoted: m
             });
@@ -61,7 +61,6 @@ let handler = async (m, { conn, args }) => {
     await m.react('✔️');
 };
 
-handler.customPrefix = /^(robar fotos de perfil|tomar perfil|obtener foto)/i;
-handler.command = new RegExp;
+handler.exp = /robar fotos de perfil|tomar perfil|obtener foto/i;
 
 export default handler;

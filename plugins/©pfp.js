@@ -13,11 +13,9 @@ let handler = async (m, { conn, args, text }) => {
         }
     }
 
-    if (!who && !text) return;
-
     if (!who) {
         return conn.sendMessage(m.chat, {
-            text: 'Menciona a alguien o responde a su mensaje para obtener su foto.'
+            text: 'Dime a quien quieras robar su foto de perfil  w.'
         }, {
             quoted: m
         });
@@ -42,18 +40,10 @@ let handler = async (m, { conn, args, text }) => {
     } catch {
         try {
             pp = await conn.profilePictureUrl(m.chat, 'image');
-            await conn.sendMessage(m.chat, {
-                text: `*Solo tengo la foto del grupo.*`
-            }, {
-                quoted: m
-            });
+            await conn.sendMessage(m.chat, { text: ` *Solo tengo la foto del grupo.*` }, { quoted: m });
         } catch {
             pp = 'https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/1745522645448.jpeg';
-            await conn.sendMessage(m.chat, {
-                text: `*No encontré nada w.*`
-            }, {
-                quoted: m
-            });
+            await conn.sendMessage(m.chat, { text: `*No encontré nada w.*` }, { quoted: m });
         }
     }
 
@@ -61,6 +51,15 @@ let handler = async (m, { conn, args, text }) => {
     await m.react('✔️');
 };
 
-handler.exp = /robar fotos de perfil|tomar perfil|obtener foto/i;
+handler.customPrefix = /^(robar fotos de perfil|tomar perfil|obtener foto)/i;
+handler.command = new RegExp;
+
+handler.all = async function (m) {
+    if (!m.text) return;
+    const triggers = ['robar fotos de perfil', 'tomar perfil', 'obtener foto'];
+    if (triggers.some(phrase => m.text.toLowerCase() === phrase.toLowerCase())) {
+       // this.sendMessage(m.chat, { text: 'Dime a quien quieras robar su foto de perfil  w.' }, { quoted: m });
+    }
+};
 
 export default handler;

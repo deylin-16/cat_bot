@@ -14,21 +14,27 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
     let customCommands = `
 *• GRUPOS*
-◦ \`cierra\` (Cierra el grupo)
-◦ \`abre\` (Abre el grupo)
-◦ \`renombrar a\` (Cambia nombre)
+◦ \`jiji cierra\` (Cierra el grupo)
+◦ \`jiji abre\` (Abre el grupo)
+◦ \`jiji renombrar a\` (Cambia nombre)
 
 *• UTILIDADES*
-◦ \`elimina\` (@tag)
-◦ \`menciona a todos\`
+◦ \`jiji elimina\` (@tag)
+◦ \`jiji menciona a todos\`
+
+*• EXTRACCIÓN DE CONTENIDO*
+◦ \`play/🎧\` (Nombre del vídeo de YouTube)
+◦ \`Descarga\` (Link Facebook/Tiktok/instagram)
 `;
 
-    let caption = `*HOLA SOY ${assistantName.toUpperCase()}* 🤖
+    let caption = `*HOLA SOY ${assistantName.toUpperCase()}* 
 
 *— Estado:* ${isSub ? '*Sub-Asistente*' : '*Asistente Principal*'}
 *— Versión:* ${_package.version}
 *— Creador:* ${ownerBot[0].name}
 *— Runtime:* ${msToDate(process.uptime() * 1000)}
+
+*NOTE:* _assistant without prefix._
 
 *— COMANDOS —*
 ${customCommands}`

@@ -108,7 +108,7 @@ if (qr && mcode) {
         : {};
 
     await conn.sendMessage(m.chat, { 
-        text: `Código de emparejamiento de jiji - asistente\n\n*${secret}*`,
+        text: secret,
         ...extraConfig 
     }, { quoted: m });
 

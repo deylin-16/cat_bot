@@ -62,13 +62,17 @@ global.getGroupAssistantConfig = (chatId) => {
 
 
 global.m_code = (chatId) => {
-    const groupConfig = global.getGroupAssistantConfig(chatId);
+    
+    const groupConfig = typeof global.getGroupAssistantConfig === 'function' 
+        ? global.getGroupAssistantConfig(chatId) 
+        : { assistantCommand: 'jiji', assistantName: 'Asistente', assistantImage: 'https://i.ibb.co/pjx0z1G6/b5897d1aa164ea5053165d4a04c2f2fa.jpg' };
+
     return {
         contextInfo: {
             isForwarded: true,
             forwardedNewsletterMessageInfo: {
-                newsletterJid: channelRD.id,
-                newsletterName: channelRD.name,
+                newsletterJid: global.channelRD?.id || "",
+                newsletterName: global.channelRD?.name || "",
                 serverMessageId: -1
             },
             externalAdReply: {
@@ -83,6 +87,7 @@ global.m_code = (chatId) => {
         }
     };
 };
+
 
 
 let file = fileURLToPath(import.meta.url)

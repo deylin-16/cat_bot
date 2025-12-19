@@ -66,20 +66,19 @@ handler.all = async function (m, { conn }) {
         
         if (result && result.trim().length > 0) {
             let fullText = result.trim()
-            let { key } = await conn.sendMessage(m.chat, { text: '...' }, { quoted: m })
-            
-            let currentText = ''
             let words = fullText.split(' ')
             
-            let step = fullText.length > 200 ? 5 : 2 
-
-            for (let i = 0; i < words.length; i += step) {
-                currentText = words.slice(0, i + step).join(' ')
-                await conn.sendMessage(m.chat, { text: currentText, edit: key })
-                await new Promise(resolve => setTimeout(resolve, 100))
-            }
+            let { key } = await conn.sendMessage(m.chat, { text: '✍️...' }, { quoted: m })
             
-            await conn.sendMessage(m.chat, { text: fullText, edit: key })
+            let currentText = ''
+            for (let i = 0; i < words.length; i++) {
+                currentText += words[i] + ' '
+                
+                if (i % 3 === 0 || i === words.length - 1) {
+                    await conn.sendMessage(m.chat, { text: currentText.trim(), edit: key })
+                    await new Promise(resolve => setTimeout(resolve, 150))
+                }
+            }
         }
     } catch (e) {
         console.error(e)

@@ -17,12 +17,12 @@ let handler = m => m
 
 handler.all = async function (m, chatUpdate) {
     const conn = this;
-    let chat = global.db.data.chats[m.chat]
+    let chat = global.db.data?.chats?.[m.chat]
     if (!chat || chat.isBanned || !chat.autoresponder) return
 
-    if (m.isBot || m.fromMe) return 
+    if (m.isBot || m.fromMe || !m.text) return 
 
-    let rawText = m.text || ''
+    let rawText = m.text
     let queryLower = rawText.toLowerCase().trim()
     let cleanQuery = queryLower.replace(/^(jiji|gato|asistente)\s+/, '').trim()
 
@@ -37,7 +37,7 @@ handler.all = async function (m, chatUpdate) {
     let prefixRegex = new RegExp('^[' + (opts?.prefix || '‎z/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.,\\-').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']')
     if (prefixRegex.test(rawText)) return true
 
-    let isOrBot = /(jiji.|gato|asistente)/i.test(rawText)
+    let isOrBot = /(jiji|gato|asistente)/i.test(rawText)
     let isReply = m.quoted && m.quoted.sender === conn.user.jid
     let isMention = m.mentionedJid && m.mentionedJid.includes(conn.user.jid) 
 
@@ -57,21 +57,24 @@ handler.all = async function (m, chatUpdate) {
     let jijiPrompt = `Eres ${assistantName}. Tu personalidad: Sarcástico, enojón, directo, divertido pero furioso, demuestras poder y adorable. Responde a ${username}: ${rawText}. Usa * para resaltar.`;
 
     try {
-        const url = `${POLLINATIONS_BASE_URL}/${encodeURIComponent(jijiPrompt)}`;
+        const url = `${POLLINATIONS_BASE_URL}/${encodeURIComponent(jijiPrompt)}?model=openai&cache=true`;
         const res = await fetch(url)
-        if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
+        
+        if (!res.ok) {
+            console.error(`Error en API: ${res.status} ${res.statusText}`);
+            return; 
+        }
+
         let result = await res.text()
         
         if (result && result.trim().length > 0) {
             let fullText = result.trim()
             let words = fullText.split(' ')
-            
             let { key } = await conn.sendMessage(m.chat, { text: '✍️...' }, { quoted: m })
             
             let currentText = ''
             for (let i = 0; i < words.length; i++) {
                 currentText += words[i] + ' '
-                
                 if (i % 4 === 0 || i === words.length - 1) {
                     await conn.sendMessage(m.chat, { text: currentText.trim(), edit: key })
                     await new Promise(resolve => setTimeout(resolve, 250))
@@ -79,8 +82,7 @@ handler.all = async function (m, chatUpdate) {
             }
         }
     } catch (e) {
-        console.error(e)
-        await conn.sendMessage(m.chat, { text: '⚠️ Fallo en la conexión cerebral.' }, { quoted: m })
+        console.error('Error en handler.all:', e)
     }
     return true
 }

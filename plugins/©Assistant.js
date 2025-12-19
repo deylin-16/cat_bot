@@ -26,16 +26,12 @@ handler.all = async function (m, { conn }) {
 
     let rawText = m.text || ''
     let queryLower = rawText.toLowerCase().trim()
-    
-    // Eliminar el nombre del asistente del texto para comparar con el JSON
-    // Esto evita que "gato hola" falle al buscar solo "hola"
     let cleanQuery = queryLower.replace(/^(jiji|gato|asistente)\s+/, '').trim()
 
-    // 1. Prioridad Máxima: Respuestas Predefinidas
     if (respuestasPredefinidas[cleanQuery] || respuestasPredefinidas[queryLower]) {
         let txt = respuestasPredefinidas[cleanQuery] || respuestasPredefinidas[queryLower]
         await this.sendPresenceUpdate('composing', m.chat)
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        await new Promise(resolve => setTimeout(resolve, 800))
         await this.reply(m.chat, txt, m)
         return true 
     }
@@ -69,24 +65,21 @@ handler.all = async function (m, { conn }) {
         let result = await res.text()
         
         if (result && result.trim().length > 0) {
-            // --- EFECTO DE ESCRITURA POR PARTES ---
-            let message = result.trim()
-            let parts = []
+            let fullText = result.trim()
+            let { key } = await conn.sendMessage(m.chat, { text: '...' }, { quoted: m })
             
-            if (message.length < 50) {
-                parts = [message] // Mensaje corto, una sola parte
-            } else if (message.length < 200) {
-                parts = message.match(/[^.!?]+[.!?]+/g) || [message] // Dividir por frases
-            } else {
-                parts = message.match(/[\s\S]{1,150}(\s|$)/g) || [message] // Partes grandes de 150 caracteres
-            }
+            let currentText = ''
+            let words = fullText.split(' ')
+            
+            let step = fullText.length > 200 ? 5 : 2 
 
-            for (let part of parts) {
-                await this.sendPresenceUpdate('composing', m.chat)
-                // Velocidad de escritura: 40ms por caracter
-                await new Promise(resolve => setTimeout(resolve, part.length * 40))
-                await this.sendMessage(m.chat, { text: part.trim() }, { quoted: m })
+            for (let i = 0; i < words.length; i += step) {
+                currentText = words.slice(0, i + step).join(' ')
+                await conn.sendMessage(m.chat, { text: currentText, edit: key })
+                await new Promise(resolve => setTimeout(resolve, 100))
             }
+            
+            await conn.sendMessage(m.chat, { text: fullText, edit: key })
         }
     } catch (e) {
         console.error(e)

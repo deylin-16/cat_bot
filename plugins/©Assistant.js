@@ -34,7 +34,6 @@ handler.all = async function (m, { conn }) {
     if (respuestasPredefinidas[cleanQuery] || respuestasPredefinidas[queryLower]) {
         let txt = respuestasPredefinidas[cleanQuery] || respuestasPredefinidas[queryLower]
         await conn.sendPresenceUpdate('composing', m.chat)
-        await new Promise(resolve => setTimeout(resolve, 1200))
         await conn.sendMessage(m.chat, { text: txt }, { quoted: m })
         return true 
     }
@@ -43,8 +42,7 @@ handler.all = async function (m, { conn }) {
         if (!/(como|cómo|que|qué|donde|dónde|porque|por qué|porqué|quisiera)/i.test(queryLower)) return true
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    let { key } = await conn.sendMessage(m.chat, { text: '✍️...' }, { quoted: m })
+    let { key } = await conn.sendMessage(m.chat, { text: 'Pensando...' }, { quoted: m })
     await conn.sendPresenceUpdate('composing', m.chat)
 
     let assistantName = m.isGroup && typeof global.getGroupAssistantConfig === 'function' 
@@ -58,14 +56,16 @@ handler.all = async function (m, { conn }) {
         const url = `${POLLINATIONS_BASE_URL}/${encodeURIComponent(jijiPrompt)}?model=openai&cache=true`;
         const res = await fetch(url)
         if (!res.ok) throw new Error('API Error');
-
         let result = await res.text()
+
         if (result && result.trim().length > 0) {
+            await conn.sendMessage(m.chat, { text: 'Escribiendo...', edit: key })
+            await new Promise(resolve => setTimeout(resolve, 2000))
+
             let fullText = result.trim()
             let words = fullText.split(' ')
-            
-            let step = fullText.length > 500 ? 25 : (fullText.length > 200 ? 15 : 8);
-            let speed = 800; 
+            let step = fullText.length > 500 ? 30 : (fullText.length > 200 ? 18 : 10);
+            let speed = 1000; 
 
             let currentText = ''
             for (let i = 0; i < words.length; i += step) {
@@ -78,7 +78,7 @@ handler.all = async function (m, { conn }) {
         }
     } catch (e) {
         console.error(e)
-        await conn.sendMessage(m.chat, { text: '💢 Mi cerebro se sobrecalentó.', edit: key })
+        await conn.sendMessage(m.chat, { text: '💢 Error en la matriz.', edit: key })
     }
     return true
 }

@@ -15,11 +15,12 @@ const DIRECT_COMMAND_REGEX = new RegExp(`^(jiji|gato|asistente)\\s+(${ACTION_KEY
 
 let handler = m => m
 
-handler.all = async function (m, { conn }) {
-    if (!conn) return
+handler.all = async function (m) {
+    const conn = this; 
+    if (!m.text) return
+    
     let chat = global.db.data?.chats?.[m.chat]
-    if (!chat || chat.isBanned || !chat.autoresponder) return
-    if (m.isBot || m.fromMe || !m.text) return 
+    if (chat?.isBanned) return
 
     const botJid = conn.user.jid
     const isOrBot = /(jiji|gato|asistente)/i.test(m.text)
@@ -45,17 +46,13 @@ handler.all = async function (m, { conn }) {
     let { key } = await conn.sendMessage(m.chat, { text: 'Pensando...' }, { quoted: m })
     await conn.sendPresenceUpdate('composing', m.chat)
 
-    let assistantName = m.isGroup && typeof global.getGroupAssistantConfig === 'function' 
-        ? global.getGroupAssistantConfig(m.chat).assistantName 
-        : (global.bot || 'Asistente');
-
+    let assistantName = (global.bot || 'Asistente');
     let username = m.pushName || 'Usuario'
     let jijiPrompt = `Eres ${assistantName}. Tu personalidad: Sarcástico, enojón, directo, divertido pero furioso, demuestras poder y adorable. Responde a ${username}: ${m.text}. Usa * para resaltar.`;
 
     try {
         const url = `${POLLINATIONS_BASE_URL}/${encodeURIComponent(jijiPrompt)}?model=openai&cache=true`;
         const res = await fetch(url)
-        if (!res.ok) throw new Error('API Error');
         let result = await res.text()
 
         if (result && result.trim().length > 0) {
@@ -64,8 +61,8 @@ handler.all = async function (m, { conn }) {
 
             let fullText = result.trim()
             let words = fullText.split(' ')
-            let step = fullText.length > 500 ? 35 : (fullText.length > 200 ? 20 : 12);
-            let speed = 1100; 
+            let step = fullText.length > 500 ? 30 : (fullText.length > 200 ? 15 : 8);
+            let speed = 1000; 
 
             let currentText = ''
             for (let i = 0; i < words.length; i += step) {
@@ -77,8 +74,7 @@ handler.all = async function (m, { conn }) {
             await conn.sendMessage(m.chat, { text: fullText, edit: key })
         }
     } catch (e) {
-        console.error('Error en Asistente:', e)
-        await conn.sendMessage(m.chat, { text: '💢 Error temporal.', edit: key })
+        await conn.sendMessage(m.chat, { text: '💢 Error.', edit: key })
     }
     return true
 }

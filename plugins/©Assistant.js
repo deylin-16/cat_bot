@@ -9,7 +9,7 @@ if (fs.existsSync(respuestasPath)) {
     respuestasPredefinidas = JSON.parse(fs.readFileSync(respuestasPath, 'utf-8'));
 }
 
-const POLLINATIONS_BASE_URL = 'https://text.pollinations.ai';
+const DEYLIN_API_URL = 'https://www.deylin.xyz/api/ai/text/ai';
 const ACTION_KEYWORDS = ['cierra', 'cerrar', 'bloquea', 'ciérralo', 'silencia', 'modo-admin', 'abre', 'abrir', 'desbloquea', 'ábrelo', 'quita modo-admin', 'cambia el nombre', 'renombrar', 'ponle nombre', 'nuevo nombre', 'actualiza nombre', 'cambia la descripción', 'pon descripción', 'nueva descripción', 'descr', 'cambia la foto', 'pon foto', 'cambiar imagen', 'elimina', 'sacar', 'kickea', 'expulsa', 'saca', 'fuera', 'menciona todos', 'tagall', 'menciónalos', 'aviso a todos'];
 const DIRECT_COMMAND_REGEX = new RegExp(`^(jiji|gato|asistente)\\s+(${ACTION_KEYWORDS.join('|')})`, 'i');
 
@@ -18,7 +18,7 @@ let handler = m => m
 handler.all = async function (m) {
     const conn = this; 
     if (!m.text) return
-    
+
     let chat = global.db.data?.chats?.[m.chat]
     if (chat?.isBanned) return
 
@@ -51,18 +51,19 @@ handler.all = async function (m) {
     let jijiPrompt = `Eres ${assistantName}. Tu personalidad: Sarcástico, enojón, directo, divertido pero furioso, demuestras poder y adorable. Responde a ${username}: ${m.text}. Usa * para resaltar.`;
 
     try {
-        const url = `${POLLINATIONS_BASE_URL}/${encodeURIComponent(jijiPrompt)}?model=openai&cache=true`;
+        const url = `${DEYLIN_API_URL}?prompt=${encodeURIComponent(jijiPrompt)}&id=uwuw`;
         const res = await fetch(url)
-        let result = await res.text()
+        const json = await res.json()
+        let result = json.response 
 
         if (result && result.trim().length > 0) {
             await conn.sendMessage(m.chat, { text: 'Escribiendo...', edit: key })
-            await new Promise(resolve => setTimeout(resolve, 1500))
+            await new Promise(resolve => setTimeout(resolve, 1200))
 
             let fullText = result.trim()
             let words = fullText.split(' ')
-            let step = fullText.length > 500 ? 30 : (fullText.length > 200 ? 15 : 8);
-            let speed = 1000; 
+            let step = fullText.length > 500 ? 25 : (fullText.length > 200 ? 12 : 6);
+            let speed = 800; 
 
             let currentText = ''
             for (let i = 0; i < words.length; i += step) {
@@ -70,7 +71,7 @@ handler.all = async function (m) {
                 await conn.sendMessage(m.chat, { text: currentText.trim(), edit: key })
                 await new Promise(resolve => setTimeout(resolve, speed))
             }
-            
+
             await conn.sendMessage(m.chat, { text: fullText, edit: key })
         }
     } catch (e) {

@@ -67,7 +67,7 @@ Responde a ${username}: ${m.text}`;
         let result = json.response 
 
         if (result && result.trim().length > 0) {
-            await conn.sendMessage(m.chat, { text: 'Escribiendo...', edit: key })
+            //await conn.sendMessage(m.chat, { text: 'Escribiendo...', edit: key })
             
             let fullText = result.trim()
             let words = fullText.split(' ')

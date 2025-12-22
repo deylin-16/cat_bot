@@ -20,12 +20,11 @@ global.moment = moment
 global.sessions = 'sessions'
 global.jadi = 'sessions_sub_assistant';
 
-
 let Names = [
     'ᴊɪᴊɪ - ᴀssɪsᴛᴀɴᴛ', 
     '𝕵𝖎𝖏𝖎 - 𝕬𝖘𝖘𝖎𝖘𝖙𝖆𝖓𝖙', 
     '🄹🄸🄹🄸 - 🄰🅂🅂🄸🅂🅃🄰🄽🅃', 
-    '𝒥𝒾𝒿𝒾 - 𝒜𝓈𝓈𝒾𝓈𝓉𝒶𝓃𝓉', 
+    '𝒥𝒾𝒿𝒾 - 𝒜𝓈𝓈𝒾𝓈𝓉🇦𝓃𝓉', 
     '🅹🅸🅹🅸 - 🄰🅂🅂🄸🅂🅃🄰🅽🆃', 
     '𝐉𝐢𝐣𝐢 - 𝐀𝐬𝐬𝐢𝐬𝐭𝐚𝐧𝐭', 
     'Ⓙⓘⓙⓘ - Ⓐⓢⓢⓘⓢⓣⓐⓝⓣ', 
@@ -36,7 +35,6 @@ let Names = [
 
 let randomIndex = Math.floor(Math.random() * Names.length);
 global.bot = Names[randomIndex];
-
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DB_PATH = path.join(__dirname, 'db/assistant_sessions.json')
@@ -52,37 +50,34 @@ global.getAssistantConfig = (botJid) => {
     }
 
     const sessionConfig = configs[botJid]
+    
+    global.name = sessionConfig?.assistantName || global.bot || "Asistente"
+    global.img = sessionConfig?.assistantImage 
+        ? Buffer.from(sessionConfig.assistantImage, 'base64') 
+        : "https://i.ibb.co/pjx0z1G6/b5897d1aa164ea5053165d4a04c2f2fa.jpg"
 
     return {
-        assistantName: sessionConfig?.assistantName || global.bot || "Asistente",
-        assistantImage: sessionConfig?.assistantImage 
-            ? Buffer.from(sessionConfig.assistantImage, 'base64') 
-            : "https://i.ibb.co/pjx0z1G6/b5897d1aa164ea5053165d4a04c2f2fa.jpg"
+        assistantName: global.name,
+        assistantImage: global.img
     }
 }
 
-
-
-
-global.m_code = (chatId) => {
-    const groupConfig = global.getGroupAssistantConfig(chatId);
+global.m_code = (botJid) => {
+    const config = global.getAssistantConfig(botJid);
     return {
         contextInfo: {
             externalAdReply: {
-                title: `Código de emparejamiento de ${groupConfig.assistantCommand} - asistente`,
-                body: `Asistente: ${groupConfig.assistantName}`,
+                title: `Código de emparejamiento`,
+                body: `Asistente: ${config.assistantName}`,
                 mediaType: 1,
                 previewType: 'PHOTO',
                 renderLargerThumbnail: true, 
-                thumbnailUrl: groupConfig.assistantImage,
+                thumbnailUrl: config.assistantImage,
                 sourceUrl: 'https://www.deylin.xyz' 
             }
         }
     };
 };
-
-
-
 
 let file = fileURLToPath(import.meta.url)
 watchFile(file, () => {

@@ -25,7 +25,13 @@ else global.conns = []
 
 
 let m_code = (botJid) => {
-    const config = global.getAssistantConfig(botJid) || { assistantName: 'Sub-Bot', assistantImage: 'https://www.deylin.xyz/logo.jpg' };
+    const config = global.getAssistantConfig(botJid) || { 
+        assistantName: 'Sub-Bot', 
+        assistantImage: 'https://www.deylin.xyz/logo.jpg' 
+    };
+
+    const isBuffer = Buffer.isBuffer(config.assistantImage);
+
     return {
         contextInfo: {
             externalAdReply: {
@@ -33,13 +39,15 @@ let m_code = (botJid) => {
                 body: `Asistente: ${config.assistantName}`,
                 mediaType: 1,
                 previewType: 'PHOTO',
-                renderLargerThumbnail: true, 
-                thumbnailUrl: config.assistantImage,
+                renderLargerThumbnail: true,
+                
+                ...(isBuffer ? { thumbnail: config.assistantImage } : { thumbnailUrl: config.assistantImage }),
                 sourceUrl: 'https://www.deylin.xyz' 
             }
         }
     };
 };
+
 
 function isSubBotConnected(jid) { 
     return global.conns.some(sock => sock?.user?.jid && sock.user.jid.split("@")[0] === jid.split("@")[0]) 

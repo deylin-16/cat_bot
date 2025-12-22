@@ -33,7 +33,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ◦ \`👁️‍🗨️/👁️/:)\` (steal photos/videos/audios from a single view)
 `;
 
-    let caption = `*HELLO I AM ${assistantName.toUpperCase()}* *— Version:* ${_package.version}
+    let caption = `*HELLO I AM ${assistantName.toUpperCase()}* 
+
+*— Version:* ${_package.version}
 *— Creator:* ${ownerBot[0].name}
 *— Runtime:* ${msToDate(process.uptime() * 1000)}
 

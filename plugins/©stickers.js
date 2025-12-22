@@ -1,5 +1,5 @@
-import { sticker } from '../../lib/sticker.js'
-import { webp2png } from '../../lib/webp2mp4.js'
+import { sticker } from '../lib/sticker.js'
+import { webp2png } from '../lib/webp2mp4.js'
 import Jimp from 'jimp'
 import fs from 'fs'
 import os from 'os'
@@ -42,6 +42,7 @@ const makeImageWithText = async (buffer, text, color) => {
   }
   if (line) lines.push(line)
 
+  const user = m.pushName || 'Anónimo'
   const padding = 20
   const textHeight = lines.length * (Jimp.measureTextHeight(font, 'M', maxWidth) + 20)
   const boxHeight = textHeight + padding * 2
@@ -89,7 +90,7 @@ let handler = async (m, { conn, args }) => {
       finalBuffer = await makeImageWithText(buffer, txt, color)
     }
 
-    const stickerBuffer = await sticker(finalBuffer, false, global.name)
+    const stickerBuffer = await sticker(finalBuffer, false, global.name, user)
 
     await conn.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
     await m.react('✅')
@@ -100,8 +101,7 @@ let handler = async (m, { conn, args }) => {
   }
 }
 
-handler.help = ['s']
-handler.tags = ['sticker']
+
 handler.command = ['s', 'sticker']
 
 export default handler

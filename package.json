@@ -53,7 +53,6 @@
     "qrcode": "^1.5.1",
     "jsdom": "^20.0.1",
     "ruhend-scraper": "^7.0.4",
-    "@tobyg74/tiktok-api-dl": "^1.1.1",
     "syntax-error": "^1.4.0",
     "terminal-image": "^2.0.0",
     "url-regex-safe": "^3.0.0",

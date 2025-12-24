@@ -25,7 +25,7 @@ let handler = async (m, { conn, text }) => {
     const video = response.data.videos[0];
     const videoUrl = `https://www.tiktok.com/@${video.author.unique_id}/video/${video.video_id}`;
 
-    const { data: dlData } = await axios.get(`https://www.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(videoUrl)}&apikey=by_deylin`);
+    const { data: dlData } = await axios.get(`${url_api}/api/download/tiktok?url=${encodeURIComponent(videoUrl)}&apikey=by_deylin`);
 
     let finalVideo, finalTitle, finalAuthor;
 

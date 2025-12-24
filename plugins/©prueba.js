@@ -13,7 +13,8 @@ let handler = async (m, { conn }) => {
                 mediaType: 1,
                 previewType: 'PHOTO',
                 renderLargerThumbnail: true,
-                ...(isBuffer ? { thumbnail: config.assistantImage } : { thumbnailUrl: config.assistantImage }),
+                thumbnail: isBuffer ? config.assistantImage : null,
+                thumbnailUrl: !isBuffer ? config.assistantImage : null,
                 sourceUrl: targetUrl,
                 mediaUrl: targetUrl
             }

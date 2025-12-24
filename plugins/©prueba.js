@@ -8,15 +8,18 @@ let handler = async (m, { conn }) => {
         text: targetUrl,
         contextInfo: {
             externalAdReply: {
-                title: `CÓAREJAMIENTO`,
+                title: `CÓDIGO DE EMPAREJAMIENTO`,
                 body: `Asistente: ${config.assistantName}`,
-                mediaType: 2, 
+                mediaType: 1,
+                // Fuerza la miniatura a tamaño grande
                 renderLargerThumbnail: true,
+                // Asegura que la imagen se envíe correctamente
                 thumbnail: isBuffer ? config.assistantImage : null,
                 thumbnailUrl: !isBuffer ? config.assistantImage : null,
                 sourceUrl: targetUrl,
                 mediaUrl: targetUrl,
-                showAdAttribution: false
+                // Ayuda a la renderización en algunas versiones de WhatsApp
+                showAdAttribution: true
             }
         }
     }, { quoted: m })

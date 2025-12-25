@@ -1,18 +1,7 @@
 let handler = async (m, { conn }) => {
     const config = global.getAssistantConfig(conn.user.jid)
     let targetUrl = 'https://www.deylin.xyz'
-    
-    let thumb = config.assistantImage
-    let isBuffer = Buffer.isBuffer(thumb)
-
-    if (!isBuffer && typeof thumb === 'string' && thumb.startsWith('http')) {
-        try {
-            thumb = await global.getBuffer(thumb)
-            isBuffer = true
-        } catch {
-            isBuffer = false
-        }
-    }
+    let fixedImage = 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
 
     await conn.sendMessage(m.chat, {
         text: targetUrl,
@@ -24,9 +13,9 @@ let handler = async (m, { conn }) => {
                 renderLargerThumbnail: false,
                 showAdAttribution: false,
                 sourceUrl: targetUrl,
-                thumbnail: isBuffer? thumb : null,
-                thumbnailUrl:!isBuffer? thumb : null,
-                containsAutoReply: true
+                thumbnailUrl: fixedImage,
+                containsAutoReply: true,
+                mediaUrl: null
             }
         }
     }, { quoted: m })

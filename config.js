@@ -23,7 +23,9 @@ global.url_api = 'https://api.deylin.xyz'
 
 
 
-    global.design = async (conn, m, text = '') => {
+    
+                
+global.design = async (conn, m, text = '') => {
     const config = global.getAssistantConfig(conn.user.jid)
     const mainBotJid = global.conn?.user?.jid.split('@')[0] 
     const currentBotJid = conn.user.jid.split('@')[0]
@@ -33,8 +35,14 @@ global.url_api = 'https://api.deylin.xyz'
     }
 
     let canalLink = 'https://www.deylin.xyz/1' 
-    let iconoUrl = 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
-    let buffer = await global.getBuffer(iconoUrl)
+    let buffer
+    
+    if (config.assistantImage) {
+        buffer = Buffer.from(config.assistantImage, 'base64')
+    } else {
+        let iconoUrl = 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
+        buffer = await global.getBuffer(iconoUrl)
+    }
 
     return await conn.sendMessage(m.chat, {
         text: text || canalLink,
@@ -46,8 +54,7 @@ global.url_api = 'https://api.deylin.xyz'
                 serverMessageId: 1
             },
             externalAdReply: {
-                title: config.assistantName,
-               // body: ,
+                title: config.assistantName || 'Asistente',
                 thumbnail: buffer,
                 mediaType: 1,
                 renderLargerThumbnail: false,
@@ -58,6 +65,7 @@ global.url_api = 'https://api.deylin.xyz'
         }
     }, { quoted: m })
 }
+
 
  
 

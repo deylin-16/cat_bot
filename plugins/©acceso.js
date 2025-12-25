@@ -122,10 +122,12 @@ export async function assistant_accessJadiBot(options) {
             }
             if (connection === 'close') {
                 const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-                if (reason === DisconnectReason.loggedOut) {
-                    try { fs.rmSync(pathAssistantAccess, { recursive: true, force: true }) } catch {}
-                } else if ([428, 408, 515, 500, 511, 440].includes(reason)) {
-                    setTimeout(() => assistant_accessJadiBot(options), 10000)
+                if (reason !== DisconnectReason.loggedOut) {
+                    await creloadHandler(true).catch(console.error)
+                } else {
+                    fs.rmSync(pathAssistantAccess, { recursive: true, force: true })
+                    let i = global.conns.indexOf(sock)
+                    if (i >= 0) global.conns.splice(i, 1)
                 }
             }
             if (connection == `open`) {

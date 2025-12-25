@@ -13,8 +13,8 @@ let handler = async (m, { conn }) => {
                 renderLargerThumbnail: false,
                 thumbnailUrl: fixedImage,
                 sourceUrl: targetUrl,
-                // Eliminamos mediaUrl para que no abra la imagen al tocar
-                showAdAttribution: true
+                // Eliminamos mediaUrl y cualquier otro parámetro de video/foto
+                showAdAttribution: false
             }
         }
     }, { quoted: m })

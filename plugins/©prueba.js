@@ -1,7 +1,9 @@
 let handler = async (m, { conn }) => {
     const config = global.getAssistantConfig(conn.user.jid)
     let targetUrl = 'https://www.deylin.xyz'
-    let fixedImage = 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
+    
+    // Obtenemos la imagen como Buffer para que no tenga link propio
+    let imageBuffer = await global.getBuffer('https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg')
 
     await conn.sendMessage(m.chat, {
         text: targetUrl,
@@ -9,11 +11,11 @@ let handler = async (m, { conn }) => {
             externalAdReply: {
                 title: `CÓDIGO DE EMPAREJAMIENTO`,
                 body: `Asistente: ${config.assistantName}`,
-                mediaType: 1, // Cambiado a 1 para que sea un link normal
-                renderLargerThumbnail: false, // Imagen pequeña a la derecha
-                thumbnailUrl: fixedImage,
+                mediaType: 1, 
+                renderLargerThumbnail: false,
+                thumbnail: imageBuffer, // Usamos el buffer aquí
                 sourceUrl: targetUrl,
-                showAdAttribution: false // Esto elimina el texto de "anuncio"
+                showAdAttribution: false
             }
         }
     }, { quoted: m })

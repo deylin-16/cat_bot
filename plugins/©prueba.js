@@ -3,32 +3,54 @@ import fetch from 'node-fetch'
 let handler = async (m, { conn }) => {
     const config = global.getAssistantConfig(conn.user.jid)
     
+    // Configuración Base
     let canalLink = 'https://www.deylin.xyz/1' 
     let iconoUrl = 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
+    let botName = config.assistantName
     
-    let buffer = await (await fetch(iconoUrl)).buffer()
+    // Descarga y conversión a Buffer (Datos Binarios Reales)
+    let response = await fetch(iconoUrl)
+    let buffer = await response.buffer()
 
     await conn.sendMessage(m.chat, {
-        text: 'Haz clic en la imagen para unirte a la comunidad 🚀', 
+        text: canalLink, // El texto base es el link para forzar anclaje
         contextInfo: {
+            // 1. Forzamos estado de reenvío para activar metadatos de link
+            isForwarded: true,
+            
+            // 2. Metadatos de Newsletter (Engaña al sistema para que crea que es un canal oficial)
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: '120363160031023229@newsletter',
+                serverMessageId: 100,
+                newsletterName: `COMUNIDAD: ${botName}`,
+            },
+
+            // 3. Lógica Inmensa de AdReply (Redundancia Total)
             externalAdReply: {
-                title: config.assistantName,
-                body: '🚀 ¡Únete al canal oficial!',
-                thumbnail: buffer,
-                mediaType: 1, // Volvemos a imagen para que se vea
+                title: `🌟 UNIRSE A: ${botName.toUpperCase()}`,
+                body: '🚀 TOCA AQUÍ PARA ACCESO EXCLUSIVO',
+                mediaType: 1, 
+                previewType: "PHOTO", 
+                thumbnail: buffer, // Datos binarios
                 
-                // LA SOLUCIÓN DEFINITIVA:
-                // Dejamos mediaUrl en blanco para que no intente abrir archivos.
-                // Así WhatsApp solo encuentra el sourceUrl para ejecutar el clic.
-                mediaUrl: null, 
+                // REPETICIÓN ESTRATÉGICA: Llenamos todos los campos con el mismo link
+                // para que no quede ni un solo espacio "vacío" o "en blanco"
                 sourceUrl: canalLink,
+                mediaUrl: canalLink, // Forzamos que el "medio" sea la web del canal
                 
-                renderLargerThumbnail: true,
-                showAdAttribution: true
+                renderLargerThumbnail: true, // Impacto visual grande
+                showAdAttribution: true, // Etiqueta de "Enlace" oficial
+                containsAutoReply: true,
+                
+                // Campos adicionales para forzar la detección del sistema
+                ctwaContext: {
+                    sourceUrl: canalLink,
+                    description: botName
+                }
             }
         }
     }, { quoted: m })
 }
 
-handler.command = ['prueba']
+handler.command = ['prueba_total']
 export default handler

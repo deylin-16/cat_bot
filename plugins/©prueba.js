@@ -9,20 +9,20 @@ let handler = async (m, { conn }) => {
     let buffer = await (await fetch(iconoUrl)).buffer()
 
     await conn.sendMessage(m.chat, {
-        text: canalLink, 
+        text: 'Haz clic en la imagen para unirte a la comunidad 🚀', 
         contextInfo: {
             externalAdReply: {
-                title: 'COMUNIDAD OFICIAL 🚀',
-                body: `Asistente: ${config.assistantName}`,
+                title: config.assistantName,
+                body: '🚀 ¡Únete al canal oficial!',
                 thumbnail: buffer,
+                mediaType: 1, // Volvemos a imagen para que se vea
                 
-                // CAMBIO MAESTRO:
-                // Usamos mediaType 2 (Video). WhatsApp NO intenta abrir el visor de fotos con el tipo 2,
-                // sino que ejecuta directamente la acción de sourceUrl.
-                mediaType: 2, 
-                
-                mediaUrl: canalLink,
+                // LA SOLUCIÓN DEFINITIVA:
+                // Dejamos mediaUrl en blanco para que no intente abrir archivos.
+                // Así WhatsApp solo encuentra el sourceUrl para ejecutar el clic.
+                mediaUrl: null, 
                 sourceUrl: canalLink,
+                
                 renderLargerThumbnail: true,
                 showAdAttribution: true
             }

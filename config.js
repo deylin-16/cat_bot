@@ -49,7 +49,7 @@ global.design = async (conn, m, text = '') => {
         contextInfo: {
             isForwarded: true,
             forwardedNewsletterMessageInfo: {
-                newsletterJid: '120363385732156828@newsletter',
+                newsletterJid: '120363406846602793@newsletter',
                 newsletterName: config.assistantName,
                 serverMessageId: 1
             },

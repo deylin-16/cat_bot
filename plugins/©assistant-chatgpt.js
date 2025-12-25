@@ -7,7 +7,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     await m.react('✨')
 
   try {
-    const url = `${url_api}/api/ia/texto/chatgpt?q=${encodeURIComponent(text)}&apikey=by_deylin`;
+    const url = `${url_api}/api/ai/text/chatgpt?q=${encodeURIComponent(text)}&apikey=by_deylin`;
     const res = await fetch(url);
     const data = await res.json();
 

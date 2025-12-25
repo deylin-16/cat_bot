@@ -9,21 +9,20 @@ let handler = async (m, { conn }) => {
     let buffer = await (await fetch(iconoUrl)).buffer()
 
     await conn.sendMessage(m.chat, {
-        text: canalLink, // Texto obligatorio para que el mensaje tenga un "ancla"
+        text: canalLink, 
         contextInfo: {
             externalAdReply: {
-                title: config.assistantName,
-                body: '🚀 COMUNIDAD OFICIAL',
+                title: 'COMUNIDAD OFICIAL 🚀',
+                body: `Asistente: ${config.assistantName}`,
                 thumbnail: buffer,
-                mediaType: 1,
                 
-                // ESTA ES LA CLAVE:
-                // Si dejas mediaUrl vacío o con la URL de la imagen, da error.
-                // Al poner el link del CANAL aquí también, WhatsApp asocia 
-                // los datos visuales directamente con la web del canal.
-                mediaUrl: canalLink, 
+                // CAMBIO MAESTRO:
+                // Usamos mediaType 2 (Video). WhatsApp NO intenta abrir el visor de fotos con el tipo 2,
+                // sino que ejecuta directamente la acción de sourceUrl.
+                mediaType: 2, 
+                
+                mediaUrl: canalLink,
                 sourceUrl: canalLink,
-                
                 renderLargerThumbnail: true,
                 showAdAttribution: true
             }

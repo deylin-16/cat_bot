@@ -55,7 +55,7 @@ const handler = async (m, { conn, text, command }) => {
 
         try {
             let media = await q.download?.()
-            configs[botId].assistantIcon = media.toString('base64')
+            configs[botId].assistanticon = media.toString('base64')
             saveConfigs(configs)
             m.reply('✅ Icono pequeño guardado correctamente.')
         } catch (e) {

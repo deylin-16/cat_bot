@@ -14,7 +14,7 @@ let handler = async (m, { conn }) => {
             body: '¡Comunidad Oficial!',
             url: "https://chat.whatsapp.com/K9RNlIG2CnnEZeQgOmZOQl",
             thumbnail: buffer,
-            largeThumb: true
+            //largeThumb: true
         })
 
         await m.react('✅')

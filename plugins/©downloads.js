@@ -1,4 +1,4 @@
-/*import fetch from 'node-fetch';
+import fetch from 'node-fetch';
 import { igdl } from 'ruhend-scraper';
 
 const processingResponses = [
@@ -120,4 +120,4 @@ handler.command = ['descargar', 'dl', 'descarga'];
 handler.register = true;
 handler.group = true;
 
-export default handler;*/
+export default handler;

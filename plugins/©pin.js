@@ -1,4 +1,4 @@
-import axios from 'axios';
+/*import axios from 'axios';
 import baileys from '@whiskeysockets/baileys';
 
 async function sendAlbumMessage(conn, jid, medias, options = {}) {
@@ -134,4 +134,4 @@ let handler = async (m, { conn, text }) => {
 
 handler.command = ['pinterest', 'pin'];
 
-export default handler;
+export default handler;*/

@@ -85,7 +85,7 @@ const pins = async (judul) => {
 };
 
 let handler = async (m, { conn, text }) => {
-  if (!text) return conn.reply(m.chat, `🍪 Ingresa un texto para iniciar la búsqueda...`, m);
+  if (!text) return global.design(conn, m, `🍪 Ingresa un texto para iniciar la búsqueda...`);
 
   try {
     const res2 = await fetch('https://files.catbox.moe/875ido.png');
@@ -106,7 +106,7 @@ let handler = async (m, { conn, text }) => {
     m.react('🕒');
 
     const results = await pins(text);
-    if (!results || results.length === 0) return conn.reply(m.chat, `No se encontraron resultados para "${text}".`, m);
+    if (!results || results.length === 0) return global.design(conn, m, `No se encontraron resultados para "${text}".`);
 
     const maxImages = Math.min(results.length, 4);
     const medias = [];

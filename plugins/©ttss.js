@@ -1,4 +1,4 @@
-/*import axios from 'axios';
+import axios from 'axios';
 
 let handler = async (m, { conn, text }) => {
   const rwait = '🕒';
@@ -58,4 +58,4 @@ let handler = async (m, { conn, text }) => {
 
 handler.command = ['tiktoksearch', 'ttss', 'tiktoks'];
 
-export default handler;*/
+export default handler;

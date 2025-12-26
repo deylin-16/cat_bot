@@ -25,7 +25,8 @@ global.url_api = 'https://api.deylin.xyz'
 
     
                 
-global.design = async (conn, m, text = '') => {
+
+   global.design = async (conn, m, text = '') => {
     const config = global.getAssistantConfig(conn.user.jid)
     const mainBotJid = global.conn?.user?.jid.split('@')[0] 
     const currentBotJid = conn.user.jid.split('@')[0]
@@ -34,10 +35,12 @@ global.design = async (conn, m, text = '') => {
         return await conn.sendMessage(m.chat, { text: text }, { quoted: m })
     }
 
-    let canalLink = ' https://www.deylin.xyz ' 
+    let canalLink = 'https://www.deylin.xyz' 
     let buffer
-    
-    if (config.assistantImage) {
+
+    if (config.assistantIcon) {
+        buffer = Buffer.from(config.assistantIcon, 'base64')
+    } else if (config.assistantImage) {
         buffer = Buffer.from(config.assistantImage, 'base64')
     } else {
         let iconoUrl = 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
@@ -50,7 +53,7 @@ global.design = async (conn, m, text = '') => {
             isForwarded: true,
             forwardedNewsletterMessageInfo: {
                 newsletterJid: '120363406846602793@newsletter',
-                newsletterName: `SIGUE EL CANAL DE: ${config.assistantName}`,
+                newsletterName: `SIGUE EL CANAL DE: ${config.assistantName || 'ASISTENTE'}`,
                 serverMessageId: 1
             },
             externalAdReply: {
@@ -65,7 +68,7 @@ global.design = async (conn, m, text = '') => {
         }
     }, { quoted: m })
 }
-
+             
 
  
 

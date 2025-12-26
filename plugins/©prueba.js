@@ -9,19 +9,21 @@ let handler = async (m, { conn }) => {
         if (!response.ok) throw new Error('No se pudo descargar la imagen')
         const buffer = await response.buffer()
 
+        // Usamos await para asegurar que la función termine antes de reaccionar
         await conn.sendModify(m.chat, "Haz clic aquí para unirte al grupo 🚀", m, {
             title: config?.assistantName || 'ASSEMBLY SYSTEM',
             body: '¡Comunidad Oficial!',
             url: "https://chat.whatsapp.com/K9RNlIG2CnnEZeQgOmZOQl",
             thumbnail: buffer,
-            //largeThumb: true
+            largeThumb: true // Pruébalo activado ahora
         })
 
         await m.react('✅')
 
     } catch (e) {
         console.error(e)
-        m.reply(`❌ Error: ${e.message}`)
+        // No enviamos el error al chat si es un problema de red menor
+        if (m.quoted) return
     }
 }
 

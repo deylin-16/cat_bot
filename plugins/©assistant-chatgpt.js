@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+/*import fetch from "node-fetch";
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
@@ -24,4 +24,4 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
 handler.command =['ia']
 
-export default handler;
+export default handler;*/

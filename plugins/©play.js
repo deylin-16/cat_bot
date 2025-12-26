@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+/*import fetch from "node-fetch";
 import yts from "yt-search";
 import Jimp from "jimp";
 import axios from "axios";
@@ -196,4 +196,4 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 handler.command = /^(🎧|play|mp3|🎵)$/i
 
 
-export default handler;
+export default handler;*/

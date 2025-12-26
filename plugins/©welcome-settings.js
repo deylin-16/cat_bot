@@ -20,14 +20,14 @@ let handler = async (m, { conn, text, command, isAdmin, isGroup }) => {
 
 
 
-            if (!customMessage) return m.reply(`*Uso:* ${usedPrefix}setwelcome ¡Bienvenido, @user! Eres el miembro @total del grupo @grupo.`)
+            if (!customMessage) return global.design(conn, m, `*Uso:* ${usedPrefix}setwelcome ¡Bienvenido, @user! Eres el miembro @total del grupo @grupo.`)
 
             
             chat.customWelcome = customMessage
             
             chat.welcome = true
 
-            m.reply(`✅ Mensaje de bienvenida personalizado establecido para este grupo.\n\n*Nota:* Usa *@user*, *@grupo* y *@total* en tu mensaje.`)
+            global.design(conn, m, `✅ Mensaje de bienvenida personalizado establecido para este grupo.\n\n*Nota:* Usa *@user*, *@grupo* y *@total* en tu mensaje.`)
             break
 
         default:

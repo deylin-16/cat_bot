@@ -1,4 +1,4 @@
-/*import { createHash } from 'crypto';  
+import { createHash } from 'crypto';  
 import fetch from 'node-fetch';
 
 const handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, isROwner }) => {
@@ -48,4 +48,4 @@ switch (type) {
 handler.command = [
   'welcome', 'bv', 'bienvenida', 'autor', 'res'
 ]
-export default handler*/
+export default handler

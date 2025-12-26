@@ -50,7 +50,7 @@ global.design = async (conn, m, text = '') => {
             isForwarded: true,
             forwardedNewsletterMessageInfo: {
                 newsletterJid: '120363406846602793@newsletter',
-                newsletterName: config.assistantName,
+                newsletterName: `SIGUE EL CANAL DE: ${config.assistantName}`,
                 serverMessageId: 1
             },
             externalAdReply: {

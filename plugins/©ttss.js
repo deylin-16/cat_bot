@@ -3,7 +3,6 @@ import axios from 'axios';
 let handler = async (m, { conn, text }) => {
   const rwait = '🕒';
   const done = '✅';
-  };
 
   if (!text) return global.design(conn, m, `Por favor, ingresa lo que deseas buscar.`);
 

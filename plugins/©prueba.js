@@ -1,13 +1,14 @@
 import fs from 'fs'
 import path from 'path'
+import { vm } from 'node:vm'
 
 const handler = async (m, { conn }) => {
-    const folders = ['./plugins', './lib', './db', './']
+    const folders = ['./plugins', './lib', './']
     let errors = []
 
-    await m.reply('🔍 Iniciando investigación de errores de sintaxis (*Illegal return*)...')
+    await m.reply('🔍 Iniciando investigación profunda de sintaxis...')
 
-    const checkIllegalReturn = (dir) => {
+    const checkSyntax = (dir) => {
         const files = fs.readdirSync(dir)
 
         files.forEach(file => {
@@ -18,41 +19,32 @@ const handler = async (m, { conn }) => {
             } catch (e) { return }
 
             if (stat.isDirectory() && !fullPath.includes('node_modules') && !fullPath.includes('.git')) {
-                checkIllegalReturn(fullPath)
+                checkSyntax(fullPath)
             } else if (file.endsWith('.js')) {
-                const content = fs.readFileSync(fullPath, 'utf8')
-                const lines = content.split('\n')
-                
-                lines.forEach((line, index) => {
-                    const trimmed = line.trim()
-                    if (trimmed.startsWith('return ') || trimmed === 'return') {
-                        const beforeContent = content.substring(0, content.indexOf(line))
-                        const openBraces = (beforeContent.match(/{/g) || []).length
-                        const closeBraces = (beforeContent.match(/}/g) || []).length
-                        const depth = openBraces - closeBraces
-                        
-                        if (depth <= 0) {
-                            errors.push(`📍 *Archivo:* ${fullPath}\n│ 🔢 *Línea:* ${index + 1}\n│ 💡 *Código:* \`${trimmed}\`\n╰───────────`)
-                        }
-                    }
-                })
+                try {
+                    const content = fs.readFileSync(fullPath, 'utf8')
+                    // Intentamos crear un script en memoria para validar la sintaxis
+                    new Function(content) 
+                } catch (e) {
+                    errors.push(`📍 *Archivo:* ${fullPath}\n⚠️ *Error:* ${e.message}\n───────────`)
+                }
             }
         })
     }
 
     folders.forEach(folder => {
-        if (fs.existsSync(folder)) checkIllegalReturn(folder)
+        if (fs.existsSync(folder)) checkSyntax(folder)
     })
 
     if (errors.length > 0) {
-        let report = `❌ *Se encontraron posibles errores de sintaxis:*\n\n${errors.join('\n\n')}\n\nREVISIÓN: Estos "return" están fuera de una función.`
+        let report = `❌ *ERRORES DE SINTAXIS ENCONTRADOS:*\n\n${errors.join('\n\n')}`
         await m.reply(report)
     } else {
-        await m.reply('✅ *Investigación finalizada:* No se encontraron sentencias "return" ilegales en las carpetas rastreadas.')
+        await m.reply('✅ No se detectaron errores de sintaxis obvios. Si el error persiste, revisa el archivo `config.js` manualmente al final de las funciones.')
     }
 }
 
 handler.command = ['investigacion', 'investigar']
-handler.rowner = true // Solo el dueño puede usarlo por seguridad
+handler.rowner = true
 
 export default handler

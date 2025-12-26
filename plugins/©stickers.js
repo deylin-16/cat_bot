@@ -80,7 +80,7 @@ let handler = async (m, { conn, args }) => {
       const res = await fetch(args[0])
       buffer = Buffer.from(await res.arrayBuffer())
     } else {
-      return conn.reply(m.chat, `🍪 Envía o responde a una *imagen o sticker* con el comando:\n\n*.s <texto>*`, m)
+      return global.design(conn, m, `🍪 Envía o responde a una *imagen o sticker* con el comando:\n\n*.s <texto>*`)
     }
 
     await m.react('🕓')

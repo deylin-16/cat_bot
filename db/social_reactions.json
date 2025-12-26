@@ -1,0 +1,41 @@
+{
+  "beso": {
+    "en": "kiss",
+    "enlaces": [
+      "https://media.giphy.com/media/nyGFCCQV8S88/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l4FSgsf3Dshq835BK/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/G3u97iK2fXNuw/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wYarS9K6rI01y/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/K7v9Icy79q2T6/giphy.mp4"
+    ],
+    "txt_solo": "@user está lanzando besos al aire... 💋",
+    "txt_grupo": "@user le envió un beso a todo el grupo! 😘",
+    "txt_mencion": "@user le dio un beso a @target 💋"
+  },
+  "abrazo": {
+    "en": "hug",
+    "enlaces": [
+      "https://media.giphy.com/media/od5H3PmEG5EVq/giphy.mp4",
+      "https://media.giphy.com/media/u9BxQbM5bxvwY/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3M4NpbLCTxBqU/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H5L5DnvIs8p9u/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IRub7zjOH9HUI/giphy.mp4"
+    ],
+    "txt_solo": "@user se está abrazando a sí mismo... 🤗",
+    "txt_grupo": "@user les da un fuerte abrazo grupal! ❤️",
+    "txt_mencion": "@user abrazó a @target con mucho cariño 🤗"
+  },
+  "golpe": {
+    "en": "slap",
+    "enlaces": [
+      "https://media.giphy.com/media/ALSbtSYI0263e/giphy.mp4",
+      "https://media.giphy.com/media/Zau0yrl17uzdEXwfFA/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6BfSbwS0S03C0/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/10vXSMTAY7dCcU/giphy.mp4",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueGZ3bmZicXFpZ3R4cnp3YmdueXh6bmZueXh6bmZueXh6bmZueCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/u2LJ0n4ES2ED6/giphy.mp4"
+    ],
+    "txt_solo": "@user está golpeando una almohada! 👊",
+    "txt_grupo": "@user está repartiendo golpes a todos! 👊💢",
+    "txt_mencion": "@user le dio un golpe a @target! 👊🔥"
+  }
+}

@@ -24,7 +24,7 @@ const handler = async (m, { conn, text, command }) => {
     const configs = loadConfigs()
 
     if (!configs[botId]) {
-        configs[botId] = { assistantName: null, assistantImage: null }
+        configs[botId] = { assistantName: null, assistantImage: null, assistantIcon: null }
     }
 
     if (command === 'setname') {
@@ -33,19 +33,34 @@ const handler = async (m, { conn, text, command }) => {
         saveConfigs(configs)
         m.reply(`✅ Nombre de este asistente cambiado a: *${text}*.`)
 
-    } else if (command === 'setimage' || command === 'seticono') {
+    } else if (command === 'setimage') {
         let q = m.quoted ? m.quoted : m
         let mime = (q.msg || q).mimetype || q.mediaType || ''
-        if (!/image\/(jpe?g|png)|webp/.test(mime)) return m.reply('🖼️ Responde a una imagen para este asistente.')
+        if (!/image\/(jpe?g|png)|webp/.test(mime)) return m.reply('🖼️ Responde a una imagen para el fondo.')
 
         try {
             let media = await q.download?.()
             configs[botId].assistantImage = media.toString('base64')
             saveConfigs(configs)
-            m.reply('✅ Icono de identidad guardado para este asistente.')
+            m.reply('✅ Imagen de fondo guardada.')
         } catch (e) {
             console.error(e)
             m.reply('❌ Error al guardar la imagen.')
+        }
+
+    } else if (command === 'seticono') {
+        let q = m.quoted ? m.quoted : m
+        let mime = (q.msg || q).mimetype || q.mediaType || ''
+        if (!/image\/(jpe?g|png)|webp/.test(mime)) return m.reply('🖼️ Responde a una imagen para el icono pequeño.')
+
+        try {
+            let media = await q.download?.()
+            configs[botId].assistantIcon = media.toString('base64')
+            saveConfigs(configs)
+            m.reply('✅ Icono pequeño guardado correctamente.')
+        } catch (e) {
+            console.error(e)
+            m.reply('❌ Error al guardar el icono.')
         }
     }
 }

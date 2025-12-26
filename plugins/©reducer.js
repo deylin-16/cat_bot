@@ -1,4 +1,4 @@
-/*import Jimp from "jimp";
+import Jimp from "jimp";
 
 let handler = async (m, { conn, text }) => {
 
@@ -31,4 +31,4 @@ let handler = async (m, { conn, text }) => {
 
 handler.command = ['reduce', 'reducir'];
 
-export default handler;*/
+export default handler;

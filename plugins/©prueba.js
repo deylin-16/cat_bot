@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 const handler = async (m, { conn }) => {
-    const folders = ['./plugins', './lib', './']
+    const folders = ['./plugins', './lib', './db', './']
     let errors = []
 
     await m.reply('🔍 Iniciando investigación de errores de sintaxis (*Illegal return*)...')

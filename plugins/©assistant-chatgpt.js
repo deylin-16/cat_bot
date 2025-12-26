@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
-    return conn.reply(m.chat, ` ¡Hola! ¿cómo puedo ayudarte hoy?`, m);
+    return global.design(conn, m, ` ¡Hola! ¿cómo puedo ayudarte hoy?`);
   }
     await m.react('✨')
 
@@ -12,13 +12,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const data = await res.json();
 
     if (!data || !data.response) {
-      return conn.reply(m.chat, "❌ No recibí respuesta de la IA, intenta de nuevo.", m);
+      return global.design(conn, m, "❌ No recibí respuesta de la IA, intenta de nuevo.");
     }
     await m.react('🌟')
-    await conn.reply(m.chat, `${data.response}`, m);
+    await global.design(conn, m, `${data.response}`);
   } catch (e) {
     console.error(e);
-    await conn.reply(m.chat, "⚠️ Hubo un error al conectar con la IA.", m);
+    await global.design(conn, m, "⚠️ Hubo un error al conectar con la IA.");
   }
 };
 

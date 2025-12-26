@@ -1,16 +1,11 @@
 import axios from 'axios';
 
-const emoji = '🎥';
-
 let handler = async (m, { conn, text }) => {
   const rwait = '🕒';
   const done = '✅';
-  const fkontak = {
-    key: { fromMe: false, participant: m.sender },
-    message: { documentMessage: { title: 'TikTok Search', fileName: 'TikTok Video' } }
   };
 
-  if (!text) return conn.reply(m.chat, `${emoji} Por favor, ingresa lo que deseas buscar.`, m);
+  if (!text) return global.design(conn, m, `Por favor, ingresa lo que deseas buscar.`);
 
   try {
     await m.react(rwait);
@@ -19,7 +14,7 @@ let handler = async (m, { conn, text }) => {
 
     if (!response.data || !response.data.videos || response.data.videos.length === 0) {
       await m.react('❌');
-      return conn.reply(m.chat, `No se encontraron resultados para "${text}".`, m);
+      return global.design(conn, m, `No se encontraron resultados para "${text}".`);
     }
 
     const video = response.data.videos[0];
@@ -40,7 +35,7 @@ let handler = async (m, { conn, text }) => {
     }
 
     const caption = `
-${emoji} *TIKTOK SEARCH*
+     *TIKTOK SEARCH*
 📝 *Título:* ${finalTitle || 'Sin título'}
 👤 *Autor:* ${finalAuthor}
 🔗 *Link:* ${videoUrl}
@@ -50,7 +45,7 @@ ${emoji} *TIKTOK SEARCH*
       video: { url: finalVideo }, 
       caption: caption,
       mimetype: 'video/mp4'
-    }, { quoted: fkontak });
+    }, { quoted: m });
 
     await m.react(done);
 
@@ -60,8 +55,7 @@ ${emoji} *TIKTOK SEARCH*
   }
 };
 
-handler.help = ['tiktoksearch <txt>'];
-handler.tags = ['buscador'];
+
 handler.command = ['tiktoksearch', 'ttss', 'tiktoks'];
 
 export default handler;

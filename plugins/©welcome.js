@@ -40,7 +40,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
         }
     }
     
-    const welcomeText = chat.customWelcome || `bienvenido @user a @grupo somos @total\n\n> Un administrador puede editar esta bienvenida con el comando `\setwelcome`\`
+    const welcomeText = chat.customWelcome || `bienvenido @user a @grupo somos @total\n\n> Un administrador puede editar esta bienvenida con el comando \`setwelcome\``
     const nombreDelGrupo = groupMetadata.subject
 
     let finalCaption = welcomeText

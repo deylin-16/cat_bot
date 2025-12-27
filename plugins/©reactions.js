@@ -9,13 +9,23 @@ let handler = async (m, { conn, command }) => {
     let dbReacciones = JSON.parse(fs.readFileSync(path, 'utf-8'))
     let cmd = command.toLowerCase()
     
-    const translate = { 
-        'kiss': 'beso', 'hug': 'abrazo', 'slap': 'golpe', 'kill': 'matar',
-        'pat': 'acariciar', 'dance': 'bailar' 
+    const alias = { 
+        'kiss': 'beso', 'kiss2': 'beso2', 'kiss3': 'beso3',
+        'hug': 'abrazo', 'hug2': 'abrazo2', 
+        'slap': 'golpe', 'kill': 'matar', 'pat': 'acariciar', 
+        'dance': 'bailar', 'kick': 'patada', 'laugh': 'reir',
+        'cry': 'triste', 'sad': 'triste', 'angry': 'enojado', 
+        'wave': 'saludo', 'bite': 'morder', 'lick': 'lamer', 
+        'sleep': 'dormir', 'eat': 'comer', 'scare': 'asustar', 
+        'shoot': 'disparar', 'run': 'correr', 'stare': 'mirar', 
+        'wow': 'asombro', 'blush': 'tímido'
     }
-    let key = translate[cmd] || cmd
+    
+    let key = alias[cmd] || cmd
     let data = dbReacciones[key]
     if (!data) return
+
+    await conn.sendMessage(m.chat, { react: { text: data.emoji, key: m.key } })
 
     let user = m.sender
     let target = m.mentionedJid[0] ? m.mentionedJid[0] : (m.quoted ? m.quoted.sender : null)
@@ -35,11 +45,10 @@ let handler = async (m, { conn, command }) => {
 
     try {
         const { data: tenorRes } = await axios.get(
-            `https://api.tenor.com/v1/search?q=${encodeURIComponent(data.search)}&key=LIVDSRZULELA&limit=10`
+            `https://api.tenor.com/v1/search?q=${encodeURIComponent(data.search)}&key=LIVDSRZULELA&limit=15`
         )
 
         if (!tenorRes?.results?.length) throw new Error()
-        
         
         const randomGif = tenorRes.results[Math.floor(Math.random() * tenorRes.results.length)]
         const videoUrl = randomGif.media[0].mp4.url
@@ -52,11 +61,11 @@ let handler = async (m, { conn, command }) => {
         }, { quoted: m })
 
     } catch (e) {
-        m.reply('❌ Error al conectar con Tenor.')
+        m.reply('❌ Error de conexión.')
     }
 }
 
-handler.command = /^(beso|kiss|abrazo|hug|golpe|slap|matar|kill|pat|acariciar|bailar|dance)$/i
+handler.command = /^(beso|kiss|beso2|kiss2|beso3|kiss3|abrazo|hug|hug2|abrazo2|golpe|slap|matar|kill|pat|acariciar|bailar|dance|patada|kick|reir|laugh|triste|sad|cry|enojado|angry|saludo|wave|morder|bite|lamer|lick|dormir|sleep|comer|eat|asustar|scare|disparar|shoot|correr|run|mirar|stare|asombro|wow|tímido|blush)$/i
 handler.group = true
 
 export default handler

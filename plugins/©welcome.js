@@ -38,8 +38,10 @@ export async function before(m, { conn, participants, groupMetadata }) {
         .replace(/@grupo/g, nombreDelGrupo)
         .replace(/@total/g, totalMembers)
 
+    let User = m.sender
+
     let fkontak = {
-        key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
+        key: { fromMe: false, participant: User, remoteJid: "status@broadcast" },
         message: { 
             contactMessage: { 
                 displayName: `BIENVENID@ A ${nombreDelGrupo}`, 

@@ -55,7 +55,8 @@ let handler = async (m, { conn, command, usedPrefix }) => {
     }
 }
 
-handler.command = /^(beso|kiss|abrazo|hug|golpe|slap|patada|kick|matar|kill|saludo|hello|triste|sad|reir|laugh)$/i
+handler.command = /^(beso|kiss|abrazo|hug|golpe|slap|patada|kick|matar|kill|saludo|hello|triste|sad|reir|laugh|enojado|angry|comer|eat|dormir|sleep|bailar|dance|correr|run|disparar|shoot|cachetada|slap2|asustado|scared|pensar|think|tímido|shy|morder|bite|acariciar|pat|lamer|lick|mirar|stare|besogay|kiss2|aburrido|bored|asombro|wow)$/i
+
 handler.group = true
 
 export default handler

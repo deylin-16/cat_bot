@@ -31,7 +31,7 @@ export async function handler(chatUpdate) {
         global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
         const chatData = global.db.data.chats[chatJid];
         const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
-        const textCommand = m.message?.conversation || m.message?.extendedTextMessage?.text || '';
+        const textCommand = (m.message?.conversation || m.message?.extendedTextMessage?.text || '').toLowerCase();
         const isPriorityCommand = /^(prioridad|primary|setbot)/i.test(textCommand.trim().slice(1));
 
         if (chatData?.primaryBot && chatData.primaryBot !== conn.user.jid) {
@@ -42,7 +42,7 @@ export async function handler(chatUpdate) {
     const mainBotJid = global.conn?.user?.jid;
     const isSubAssistant = conn.user.jid !== mainBotJid;
 
-    if (chatJid.endsWith('@g.us') && isSubAssistant && !global.db.data.chats[chatJid]?.primaryBot) {
+    if (chatJid.endsWith('@g.us') && isSubAssistant && (!global.db.data.chats[chatJid]?.primaryBot)) {
         const groupMetadata = await conn.groupMetadata(chatJid).catch(_ => null);
         const participants = groupMetadata?.participants || [];
         if (participants.some(p => p.id === mainBotJid)) return;

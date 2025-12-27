@@ -75,38 +75,19 @@ export async function handler(chatUpdate) {
             isBanned: false,
             sAutoresponder: '',
             welcome: true,
-            autolevelup: false,
-            autoresponder: true,
-            delete: false,
-            autoAceptar: false,
-            autoRechazar: false,
-            detect: true,
-            antiBot: false,
-            modoadmin: false,
+            autoresponder: false,
             antiLink: true,
-            nsfw: false,
-            expired: 0,
             autoresponder2: false,
             per: [],
             welcomeMsg: '¡Bienvenido/a al grupo!',
             primaryBot: ''
         };
 
-        const settingsJid = conn.user.jid;
-        global.db.data.settings[settingsJid] ||= {
-            self: false,
-            restrict: true,
-            jadibotmd: true,
-            antiPrivate: false,
-            autoread: false,
-            soloParaJid: false,
-            status: 0
-        };
+        
 
         if (typeof global.db.data.users[senderJid] !== 'object') global.db.data.users[senderJid] = {};
         user = global.db.data.users[senderJid];
         const chat = global.db.data.chats[chatJid];
-        const settings = global.db.data.settings[settingsJid];
 
         if (user) {
             if (!('exp' in user) || !isNumber(user.exp)) user.exp = 0;

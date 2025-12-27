@@ -21,6 +21,31 @@ global.sessions = 'sessions'
 global.jadi = 'sessions_sub_assistant';
 global.url_api = 'https://api.deylin.xyz'
 
+global.getAssistantConfig = (botJid) => {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url))
+    const DB_PATH = path.join(__dirname, 'db/assistant_sessions.json')
+    let configs = {}
+    try {
+        if (fs.existsSync(DB_PATH)) {
+            configs = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'))
+        }
+    } catch (e) { console.error(e) }
+
+    const sessionConfig = configs[botJid]
+    let assistantName = sessionConfig?.assistantName || "JIJI - ASSISTANT"
+    let assistantImage = sessionConfig?.assistantImage 
+        ? Buffer.from(sessionConfig.assistantImage, 'base64') 
+        : 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
+    let assistantIcon = sessionConfig?.assistantIcon 
+        ? Buffer.from(sessionConfig.assistantIcon, 'base64') 
+        : null
+
+    return { assistantName, assistantImage, assistantIcon }
+}
+
+global.name = (conn) => global.getAssistantConfig(conn.user.jid).assistantName
+global.img = (conn) => global.getAssistantConfig(conn.user.jid).assistantImage
+
 global.design = async (conn, m, text = '') => {
     const config = global.getAssistantConfig(conn.user.jid)
     const mainBotJid = global.conn?.user?.jid.split('@')[0] 
@@ -31,16 +56,7 @@ global.design = async (conn, m, text = '') => {
     }
 
     let canalLink = 'https://www.deylin.xyz' 
-    let buffer
-
-    if (config && config.assistantIcon) {
-        buffer = config.assistantIcon
-    } else if (config && config.assistantImage) {
-        buffer = config.assistantImage
-    } else {
-        let iconoUrl = 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
-        buffer = await global.getBuffer(iconoUrl)
-    }
+    let buffer = config.assistantIcon || config.assistantImage
 
     return await conn.sendMessage(m.chat, {
         text: text || canalLink,
@@ -54,7 +70,7 @@ global.design = async (conn, m, text = '') => {
             externalAdReply: {
                 title: config.assistantName,
                 body: '🚀 Toca para ver canal',
-                thumbnail: buffer,
+                thumbnail: typeof buffer === 'string' ? await global.getBuffer(buffer) : buffer,
                 mediaType: 1,
                 renderLargerThumbnail: false,
                 showAdAttribution: true,
@@ -84,7 +100,6 @@ global.getBuffer = async (url, options = {}) => {
     }
 }
 
-// CORRECCIÓN DE FECHAS
 const d = new Date(new Date().getTime() + 3600000)
 global.d = d
 global.locale = 'es'
@@ -104,37 +119,6 @@ else if (hour >= 10 && hour < 14) saludo = 'Lɪɴᴅᴏ Dɪᴀ 🌤'
 else if (hour >= 14 && hour < 18) saludo = 'Lɪɴᴅᴀ Tᴀʀᴅᴇ 🌆'
 else saludo = 'Lɪɴᴅᴀ Nᴏᴄʜᴇ 🌃'
 global.saludo = saludo;
-
-let Names = [
-    'ᴊɪᴊɪ - ᴀssɪsᴛᴀɴᴛ', '𝕵𝖎𝖏𝖎 - 𝕬𝖘𝖘𝖎𝖘𝖙𝖆𝖓𝒕', '🄹🄸🄹🄸 - 🄰🅂🅂🄸🅂🅃🄰🄽🅃', '𝒥𝒾𝒿𝒾 - 𝒜𝓈𝓈ɪ𝓈ᴛ🇦𝓃𝓉'
-];
-global.bot = Names[Math.floor(Math.random() * Names.length)];
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DB_PATH = path.join(__dirname, 'db/assistant_sessions.json')
-
-global.getAssistantConfig = (botJid) => {
-    let configs = {}
-    try {
-        if (fs.existsSync(DB_PATH)) {
-            configs = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'))
-        }
-    } catch (e) { console.error(e) }
-
-    const sessionConfig = configs[botJid]
-
-    let assistantName = sessionConfig?.assistantName || global.bot || "Asistente"
-
-    let assistantImage = sessionConfig?.assistantImage 
-        ? Buffer.from(sessionConfig.assistantImage, 'base64') 
-        : 'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg'
-
-    let assistantIcon = sessionConfig?.assistantIcon 
-        ? Buffer.from(sessionConfig.assistantIcon, 'base64') 
-        : null
-
-    return { assistantName, assistantImage, assistantIcon }
-}
 
 let file = fileURLToPath(import.meta.url)
 watchFile(file, () => {

@@ -94,7 +94,8 @@ export async function handler(chatUpdate) {
         const detectwhat = m.sender.includes('@lid') ? '@lid' : '@s.whatsapp.net';
         const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + detectwhat).includes(senderJid);
         const isOwner = isROwner || m.fromMe;
-        const mainBotJid = global.conn?.user?.jid;
+        
+        const mainBotJid = global.conn?.user?.jid || conn.user.jid;
         const isSubAssistant = conn.user.jid !== mainBotJid;
 
         if (m.isBaileys || opts['nyimak']) return;
@@ -104,16 +105,12 @@ export async function handler(chatUpdate) {
 
         let senderLid, botLid, botJid, groupMetadata, participants, user2, bot, isRAdmin, isAdmin, isBotAdmin;
 
-                if (m.isGroup) {
+        if (m.isGroup) {
             groupMetadata = await conn.groupMetadata(m.chat).catch(_ => null) || {};
             participants = groupMetadata.participants || [];
             botJid = conn.user.jid;
 
-            const mainBotJid = global.conn?.user?.jid;
-            const isSubAssistant = botJid !== mainBotJid;
-
             const isMainBotPresent = participants.some(p => p.id === mainBotJid);
-            
             if (isSubAssistant && isMainBotPresent) return;
 
             [senderLid, botLid] = await Promise.all([
@@ -127,6 +124,7 @@ export async function handler(chatUpdate) {
             isRAdmin = user2?.admin === "superadmin";
             isAdmin = isRAdmin || user2?.admin === "admin";
             isBotAdmin = !!bot?.admin;
+
         } else {
             senderLid = m.sender;
             botLid = conn.user.jid;

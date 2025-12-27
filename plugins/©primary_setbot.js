@@ -1,5 +1,4 @@
-import fs from 'fs'
-import path from 'path'
+import ws from 'ws'
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
     if (!m.isGroup) return
@@ -13,23 +12,17 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (!who) return m.reply(`Menciona al bot que quieres dejar como único asistente.`)
 
-    // Detectamos si el usuario mencionado tiene configuración de bot en la DB
-    let isBotInDb = global.db.data.settings[who]
-    
-    // También verificamos físicamente en la carpeta por seguridad
-    const botNumber = who.split('@')[0].replace(/[^0-9]/g, '')
-    const pathSubBots = path.join(process.cwd(), 'sessions_sub_assistant')
-    const hasSessionFile = fs.existsSync(path.join(pathSubBots, botNumber))
+    const activeBots = (global.conns || []).filter(c => c.user && c.ws?.socket && c.ws.socket.readyState !== ws.CLOSED)
+    const onlineJids = [global.conn?.user?.jid, ...activeBots.map(v => v.user.jid)].filter(Boolean)
 
-    // Si no está en settings y no tiene carpeta, no es un bot
-    if (!isBotInDb && !hasSessionFile && who !== conn.user.jid) {
-        return m.reply(`❌ @${botNumber} no es un asistente activo.`, null, { mentions: [who] })
+    if (!onlineJids.includes(who)) {
+        return m.reply(`❌ El usuario @${who.split('@')[0]} no es un asistente activo o está desconectado.`, null, { mentions: [who] })
     }
 
     global.db.data.chats[m.chat].primaryBot = who
 
     await conn.sendMessage(m.chat, {
-        text: `✅ *Prioridad Establecida*\nSolo @${botNumber} responderá aquí.`,
+        text: `✅ *Prioridad Establecida*\n\nSolo el asistente @${who.split('@')[0]} tiene permiso para responder en este grupo.`,
         mentions: [who]
     }, { quoted: m })
 }

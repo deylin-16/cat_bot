@@ -156,7 +156,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     }
 
     const thumbResized = await resizeImage(await (await fetch(thumbnail)).buffer(), 300);
-        global.getAssistantConfig(conn.user.jid)
+        
     
     
     if (["mp3", "play"].includes(command)) {
@@ -174,7 +174,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
           contextInfo: {
              externalAdReply: {
                 title: dl.result.title,
-                body: global.name,
+                body: global.name(conn),
                 mediaType: 2, 
                 previewType: 'PHOTO', 
                 thumbnail: thumbResized, 

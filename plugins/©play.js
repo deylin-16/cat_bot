@@ -81,7 +81,7 @@ const savetube = {
   download: async (link, type = "audio") => {
     if (!savetube.isUrl(link)) return { status: false, code: 400, error: "URL inválida" };
     const id = savetube.youtube(link);
-    if (!id) return { status: false, code: 400, error: "No se pudo obtener ID del video" };
+    if (!id) return { status: false, code: 400, error: "No se pudo obtener ID" };
     try {
       const cdnx = await savetube.getCDN();
       if (!cdnx.status) return cdnx;
@@ -102,19 +102,13 @@ const savetube = {
         }
       );
       if (!downloadData.data.data || !downloadData.data.data.downloadUrl)
-        return { status: false, code: 500, error: "No se pudo obtener link de descarga" };
+        return { status: false, code: 500, error: "Error de descarga" };
       return {
         status: true,
         code: 200,
         result: {
           title: decrypted.title || "Desconocido",
-          author: decrypted.channel || "Desconocido",
-          views: decrypted.viewCount || "Desconocido",
-          timestamp: decrypted.lengthSeconds || "0",
-          ago: decrypted.uploadedAt || "Desconocido",
-          format: type === "audio" ? "mp3" : "mp4",
-          download: downloadData.data.data.downloadUrl,
-          thumbnail: decrypted.thumbnail || null
+          download: downloadData.data.data.downloadUrl
         }
       };
     } catch (error) {
@@ -123,77 +117,82 @@ const savetube = {
   }
 };
 
-const handler = async (m, { conn, text, command, usedPrefix }) => {
+const handler = async (m, { conn, text, command }) => {
+  if (!text?.trim()) return global.design(conn, m, "Dame un link o nombre");
   await m.react("🔎");
-  if (!text?.trim()) {
-    return global.design(conn, m, "Dame el link de YouTube o el nombre de la canción/video");
-  }
 
   try {
-    let url, title, thumbnail, author, vistas, timestamp, ago;
+    let url, title, thumbnail;
 
     if (savetube.isUrl(text)) {
       const id = savetube.youtube(text);
       const search = await yts({ videoId: id });
       url = text;
-      title = search.title || "Desconocido";
+      title = search.title;
       thumbnail = search.thumbnail;
-      author = search.author;
-      vistas = search.views?.toLocaleString?.() || "Desconocido";
-      timestamp = search.timestamp;
-      ago = search.ago;
     } else {
       const search = await yts.search({ query: text, pages: 1 });
-      if (!search.videos.length) return global.design(conn, m, "❌ No se encontró nada con ese nombre.");
-      const videoInfo = search.videos[0];
-      url = videoInfo.url;
-      title = videoInfo.title;
-      thumbnail = videoInfo.thumbnail;
-      author = videoInfo.author;
-      vistas = videoInfo.views?.toLocaleString?.() || "Desconocido";
-      timestamp = videoInfo.timestamp;
-      ago = videoInfo.ago;
+      if (!search.videos.length) return global.design(conn, m, "❌ No encontrado");
+      url = search.videos[0].url;
+      title = search.videos[0].title;
+      thumbnail = search.videos[0].thumbnail;
     }
 
     const thumbResized = await resizeImage(await (await fetch(thumbnail)).buffer(), 300);
-        
-    
-    
-    if (["mp3", "play"].includes(command)) {
-      await m.react("🎧");
-      const dl = await savetube.download(url, "audio");
-      if (!dl.status) return global.design(conn, m, `❌ Error: ${dl.error}`);
+    let downloadUrl = null;
+    const startTime = Date.now();
+
+    try {
+      const response = await fetch('https://ytpy.ultraplus.click/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url, option: 'video' })
+      });
+      const data = await response.json();
       
-      
-      await conn.sendMessage(
-        m.chat,
-        {
-          audio: { url: dl.result.download },
-          mimetype: "audio/mpeg",
-          fileName: `${dl.result.title}.mp3`,
-          contextInfo: {
-             externalAdReply: {
-                title: dl.result.title,
-                body: global.name(conn),
-                mediaType: 2, 
-                previewType: 'PHOTO', 
-                thumbnail: thumbResized, 
-                sourceUrl: url,
-             }
-          }
-        },
-        { quoted: m }
-      );
+      console.log({
+        "success": data.success || false,
+        "result": data.result || "...",
+        "timestamp": new Date().toISOString(),
+        "responseTime": `${Date.now() - startTime}ms`
+      });
+
+      if (data.success && data.result) {
+        downloadUrl = data.result;
+      }
+    } catch (e) {}
+
+    if (!downloadUrl) {
+      const dl = await savetube.download(url, ["mp3", "play"].includes(command) ? "audio" : "video");
+      if (dl.status) downloadUrl = dl.result.download;
     }
-    
-    
+
+    if (!downloadUrl) return global.design(conn, m, "❌ Error al obtener descarga");
+
+    await m.react("🎧");
+    await conn.sendMessage(
+      m.chat,
+      {
+        audio: { url: downloadUrl },
+        mimetype: "audio/mpeg",
+        fileName: `${title}.mp3`,
+        contextInfo: {
+          externalAdReply: {
+            title: title,
+            body: global.name(conn),
+            mediaType: 2,
+            thumbnail: thumbResized,
+            sourceUrl: url,
+          }
+        }
+      },
+      { quoted: m }
+    );
+
   } catch (error) {
-    console.error("❌ Error:", error);
-    return global.design(conn, m, `⚠️ Ocurrió un error: ${error.message}`);
+    return global.design(conn, m, `⚠️ Error: ${error.message}`);
   }
 };
 
-handler.command = /^(🎧|play|mp3|🎵)$/i
-
-
+handler.command = /^(🎧|play|mp3|🎵)$/i;
 export default handler;

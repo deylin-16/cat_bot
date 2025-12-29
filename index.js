@@ -115,9 +115,9 @@ const connectionOptions = {
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
   },
   markOnlineOnConnect: false,
-  generateHighQualityLinkPreview: false, // OPTIMIZACIÓN: Mejora velocidad de envío
-  syncFullHistory: false, // OPTIMIZACIÓN: Ahorra muchísima RAM
-  shouldSyncHistoryMessage: () => false, // OPTIMIZACIÓN: No descarga historial
+  generateHighQualityLinkPreview: false, 
+  syncFullHistory: false, 
+  shouldSyncHistoryMessage: () => false, 
   getMessage: async (key) => {
     try {
       let jid = jidNormalizedUser(key.remoteJid);
@@ -133,7 +133,7 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
-// --- INICIO DEL SISTEMA DE VINCULACIÓN (SIN TOCAR) ---
+
 let opcion;
 if (!methodCodeQR && !methodCode && !existsSync(`./${sessions}/creds.json`)) {
   opcion = '2';
@@ -171,7 +171,6 @@ if (!existsSync(`./${sessions}/creds.json`)) {
     }
   }
 }
-// --- FIN DEL SISTEMA DE VINCULACIÓN ---
 
 conn.isInit = false;
 if (!opts['test']) {
@@ -180,10 +179,10 @@ if (!opts['test']) {
         await global.db.write();
         global.db.chain = chain(global.db.data);
     }
-  }, 60 * 1000); // OPTIMIZACIÓN: Guardado cada 60s
+  }, 60 * 1000); 
 }
 
-// OPTIMIZACIÓN: Limpiador de RAM automático
+
 setInterval(() => {
   if (global.gc) global.gc();
 }, 300000);
@@ -198,7 +197,7 @@ async function autoConnectSubBots() {
       if (existsSync(path.join(pathAcc, 'creds.json'))) {
         assistant_accessJadiBot({ pathAssistantAccess: pathAcc, phoneNumber: folder, fromCommand: false, conn: global.conn });
       }
-    }, i * 5000); // OPTIMIZACIÓN: Conexión progresiva para evitar saturar CPU
+    }, i * 5000); 
   }
 }
 
@@ -237,7 +236,7 @@ global.reloadHandler = async function(restatConn) {
   return true;
 };
 
-setInterval(() => { process.exit(0); }, 10800000); // Reinicio cada 3h
+setInterval(() => { process.exit(0); }, 10800000); 
 
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);

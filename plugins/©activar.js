@@ -46,6 +46,6 @@ switch (type) {
 };
 
 handler.command = [
-  'welcome', 'bv', 'bienvenida', 'autor', 'res'
+  '@welcome', 'bv', '@bienvenida', 'autor', 'res'
 ]
 export default handler

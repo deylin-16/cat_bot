@@ -14,7 +14,7 @@ let handler = async (m, { conn, text }) => {
         let txt = buffer.toString('utf-8')
         try { txt = format(JSON.parse(txt)) } catch {}
         await m.reply(txt)
-        return m.react(`👑`)
+        return m.react(`🍪`)
       }
 
       let buffer = await m.quoted.download()
@@ -47,6 +47,6 @@ let handler = async (m, { conn, text }) => {
 
 
 handler.command = ['fetch', 'get']
-handler.rowner = true
+handler.rowner = null
 
 export default handler

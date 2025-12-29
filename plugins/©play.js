@@ -26,15 +26,20 @@ const handler = async (m, { conn, text, command }) => {
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (data.status !== "success" || !data.url) {
-      return global.design(conn, m, "❌ La API no devolvió un resultado válido.");
+    if (!data || data.status !== "success" || !data.url) {
+      return global.design(conn, m, "❌ La API no respondió correctamente.");
     }
 
     const cleanUrl = data.url.replace(/^"|"$/g, '');
     
     await m.react("⏳");
-    const videoBuffer = await (await fetch(cleanUrl)).buffer();
-    const { data: audioBuffer, delete: cleanup } = await toAudio(videoBuffer, 'mp4');
+    
+    const res = await fetch(cleanUrl);
+    if (!res.ok) throw new Error("No se pudo obtener el flujo de video");
+    const videoBuffer = await res.buffer();
+
+    const convert = await toAudio(videoBuffer, 'mp4');
+    if (!convert || !convert.data) throw new Error("Fallo en la conversión a audio");
 
     const thumbBuffer = data.thumbnail ? await (await fetch(data.thumbnail)).buffer() : Buffer.alloc(0);
     const thumbResized = data.thumbnail ? await resizeImage(thumbBuffer, 300) : null;
@@ -43,13 +48,13 @@ const handler = async (m, { conn, text, command }) => {
     await conn.sendMessage(
       m.chat,
       {
-        audio: audioBuffer,
+        audio: convert.data,
         mimetype: "audio/mpeg",
         fileName: `${data.title}.mp3`,
         contextInfo: {
           externalAdReply: {
             title: data.title,
-            body: "Convertido mediante FFmpeg",
+            body: "Audio Procesado",
             mediaType: 2,
             thumbnail: thumbResized,
             sourceUrl: url,
@@ -59,10 +64,11 @@ const handler = async (m, { conn, text, command }) => {
       { quoted: m }
     );
 
-    await cleanup();
+    if (convert.delete) await convert.delete();
 
   } catch (error) {
-    return global.design(conn, m, `⚠️ Error: ${error.message}`);
+    console.error(error);
+    return global.design(conn, m, `⚠️ Error: ${error.message || "Error desconocido"}`);
   }
 };
 

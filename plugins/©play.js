@@ -12,54 +12,36 @@ const handler = async (m, { conn, text, command }) => {
   await m.react("🔎");
 
   try {
-    let url, title, thumbnail;
-
+    let url;
     if (/youtube.com|youtu.be/.test(text)) {
-      const id = text.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=|\/sandaylm\?v=))([\w\-]{11})/)?.[1];
-      const search = await yts({ videoId: id });
       url = text;
-      title = search.title;
-      thumbnail = search.thumbnail;
     } else {
       const search = await yts.search({ query: text, pages: 1 });
       if (!search.videos.length) return global.design(conn, m, "❌ No encontrado");
       url = search.videos[0].url;
-      title = search.videos[0].title;
-      thumbnail = search.videos[0].thumbnail;
     }
 
-    const thumbResized = await resizeImage(await (await fetch(thumbnail)).buffer(), 300);
-    const startTime = Date.now();
-
-    const response = await fetch('https://ytpy.ultraplus.click/download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url, option: 'video' })
-    });
-    
+    const apiUrl = `https://api.deylin.xyz/api/download/yt?url=${encodeURIComponent(url)}&apikey=845dc`;
+    const response = await fetch(apiUrl);
     const data = await response.json();
 
-    console.log({
-      "success": data.success || false,
-      "result": data.result || "...",
-      "timestamp": new Date().toISOString(),
-      "responseTime": `${Date.now() - startTime}ms`
-    });
-
-    if (!data.success || !data.result) {
+    if (data.status !== "success" || !data.download_url) {
       return global.design(conn, m, "❌ La API no devolvió un resultado válido.");
     }
+
+    const thumbBuffer = data.thumbnail ? await (await fetch(data.thumbnail)).buffer() : Buffer.alloc(0);
+    const thumbResized = data.thumbnail ? await resizeImage(thumbBuffer, 300) : null;
 
     await m.react("🎧");
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: data.result },
+        audio: { url: data.download_url },
         mimetype: "audio/mpeg",
-        fileName: `${title}.mp3`,
+        fileName: `${data.title}.mp3`,
         contextInfo: {
           externalAdReply: {
-            title: title,
+            title: data.title,
             body: global.name(conn),
             mediaType: 2,
             thumbnail: thumbResized,

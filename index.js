@@ -32,13 +32,21 @@ const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBai
 import readline, { createInterface } from 'readline';
 import NodeCache from 'node-cache';
 
-const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
-const userDevicesCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
 const { CONNECTING } = ws;
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
+// OPTIMIZACIÓN: Caché con tiempo de expiración para liberar RAM
+const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
+const userDevicesCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
+
 let { say } = cfonts;
+console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
+console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM INITATING...      │'));
+console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
+say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
+say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
+
 protoType();
 serialize();
 
@@ -60,20 +68,19 @@ global.prefix = new RegExp('^[#!./]');
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile('database.json'));
 global.DATABASE = global.db;
 global.loadDatabase = async function loadDatabase() {
-  if (global.db.READ) return;
+  if (global.db.READ) {
+    return new Promise((resolve) => setInterval(async function() {
+      if (!global.db.READ) {
+        clearInterval(this);
+        resolve(global.db.data == null ? global.loadDatabase() : global.db.data);
+      }
+    }, 1 * 1000));
+  }
   if (global.db.data !== null) return;
   global.db.READ = true;
   await global.db.read().catch(console.error);
   global.db.READ = null;
-  global.db.data = {
-    users: {},
-    chats: {},
-    stats: {},
-    msgs: {},
-    sticker: {},
-    settings: {},
-    ...(global.db.data || {}),
-  };
+  global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}, ...(global.db.data || {}) };
   global.db.chain = chain(global.db.data);
 };
 loadDatabase();
@@ -85,12 +92,18 @@ const methodCodeQR = process.argv.includes("qr");
 const methodCode = !!phoneNumber || process.argv.includes("code");
 const MethodMobile = process.argv.includes("mobile");
 
+const consoleAccent = chalk.bold.hex('#FF69B4');
+const consoleSuccess = chalk.bold.hex('#32CD32');
+const consoleError = chalk.bold.hex('#FF4500');
+const consoleInfo = chalk.bold.hex('#1E90FF');
+
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
 
 const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ=", "U2Vzc2lvbiBlcnJvcg==", "RXJyb3I6IEJhZCBNQUM=", "RGVjcnlwdGVkIG1lc3NhZ2U="];
 console.info = () => {};
 console.debug = () => {};
+['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
 
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
@@ -102,49 +115,75 @@ const connectionOptions = {
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
   },
   markOnlineOnConnect: false,
-  generateHighQualityLinkPreview: false,
-  syncFullHistory: false,
-  shouldSyncHistoryMessage: () => false,
+  generateHighQualityLinkPreview: false, // OPTIMIZACIÓN: Mejora velocidad de envío
+  syncFullHistory: false, // OPTIMIZACIÓN: Ahorra muchísima RAM
+  shouldSyncHistoryMessage: () => false, // OPTIMIZACIÓN: No descarga historial
   getMessage: async (key) => {
     try {
       let jid = jidNormalizedUser(key.remoteJid);
       let msg = await store.loadMessage(jid, key.id);
       return msg?.message || "";
-    } catch {
-      return "";
-    }
+    } catch { return ""; }
   },
   msgRetryCounterCache,
   userDevicesCache,
   defaultQueryTimeoutMs: 30000,
-  version
+  version: version,
 };
 
 global.conn = makeWASocket(connectionOptions);
 
+// --- INICIO DEL SISTEMA DE VINCULACIÓN (SIN TOCAR) ---
+let opcion;
 if (!methodCodeQR && !methodCode && !existsSync(`./${sessions}/creds.json`)) {
+  opcion = '2';
   if (global.conn && !global.conn.authState.creds.registered) {
-    let addNumber = phoneNumber.replace(/[^0-9]/g, '');
-    setTimeout(async () => {
-      let codeBot = await conn.requestPairingCode(addNumber);
-      codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-      console.log(chalk.bold.hex('#F0E68C')(`CÓDIGO: ${codeBot}`));
-    }, 3000);
+    console.log(consoleAccent(":: INICIO :: Conexión por código de emparejamiento seleccionada."));
   }
 }
 
-conn.isInit = false;
-conn.well = false;
+if (!existsSync(`./${sessions}/creds.json`)) {
+  if (opcion === '2' || methodCode) {
+    opcion = '2';
+    if (!conn.authState.creds.registered) {
+      let addNumber;
+      if (!!phoneNumber) {
+        addNumber = phoneNumber.replace(/[^0-9]/g, '');
+      } else {
+        while (true) {
+          phoneNumber = await question(consoleInfo(`[ INPUT ] Ingrese el número de WhatsApp para conectar (Ej: +504 8819 8573):\n> `));
+          let cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/-/g, '');
+          if (!cleanNumber.startsWith('+')) cleanNumber = `+${cleanNumber}`;
+          if (await isValidPhoneNumber(cleanNumber)) {
+            addNumber = cleanNumber.replace(/\D/g, '');
+            break;
+          } else { console.log(consoleError(":: ERROR :: Número inválido.")); }
+        }
+        rl.close();
+        setTimeout(async () => {
+          let codeBot = await conn.requestPairingCode(addNumber);
+          codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+          console.log(consoleAccent(`\n╔═══════════════════════════════════════╗`));
+          console.log(consoleAccent(`║  CÓDIGO DE VINCULACIÓN: `), chalk.bold.hex('#F0E68C')(`${codeBot}`));
+          console.log(consoleAccent(`╚═══════════════════════════════════════╝\n`));
+        }, 3000);
+      }
+    }
+  }
+}
+// --- FIN DEL SISTEMA DE VINCULACIÓN ---
 
+conn.isInit = false;
 if (!opts['test']) {
   if (global.db) setInterval(async () => {
     if (global.db.data) {
         await global.db.write();
         global.db.chain = chain(global.db.data);
     }
-  }, 60 * 1000);
+  }, 60 * 1000); // OPTIMIZACIÓN: Guardado cada 60s
 }
 
+// OPTIMIZACIÓN: Limpiador de RAM automático
 setInterval(() => {
   if (global.gc) global.gc();
 }, 300000);
@@ -157,14 +196,9 @@ async function autoConnectSubBots() {
     setTimeout(() => {
       let pathAcc = path.join(subBotsDir, folder);
       if (existsSync(path.join(pathAcc, 'creds.json'))) {
-        assistant_accessJadiBot({
-          pathAssistantAccess: pathAcc,
-          phoneNumber: folder,
-          fromCommand: false,
-          conn: global.conn
-        });
+        assistant_accessJadiBot({ pathAssistantAccess: pathAcc, phoneNumber: folder, fromCommand: false, conn: global.conn });
       }
-    }, i * 5000);
+    }, i * 5000); // OPTIMIZACIÓN: Conexión progresiva para evitar saturar CPU
   }
 }
 
@@ -172,13 +206,12 @@ async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
   if (connection === "open") {
+    console.log(consoleSuccess(`\n:: CONEXIÓN ESTABLECIDA ::\n> Bot: ${conn.user.name}\n`));
     await autoConnectSubBots();
   }
   if (connection === 'close') {
     const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-    if (reason !== DisconnectReason.loggedOut) {
-        await global.reloadHandler(true).catch(console.error);
-    }
+    if (reason !== DisconnectReason.loggedOut) await global.reloadHandler(true).catch(console.error);
   }
 }
 
@@ -188,9 +221,7 @@ global.reloadHandler = async function(restatConn) {
   try {
     const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
     if (Object.keys(Handler || {}).length) handler = Handler;
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
   if (restatConn) {
     const oldChats = global.conn.chats;
     try { global.conn.ws.close(); } catch {}
@@ -206,7 +237,7 @@ global.reloadHandler = async function(restatConn) {
   return true;
 };
 
-setInterval(() => { process.exit(0); }, 10800000);
+setInterval(() => { process.exit(0); }, 10800000); // Reinicio cada 3h
 
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
@@ -223,7 +254,6 @@ async function readRecursive(folder) {
     }
   }
 }
-
 await readRecursive(pluginFolder).catch(console.error);
 
 global.reload = async (_ev, filename) => {
@@ -233,7 +263,6 @@ global.reload = async (_ev, filename) => {
     global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
   }
 };
-
 watch(pluginFolder, { recursive: true }, global.reload);
 await global.reloadHandler();
 
@@ -246,4 +275,19 @@ async function _quickTest() {
   }));
   global.support = { ffmpeg: test[0], ffprobe: test[1] };
 }
+function redefineConsoleMethod(methodName, filterStrings) {
+  const originalConsoleMethod = console[methodName];
+  console[methodName] = function() {
+    const message = arguments[0];
+    if (typeof message === 'string' && filterStrings.some(s => message.includes(atob(s)))) arguments[0] = "";
+    originalConsoleMethod.apply(console, arguments);
+  };
+}
 _quickTest().catch(console.error);
+
+async function isValidPhoneNumber(number) {
+  try {
+    const parsedNumber = phoneUtil.parseAndKeepRawInput(number);
+    return phoneUtil.isValidNumber(parsedNumber);
+  } catch { return false; }
+}

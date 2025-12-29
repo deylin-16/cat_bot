@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import yts from "yt-search";
 
 const handler = async (m, { conn, text, command }) => {
-  if (!text?.trim()) return conn.reply(m.chat, `✨ *Uso correcto:*\n\n*${command}* nombre de la canción o link`, m);
+  if (!text?.trim()) return global.design(conn, m, `✨ *Uso correcto:*\n\n*${command}* nombre de la canción o link`);
   
   await m.react("🔎");
 
@@ -15,7 +15,7 @@ const handler = async (m, { conn, text, command }) => {
       url = text;
     } else {
       const search = await yts(text);
-      if (!search.videos.length) return m.reply("❌ No se encontró el video.");
+      if (!search.videos.length) return global.design(conn, m, "❌ No se encontró el video.");
       videoInfo = search.videos[0];
       url = videoInfo.url;
     }
@@ -27,7 +27,7 @@ const handler = async (m, { conn, text, command }) => {
     const data = await response.json();
 
     if (!data || data.status !== "success") {
-      return m.reply("❌ Error en el servidor de descargas.");
+      return global.design(conn, m, "❌ Error en el servidor de descargas.");
     }
 
     const contextInfo = {
@@ -69,7 +69,7 @@ const handler = async (m, { conn, text, command }) => {
   } catch (error) {
     console.error(error);
     await m.react("❌");
-    m.reply(`⚠️ Error: ${error.message}`);
+    global.design(conn, m, `⚠️ Error: ${error.message}`);
   }
 };
 

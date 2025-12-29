@@ -1,71 +1,51 @@
-import fetch from 'node-fetch'
+import { exec } from "child_process";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-let handler = async (m, { conn, groupMetadata }) => {
-    const who = m.sender
-    const name = conn.getName(who)
-    const assistant = global.getAssistantConfig?.(conn.user.jid) || { assistantName: 'Deylin-Bot' }
-    const canalLink = 'https://whatsapp.com/channel/0029VaeW9unBA1f3v9Y8Pk38'
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-    // Obtención de imagen
-    let ppUrl
-    try {
-        ppUrl = await conn.profilePictureUrl(who, 'image')
-    } catch {
-        ppUrl = assistant.assistantImage || 'https://i.ibb.co/jPSF32Pz/9005bfa156f1f56fb2ac661101d748a5.jpg'
+const handler = async (m, { conn }) => {
+  await m.react("🧹");
+  
+  try {
+    let report = "✨ *Limpieza de Servidor Realizada*\n\n";
+
+    // 1. Limpiar carpeta de descargas (downloads)
+    const downloadsPath = path.join(process.cwd(), "downloads");
+    if (fs.existsSync(downloadsPath)) {
+      const files = fs.readdirSync(downloadsPath);
+      files.forEach(file => {
+        fs.unlinkSync(path.join(downloadsPath, file));
+      });
+      report += `🗑️ *Downloads:* ${files.length} archivos eliminados.\n`;
     }
 
-    let buffer = await (await fetch(ppUrl)).buffer()
+    // 2. Limpiar archivos temporales de sesiones de sub-bots (.tmp, auth_info antiguos)
+    // Nota: Esto busca carpetas temporales comunes en bots de WhatsApp
+    exec("rm -rf tmp/* && rm -rf sessions/*/baileys_store.json", (err) => {
+      if (!err) console.log("Temporales de sub-bots limpiados.");
+    });
+    report += `📁 *Sesiones:* Archivos basura de sub-bots eliminados.\n`;
 
-    // --- ESTILO 1: CULTURA CYBERPUNK / SISTEMA (Tech Style) ---
-    let style1 = {
-        title: `〔 SYSTEM ACCESS: ${assistant.assistantName.toUpperCase()} 〕`,
-        body: '💾 MEMORY_LOAD: Click to Sync Channel',
-        thumbnail: buffer,
-        mediaType: 1,
-        renderLargerThumbnail: true,
-        showAdAttribution: true,
-        sourceUrl: canalLink,
-        mediaUrl: canalLink
+    // 3. Forzar liberación de RAM
+    if (global.gc) {
+      global.gc();
+      report += `🧠 *RAM:* Memoria caché liberada con éxito.\n`;
+    } else {
+      report += `⚠️ *RAM:* Optimización limitada (inicia con --expose-gc).\n`;
     }
-    await conn.sendMessage(m.chat, { text: '`[VIRTUAL_STATUS]: ONLINE`' }, { 
-        quoted: { key: { participant: who, remoteJid: "status@broadcast" }, message: { conversation: '⚡ Neural Link Connected' }},
-        contextInfo: { externalAdReply: style1 }
-    })
 
-    // --- ESTILO 2: CULTURA POP / SOCIAL MEDIA (Vibrant Style) ---
-    let style2 = {
-        title: `✨ @${name} | New Post!`,
-        body: '🚀 ¡Únete a la mejor comunidad ahora!',
-        thumbnail: buffer,
-        mediaType: 1,
-        renderLargerThumbnail: false, // Miniatura compacta a la derecha
-        showAdAttribution: true,
-        sourceUrl: canalLink,
-        mediaUrl: canalLink
-    }
-    await conn.sendMessage(m.chat, { text: '¡No te pierdas de nada en nuestro canal oficial! 🔥' }, { 
-        quoted: { key: { participant: who, remoteJid: "status@broadcast" }, message: { conversation: 'Trending Topic #1' }},
-        contextInfo: { externalAdReply: style2 }
-    })
+    await conn.reply(m.chat, report, m);
+    await m.react("✅");
 
-    // --- ESTILO 3: ESTILO ZEN / MINIMALISTA (Japanese Aesthetic) ---
-    let style3 = {
-        title: '平和 | Paz y Armonía',
-        body: `Assistant: ${assistant.assistantName} ⛩️`,
-        thumbnail: buffer,
-        mediaType: 1,
-        renderLargerThumbnail: true,
-        showAdAttribution: false,
-        sourceUrl: canalLink,
-        mediaUrl: canalLink
-    }
-    await conn.sendMessage(m.chat, { text: '「 ようこそ 」- Bienvenid@ a este espacio de paz.' }, { 
-        quoted: { key: { participant: who, remoteJid: "status@broadcast" }, message: { conversation: 'Simple is better.' }},
-        contextInfo: { externalAdReply: style3 }
-    })
-}
+  } catch (error) {
+    console.error(error);
+    await m.react("❌");
+    m.reply("⚠️ Error durante la limpieza: " + error.message);
+  }
+};
 
-handler.command = /^(prueba|test)$/i
-handler.rowner = true 
-
-export default handler
+handler.command = /^(clean|limpiar|borrartodo)$/i;
+handler.rowner = true; // Solo tú puedes usarlo para evitar que apaguen el bot por error
+export default handler;

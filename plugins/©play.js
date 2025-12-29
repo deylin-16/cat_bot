@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import yts from "yt-search";
 import Jimp from "jimp";
+import { toAudio } from "../lib/converter.js";
 
 async function resizeImage(buffer, size = 300) {
   const image = await Jimp.read(buffer);
@@ -30,7 +31,10 @@ const handler = async (m, { conn, text, command }) => {
     }
 
     const cleanUrl = data.url.replace(/^"|"$/g, '');
-    const audioUrl = `https://api.fabdl.com/youtube/get-mp3?url=${encodeURIComponent(url)}`;
+    
+    await m.react("⏳");
+    const videoBuffer = await (await fetch(cleanUrl)).buffer();
+    const { data: audioBuffer, delete: cleanup } = await toAudio(videoBuffer, 'mp4');
 
     const thumbBuffer = data.thumbnail ? await (await fetch(data.thumbnail)).buffer() : Buffer.alloc(0);
     const thumbResized = data.thumbnail ? await resizeImage(thumbBuffer, 300) : null;
@@ -39,13 +43,13 @@ const handler = async (m, { conn, text, command }) => {
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: audioUrl },
+        audio: audioBuffer,
         mimetype: "audio/mpeg",
         fileName: `${data.title}.mp3`,
         contextInfo: {
           externalAdReply: {
             title: data.title,
-            body: "Descargando audio...",
+            body: "Convertido mediante FFmpeg",
             mediaType: 2,
             thumbnail: thumbResized,
             sourceUrl: url,
@@ -54,6 +58,8 @@ const handler = async (m, { conn, text, command }) => {
       },
       { quoted: m }
     );
+
+    await cleanup();
 
   } catch (error) {
     return global.design(conn, m, `⚠️ Error: ${error.message}`);

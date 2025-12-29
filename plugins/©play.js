@@ -25,9 +25,11 @@ const handler = async (m, { conn, text, command }) => {
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (data.status !== "success" || !data.download_url) {
+    if (data.status !== "success" || !data.url) {
       return global.design(conn, m, "❌ La API no devolvió un resultado válido.");
     }
+
+    const finalUrl = data.url.replace(/^"|"$/g, '');
 
     const thumbBuffer = data.thumbnail ? await (await fetch(data.thumbnail)).buffer() : Buffer.alloc(0);
     const thumbResized = data.thumbnail ? await resizeImage(thumbBuffer, 300) : null;
@@ -36,7 +38,7 @@ const handler = async (m, { conn, text, command }) => {
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: data.download_url },
+        audio: { url: finalUrl },
         mimetype: "audio/mpeg",
         fileName: `${data.title}.mp3`,
         contextInfo: {

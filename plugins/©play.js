@@ -29,7 +29,8 @@ const handler = async (m, { conn, text, command }) => {
       return global.design(conn, m, "❌ La API no devolvió un resultado válido.");
     }
 
-    const finalUrl = data.url.replace(/^"|"$/g, '');
+    const cleanUrl = data.url.replace(/^"|"$/g, '');
+    const audioUrl = `https://api.fabdl.com/youtube/get-mp3?url=${encodeURIComponent(url)}`;
 
     const thumbBuffer = data.thumbnail ? await (await fetch(data.thumbnail)).buffer() : Buffer.alloc(0);
     const thumbResized = data.thumbnail ? await resizeImage(thumbBuffer, 300) : null;
@@ -38,13 +39,13 @@ const handler = async (m, { conn, text, command }) => {
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: finalUrl },
+        audio: { url: audioUrl },
         mimetype: "audio/mpeg",
         fileName: `${data.title}.mp3`,
         contextInfo: {
           externalAdReply: {
             title: data.title,
-            body: global.name(conn),
+            body: "Descargando audio...",
             mediaType: 2,
             thumbnail: thumbResized,
             sourceUrl: url,

@@ -1,7 +1,6 @@
 import fetch from "node-fetch";
 import yts from "yt-search";
 import Jimp from "jimp";
-import { toAudio } from "../lib/converter.js";
 
 async function resizeImage(buffer, size = 300) {
   const image = await Jimp.read(buffer);
@@ -30,31 +29,25 @@ const handler = async (m, { conn, text, command }) => {
       return global.design(conn, m, "❌ La API no respondió correctamente.");
     }
 
+    // Eliminamos comillas extras si existen
     const cleanUrl = data.url.replace(/^"|"$/g, '');
     
-    await m.react("⏳");
-    
-    const res = await fetch(cleanUrl);
-    if (!res.ok) throw new Error("No se pudo obtener el flujo de video");
-    const videoBuffer = await res.buffer();
-
-    const convert = await toAudio(videoBuffer, 'mp4');
-    if (!convert || !convert.data) throw new Error("Fallo en la conversión a audio");
+    await m.react("🎥");
 
     const thumbBuffer = data.thumbnail ? await (await fetch(data.thumbnail)).buffer() : Buffer.alloc(0);
     const thumbResized = data.thumbnail ? await resizeImage(thumbBuffer, 300) : null;
 
-    await m.react("🎧");
     await conn.sendMessage(
       m.chat,
       {
-        audio: convert.data,
-        mimetype: "audio/mpeg",
-        fileName: `${data.title}.mp3`,
+        video: { url: cleanUrl },
+        caption: `✅ *Título:* ${data.title}\n⏱️ *Duración:* ${data.duration_string}`,
+        mimetype: "video/mp4",
+        fileName: `${data.title}.mp4`,
         contextInfo: {
           externalAdReply: {
             title: data.title,
-            body: "Audio Procesado",
+            body: "Enviando video directo...",
             mediaType: 2,
             thumbnail: thumbResized,
             sourceUrl: url,
@@ -64,13 +57,11 @@ const handler = async (m, { conn, text, command }) => {
       { quoted: m }
     );
 
-    if (convert.delete) await convert.delete();
-
   } catch (error) {
     console.error(error);
     return global.design(conn, m, `⚠️ Error: ${error.message || "Error desconocido"}`);
   }
 };
 
-handler.command = /^(🎧|play|mp3|🎵)$/i;
+handler.command = /^(video|mp4|vidi|📽️)$/i;
 export default handler;

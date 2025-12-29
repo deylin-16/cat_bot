@@ -1,26 +1,52 @@
 import fetch from 'node-fetch'
 import { format } from 'util'
 
-let handler = async (m, { conn, usedPrefix, text }) => {
-if (m.fromMe) return
-if (!/^https?:\/\//.test(text)) return m.reply(` Por favor, ingresa la *url* de la pagina.`)
-let url = text
-await m.react('🕒')
-let res = await fetch(url)
-if (res.headers.get('content-length') > 100 * 1024 * 1024 * 1024) {
-throw `Content-Length: ${res.headers.get('content-length')}`
+let handler = async (m, { conn, text }) => {
+  try {
+    if (m.fromMe) return
+    await m.react(`⏳`)
+
+    if (m.quoted && m.quoted.mimetype) {
+      const mime = m.quoted.mimetype
+
+      if (/text|json|javascript|html|css|xml/.test(mime)) {
+        let buffer = await m.quoted.download()
+        let txt = buffer.toString('utf-8')
+        try { txt = format(JSON.parse(txt)) } catch {}
+        await m.reply(txt)
+        return m.react(`👑`)
+      }
+
+      let buffer = await m.quoted.download()
+      await conn.sendMessage(m.chat, { document: buffer, mimetype: mime, fileName: m.quoted.fileName || 'archivo' }, { quoted: m })
+      return m.react(`⚡`)
+    }
+
+    if (!text || !/^https?:\/\//.test(text)) {
+      return m.reply(`Envía una URL válida o cita un archivo y usa get`)
+    }
+
+    const res = await fetch(text)
+    const type = res.headers.get('content-type') || ''
+
+    if (!/text|json/.test(type)) {
+      await conn.sendFile(m.chat, text, 'archivo', text, m)
+      return m.react(`🌟`)
+    }
+
+    let txt = (await res.buffer()).toString('utf-8')
+    try { txt = format(JSON.parse(txt)) } catch {}
+    await m.reply(txt)
+    await m.react(`🔥`)
+
+  } catch (err) {
+    await m.react(`❌`)
+    await m.reply(`${err.message || err}`)
+  }
 }
-if (!/text|json/.test(res.headers.get('content-type'))) return conn.sendFile(m.chat, url, 'file', text, m)
-let txt = await res.buffer()
-try {
-txt = format(JSON.parse(txt + ''))
-} catch (e) {
-txt = txt + ''
-} finally {
-m.reply(txt.slice(0, 65536) + '')
-await m.react('✔️')
-}}
+
 
 handler.command = ['fetch', 'get']
+handler.rowner = true
 
 export default handler

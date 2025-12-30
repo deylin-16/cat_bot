@@ -1,6 +1,6 @@
 {
    "name": "WhatsApp-bot",
-   "version": "2.1.0-beta",
+   "version": "2.4.8-beta",
    "description": "WhatsApp Bot Multi Device",
    "main": "index.js",
    "type": "module",
@@ -13,14 +13,14 @@
 },
 "repository": {
    "type": "git",
-    "url": "git+https://github.com/deylin-16/Assistant.git"
+    "url": "git+https://github.com/deylin-16/Dynamic-bot.git"
 },  
     "author": "Deylin",
     "license": "MIT-License",
 "bugs": {
-    "url": "https://github.com/deylin-16/Assistant/issues"
+    "url": "https://github.com/deylin-16/Dynamic-botissues"
 },
-    "homepage": "https://github.com/deylin-16/Assistant#readme",
+    "homepage": "https://github.com/deylin-16/Dynamic-bot#readme",
 "dependencies": {
     "@hapi/boom": "^10.0.1",
     "@vitalets/google-translate-api": "^8.0.0",

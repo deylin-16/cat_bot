@@ -26,6 +26,7 @@ ${usedPrefix + command} https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/77
     if (emojiArray.length > 4)
       return m.reply('👻 Máximo 4 emojis permitidos.')
 
+    // NOTA: El error actual indica que esta API Key es inválida o expiró.
     const apiKey = 'e86b1d39bf11a5001622df47b8f07b11707aa4c36668fcd673cad911d212676b' 
 
     const requestData = {
@@ -52,14 +53,14 @@ ${usedPrefix + command} https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/77
       await m.reply('✅ Reacciones enviadas con éxito.')
     } else {
       await m.react('❌')
-      // Aquí muestra el error exacto que responde la API
-      await m.reply(`❌ Error de la API: ${result?.message || result?.error || JSON.stringify(result)}`)
+      // Esto capturará el "Unauthorized: Invalid credentials" directamente del JSON
+      let errorMessage = result?.message || result?.error || JSON.stringify(result)
+      await m.reply(`❌ ERROR TÉCNICO DETECTADO ❌\n\nRespuesta: ${errorMessage}\n\nNota: Verifica si tu API Key sigue activa en asitha.top`)
     }
   } catch (e) {
     console.error(e)
     await m.react('❌')
-    // Aquí muestra el error exacto del código o conexión
-    await m.reply(`❌ Error de sistema: ${e.message}`)
+    await m.reply(`❌ Error de ejecución: ${e.message}`)
   }
 }
 

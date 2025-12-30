@@ -19,7 +19,7 @@ global.axios = axios
 global.moment = moment 
 global.sessions = 'sessions'
 global.jadi = 'sessions_sub_assistant';
-global.url_api = 'https://api.deylin.xyz'
+global.url_api = 'https://api.dynlayer.xyz'
 
 global.getAssistantConfig = (botJid) => {
     const __dirname = path.dirname(fileURLToPath(import.meta.url))

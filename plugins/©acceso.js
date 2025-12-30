@@ -45,7 +45,7 @@ let m_code = (botJid) => {
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
-        if (!globalThis.db.data.settings[conn.user.jid]?.jadibotmd) return m.reply(`Comando desactivado.`)
+       // if (!globalThis.db.data.settings[conn.user.jid]?.jadibotmd) return m.reply(`Comando desactivado.`)
         let socklimit = global.conns.filter(sock => sock?.user).length
         if (socklimit >= 50) return m.reply(`No hay espacios disponibles.`)
         let phoneNumber = m.sender.split('@')[0]

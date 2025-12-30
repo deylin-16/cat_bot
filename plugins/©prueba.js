@@ -1,51 +1,70 @@
-import { exec } from "child_process";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fetch from 'node-fetch'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+let handler = async (m, { args, usedPrefix, command }) => {
+  if (!args[0]) {
+    return m.reply(`👻 Uso correcto: 
+${usedPrefix + command} <link_post> <emoji1,emoji2,emoji3,emoji4>
 
-const handler = async (m, { conn }) => {
-  await m.react("🧹");
-  
-  try {
-    let report = "✨ *Limpieza de Servidor Realizada*\n\n";
-
-    // 1. Limpiar carpeta de descargas (downloads)
-    const downloadsPath = path.join(process.cwd(), "downloads");
-    if (fs.existsSync(downloadsPath)) {
-      const files = fs.readdirSync(downloadsPath);
-      files.forEach(file => {
-        fs.unlinkSync(path.join(downloadsPath, file));
-      });
-      report += `🗑️ *Downloads:* ${files.length} archivos eliminados.\n`;
-    }
-
-    // 2. Limpiar archivos temporales de sesiones de sub-bots (.tmp, auth_info antiguos)
-    // Nota: Esto busca carpetas temporales comunes en bots de WhatsApp
-    exec("rm -rf tmp/* && rm -rf sessions/*/baileys_store.json", (err) => {
-      if (!err) console.log("Temporales de sub-bots limpiados.");
-    });
-    report += `📁 *Sesiones:* Archivos basura de sub-bots eliminados.\n`;
-
-    // 3. Forzar liberación de RAM
-    if (global.gc) {
-      global.gc();
-      report += `🧠 *RAM:* Memoria caché liberada con éxito.\n`;
-    } else {
-      report += `⚠️ *RAM:* Optimización limitada (inicia con --expose-gc).\n`;
-    }
-
-    await conn.reply(m.chat, report, m);
-    await m.react("✅");
-
-  } catch (error) {
-    console.error(error);
-    await m.react("❌");
-    m.reply("⚠️ Error durante la limpieza: " + error.message);
+Ejemplo: 
+${usedPrefix + command} https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/779 😨,🤣,👾,😳`)
   }
-};
 
-handler.command = /^(clean|limpiar|borrartodo)$/i;
-handler.rowner = true; // Solo tú puedes usarlo para evitar que apaguen el bot por error
-export default handler;
+  await m.react('🕒')
+
+  try {
+    const parts = args.join(' ').split(' ')
+    const postLink = parts[0]
+    const reacts = parts.slice(1).join(' ')
+
+    if (!postLink || !reacts)
+      return m.reply(`🐢 Formato incorrecto. Uso: ${usedPrefix + command} <link> <emoji1,emoji2,emoji3,emoji4>`)
+
+    if (!postLink.includes('whatsapp.com/channel/'))
+      return m.reply('🍄 El link debe ser de una publicación de canal de WhatsApp.')
+
+    const emojiArray = reacts.split(',').map(e => e.trim()).filter(e => e)
+    if (emojiArray.length > 4)
+      return m.reply('👻 Máximo 4 emojis permitidos.')
+
+    const apiKey = 'e86b1d39bf11a5001622df47b8f07b11707aa4c36668fcd673cad911d212676b' 
+
+    const requestData = {
+      post_link: postLink,
+      reacts: emojiArray.join(',')
+    }
+
+    const response = await fetch('https://foreign-marna-sithaunarathnapromax-9a005c2e.koyeb.app/api/channel/react-to-post', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'User-Agent': 'Mozilla/5.0 (Android 13; Mobile; rv:146.0) Gecko/146.0 Firefox/146.0',
+        'Referer': 'https://asitha.top/channel-manager'
+      },
+      body: JSON.stringify(requestData)
+    })
+
+    const result = await response.json()
+
+    if (response.ok && result?.message) {
+      await m.react('✅')
+      await m.reply('✅ Reacciones enviadas con éxito.')
+    } else {
+      await m.react('❌')
+      // Aquí muestra el error exacto que responde la API
+      await m.reply(`❌ Error de la API: ${result?.message || result?.error || JSON.stringify(result)}`)
+    }
+  } catch (e) {
+    console.error(e)
+    await m.react('❌')
+    // Aquí muestra el error exacto del código o conexión
+    await m.reply(`❌ Error de sistema: ${e.message}`)
+  }
+}
+
+handler.help = ['react']
+handler.tags = ['tools']
+handler.command = ['react']
+
+export default handler

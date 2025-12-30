@@ -26,7 +26,7 @@ ${usedPrefix + command} https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/77
     if (emojiArray.length > 4)
       return m.reply('👻 Máximo 4 emojis permitidos.')
 
-    // NOTA: El error actual indica que esta API Key es inválida o expiró.
+    // Esta es la Key que está siendo rebotada por el servidor
     const apiKey = '9bdfe7382722555ec9f6eddafcf6144fed413a82f1c22a30659c45ae1b398bcc' 
 
     const requestData = {
@@ -40,7 +40,7 @@ ${usedPrefix + command} https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/77
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'User-Agent': 'Mozilla/5.0 (Android 13; Mobile; rv:146.0) Gecko/146.0 Firefox/146.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://asitha.top/channel-manager'
       },
       body: JSON.stringify(requestData)
@@ -53,14 +53,20 @@ ${usedPrefix + command} https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/77
       await m.reply('✅ Reacciones enviadas con éxito.')
     } else {
       await m.react('❌')
-      // Esto capturará el "Unauthorized: Invalid credentials" directamente del JSON
+      
+      // Capturamos el error específico del "Website Token"
       let errorMessage = result?.message || result?.error || JSON.stringify(result)
-      await m.reply(`❌ ERROR TÉCNICO DETECTADO ❌\n\nRespuesta: ${errorMessage}\n\nNota: Verifica si tu API Key sigue activa en asitha.top`)
+      
+      if (errorMessage.includes('fresh website token')) {
+         await m.reply(`⚠️ **ACCESO RESTRINGIDO POR LA API** ⚠️\n\nEl servidor ya no permite llaves fijas. Necesitas obtener un token temporal directamente en: https://asitha.top/channel-manager\n\n**Error original:** ${errorMessage}`)
+      } else {
+         await m.reply(`❌ **ERROR DE LA API** ❌\n\nRespuesta: ${errorMessage}`)
+      }
     }
   } catch (e) {
     console.error(e)
     await m.react('❌')
-    await m.reply(`❌ Error de ejecución: ${e.message}`)
+    await m.reply(`❌ **Error de sistema:** ${e.message}`)
   }
 }
 

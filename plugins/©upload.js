@@ -20,7 +20,7 @@ let handler = async (m, { conn, command }) => {
     imagekit.upload({
         file: media,
         fileName: fileName,
-        folder: "/bot_uploads"
+        folder: "/dynamic_Bot_by_deylin"
     }, async (err, result) => {
         if (err) return m.reply('Error al subir: ' + err.message)
         

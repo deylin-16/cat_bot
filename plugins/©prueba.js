@@ -27,7 +27,7 @@ ${usedPrefix + command} https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/77
       return m.reply('👻 Máximo 4 emojis permitidos.')
 
     // NOTA: El error actual indica que esta API Key es inválida o expiró.
-    const apiKey = 'e86b1d39bf11a5001622df47b8f07b11707aa4c36668fcd673cad911d212676b' 
+    const apiKey = '9bdfe7382722555ec9f6eddafcf6144fed413a82f1c22a30659c45ae1b398bcc' 
 
     const requestData = {
       post_link: postLink,

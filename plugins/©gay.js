@@ -94,7 +94,7 @@ export default handler;
       { quoted: m }
     );
   } catch (e) {
-    m.reply(`⚠️ Ocurrió un error al procesar la imagen gay 😭\nError: ${e.message}\n\nUsa el comando \`#report <error>\` para reportarlo.`);
+    m.reply(`⚠️ Ocurrió un error al procesar la imagen gay 😭\nError: ${e.message}`);
   }
 };
 

@@ -41,16 +41,9 @@ let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
 console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM INITATING...      │'));
 console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
-say('WhatsApp_bot', {
-  font: 'chrome',
-  align: 'center',
-  gradient: ['#00BFFF', '#FF4500'] 
-});
-say('by Deylin', {
-  font: 'console',
-  align: 'center',
-  colors: ['#DAA520', '#FF69B4', '#ADFF2F']
-});
+say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
+say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
+
 protoType();
 serialize();
 
@@ -71,27 +64,10 @@ global.prefix = new RegExp('^[#!./]');
 
 const mongoUrl = 'mongodb+srv://deylin1616_db_user:xZLcdCWwMUt7bdw6@cluster0.p7vky.mongodb.net/WhatsAppBot?retryWrites=true&w=majority';
 
-global.db = new Low(
-  /https?:\/\//.test(opts['db'] || '') 
-    ? new cloudDBAdapter(opts['db']) 
-    : /mongodb/.test(opts['db'] || mongoUrl) 
-      ? new mongoDB(opts['db'] || mongoUrl) 
-      : new JSONFile('database.json')
-);
+global.db = new mongoDBV2(mongoUrl);
 global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
-  if (/mongodb/.test(opts['db'] || mongoUrl)) {
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(mongoUrl, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000
-      }).then(() => console.log(chalk.greenBright("✅ Conectado a MongoDB Atlas")))
-        .catch(e => console.error(chalk.redBright("❌ Error en MongoDB:"), e));
-    }
-  }
-
   if (global.db.READ) {
     return new Promise((resolve) => setInterval(async function() {
       if (!global.db.READ) {
@@ -118,17 +94,12 @@ global.loadDatabase = async function loadDatabase() {
 await loadDatabase();
 
 async function useMongooseAuthState(modelName) {
-    const SessionSchema = new mongoose.Schema({
-        _id: String,
-        data: String
-    });
+    const SessionSchema = new mongoose.Schema({ _id: String, data: String });
     const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
-
     const writeData = async (data, id) => {
         const json = JSON.stringify(data, (k, v) => Buffer.isBuffer(v) ? { type: 'Buffer', data: v.toString('base64') } : v);
         await SessionModel.replaceOne({ _id: id }, { data: json }, { upsert: true });
     };
-
     const readData = async (id) => {
         try {
             const res = await SessionModel.findOne({ _id: id });
@@ -136,16 +107,10 @@ async function useMongooseAuthState(modelName) {
             return JSON.parse(res.data, (k, v) => v?.type === 'Buffer' ? Buffer.from(v.data, 'base64') : v);
         } catch { return null; }
     };
-
     const removeData = async (id) => {
         try { await SessionModel.deleteOne({ _id: id }); } catch {}
     };
-
-    let creds = await readData('creds');
-    if (!creds) {
-        creds = initInMemoryKeyStore().creds;
-    }
-
+    let creds = await readData('creds') || initInMemoryKeyStore().creds;
     return {
         state: {
             creds,
@@ -176,9 +141,7 @@ async function useMongooseAuthState(modelName) {
     };
 }
 
-const { state, saveCreds } = (global.db instanceof mongoDB || global.db instanceof mongoDBV2) 
-    ? await useMongooseAuthState('SessionMain') 
-    : await useMultiFileAuthState(global.sessions);
+const { state, saveCreds } = await useMongooseAuthState('SessionMain');
 
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
 const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
@@ -188,19 +151,10 @@ const methodCodeQR = process.argv.includes("qr");
 const methodCode = !!phoneNumber || process.argv.includes("code");
 const MethodMobile = process.argv.includes("mobile");
 
-const consoleAccent = chalk.bold.hex('#FF69B4');
-const consoleSuccess = chalk.bold.hex('#32CD32');
-const consoleError = chalk.bold.hex('#FF4500');
-const consoleWarning = chalk.bold.hex('#FFA500');
-const consoleInfo = chalk.bold.hex('#1E90FF');
-
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
 
 const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ=", "U2Vzc2lvbiBlcnJvcg==", "RXJyb3I6IEJhZCBNQUM=", "RGVjcnlwdGVkIG1lc3NhZ2U="];
-
-console.info = () => {};
-console.debug = () => {};
 ['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
 
 const connectionOptions = {
@@ -229,66 +183,33 @@ const connectionOptions = {
   },
   msgRetryCounterCache,
   userDevicesCache,
-  defaultQueryTimeoutMs: undefined,
-  cachedGroupMetadata: (jid) => global.conn.chats[jid] ?? {},
   version,
   keepAliveIntervalMs: 55000,
-  maxIdleTimeMs: 60000,
 };
 
 global.conn = makeWASocket(connectionOptions);
 
-let opcion;
-if (!methodCodeQR && !methodCode && !existsSync(`./${sessions}/creds.json`)) {
-  opcion = '2';
-}
-
-if (!existsSync(`./${sessions}/creds.json`)) {
-  if (opcion === '2' || methodCode) {
-    opcion = '2';
+if (!existsSync(`./${global.sessions}/creds.json`) && (methodCode || !methodCodeQR)) {
     if (!conn.authState.creds.registered) {
-      let addNumber = !!phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : null;
+      let addNumber = phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : null;
       if (!addNumber) {
-        while (true) {
-          phoneNumber = await question(consoleInfo(`[ INPUT ] Ingrese el número de WhatsApp:\n> `));
-          let cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/-/g, '');
-          if (!cleanNumber.startsWith('+')) cleanNumber = `+${cleanNumber}`;
-          if (await isValidPhoneNumber(cleanNumber)) {
-            addNumber = cleanNumber.replace(/\D/g, '');
-            break;
-          } else console.log(consoleError(":: ERROR :: Número inválido."));
-        }
-        rl.close();
+        phoneNumber = await question(chalk.blueBright(`[ INPUT ] Ingrese el número de WhatsApp:\n> `));
+        addNumber = phoneNumber.replace(/\D/g, '');
       }
       setTimeout(async () => {
           let codeBot = await conn.requestPairingCode(addNumber);
           codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-          console.log(consoleAccent(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
+          console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
       }, 3000);
     }
-  }
 }
 
 conn.isInit = false;
-if (!opts['test']) {
-  if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
-}
-
-async function autoConnectSubBots() {
-  let subBotsDir = path.join(__dirname, `./${jadi}`);
-  if (!existsSync(subBotsDir)) return;
-  for (let folder of readdirSync(subBotsDir)) {
-    let pathAcc = path.join(subBotsDir, folder);
-    if (statSync(pathAcc).isDirectory() && existsSync(path.join(pathAcc, 'creds.json'))) {
-      assistant_accessJadiBot({ pathAssistantAccess: pathAcc, phoneNumber: folder, fromCommand: false, conn: global.conn });
-    }
-  }
-}
+if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
-  if (connection === "open") await autoConnectSubBots();
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
@@ -302,10 +223,9 @@ global.reloadHandler = async function(restatConn) {
     if (Object.keys(Handler || {}).length) handler = Handler;
   } catch (e) { console.error(e); }
   if (restatConn) {
-    const oldChats = global.conn.chats;
     try { global.conn.ws.close(); } catch {}
     conn.ev.removeAllListeners();
-    global.conn = makeWASocket(connectionOptions, { chats: oldChats });
+    global.conn = makeWASocket(connectionOptions);
   }
   conn.handler = handler.handler.bind(global.conn);
   conn.connectionUpdate = connectionUpdate.bind(global.conn);
@@ -316,7 +236,6 @@ global.reloadHandler = async function(restatConn) {
   return true;
 };
 
-setInterval(() => { process.exit(0); }, 10800000);
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
@@ -338,6 +257,7 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
     global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
   }
 });
+
 await global.reloadHandler();
 
 function redefineConsoleMethod(methodName, filterStrings) {

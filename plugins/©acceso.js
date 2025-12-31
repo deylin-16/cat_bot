@@ -13,9 +13,8 @@ const {
     DisconnectReason, 
     makeCacheableSignalKeyStore, 
     fetchLatestBaileysVersion,
-    initInMemoryKeyStore,
     Browsers
-} = (await import("@whiskeysockets/baileys"))
+} = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
 const { makeWASocket } = await import('../lib/simple.js')
 
@@ -30,10 +29,12 @@ async function useMongooseAuthState(modelName) {
         data: String
     });
     const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
+
     const writeData = async (data, id) => {
         const json = JSON.stringify(data, (k, v) => Buffer.isBuffer(v) ? { type: 'Buffer', data: v.toString('base64') } : v);
         await SessionModel.replaceOne({ _id: id }, { data: json }, { upsert: true });
     };
+
     const readData = async (id) => {
         try {
             const res = await SessionModel.findOne({ _id: id });
@@ -41,10 +42,20 @@ async function useMongooseAuthState(modelName) {
             return JSON.parse(res.data, (k, v) => v?.type === 'Buffer' ? Buffer.from(v.data, 'base64') : v);
         } catch { return null; }
     };
+
     const removeData = async (id) => {
         try { await SessionModel.deleteOne({ _id: id }); } catch {}
     };
-    const creds = await readData('creds') || initInMemoryKeyStore().creds;
+
+    // Corrección para evitar el error de initInMemoryKeyStore
+    const creds = await readData('creds') || (await import("@whiskeysockets/baileys")).initInMemoryKeyStore?.().creds || {
+        registrationId: Math.floor(Math.random() * 10000),
+        advSecretKey: Buffer.alloc(32).toString('base64'),
+        nextPreKeyId: 1,
+        firstUnuploadedPreKeyId: 1,
+        accountSettings: { unarchiveChats: false }
+    };
+
     return {
         state: {
             creds,
@@ -143,7 +154,7 @@ export async function assistant_accessJadiBot(options) {
             setTimeout(async () => {
                 try {
                     let secret = await sock.requestPairingCode(phoneNumber)
-                    secret = secret.match(/.{1,4}/g)?.join("-")
+                    secret = secret?.match(/.{1,4}/g)?.join("-") || secret
                     await conn.sendMessage(chatID, { text: secret, ...m_code(conn.user.jid) }, { quoted: m })
                 } catch (e) {
                     isPairingSent = false 

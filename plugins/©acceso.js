@@ -17,11 +17,9 @@ const { makeWASocket } = await import('../lib/simple.js')
 
 if (!(global.conns instanceof Array)) global.conns = []
 
-// Función mejorada con validación de conexión
 async function useMongooseAuthState(modelName) {
-    // Verificar si la conexión a MongoDB está abierta
     if (mongoose.connection.readyState !== 1) {
-        throw new Error("MongoDB no está conectado. Por favor, asegúrese de que el bot principal inició la conexión a la base de datos.");
+        throw new Error("DATABASE_NOT_CONNECTED");
     }
 
     const SessionSchema = new mongoose.Schema({ _id: String, data: String });
@@ -29,7 +27,6 @@ async function useMongooseAuthState(modelName) {
 
     const writeData = async (data, id) => {
         const json = JSON.stringify(data, (k, v) => Buffer.isBuffer(v) ? { type: 'Buffer', data: v.toString('base64') } : v);
-        // Usamos lean() y evitamos el buffering si la conexión se cae
         await SessionModel.replaceOne({ _id: id }, { data: json }, { upsert: true }).exec();
     };
 
@@ -78,14 +75,15 @@ async function useMongooseAuthState(modelName) {
                     return data;
                 },
                 set: async (data) => {
+                    const tasks = [];
                     for (const category in data) {
                         for (const id in data[category]) {
                             const sId = `${category}-${id}`;
                             const value = data[category][id];
-                            if (value) await writeData(value, sId);
-                            else await SessionModel.deleteOne({ _id: sId }).exec();
+                            tasks.push(value ? writeData(value, sId) : SessionModel.deleteOne({ _id: sId }).exec());
                         }
                     }
+                    await Promise.all(tasks);
                 }
             }
         },
@@ -95,23 +93,19 @@ async function useMongooseAuthState(modelName) {
 
 let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
-        // Validación preventiva
         if (mongoose.connection.readyState !== 1) {
-            return m.reply('❌ Error: La base de datos MongoDB no está lista. Reintente en unos segundos.');
+            return m.reply('❌ *La base de datos aún se está conectando.* Reintenta en 5 segundos.');
         }
-
         let phoneNumber = m.sender.split('@')[0];
-        await m.reply('⚡ *Iniciando servidor de sesión...* Por favor espere su código.');
+        await m.reply('⚡ *Iniciando sesión en la nube...*\nEspere el código de vinculación.');
         assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true });
     }
 }
-
 handler.command = /^(conectar|conectar_assistant)$/i 
 export default handler 
 
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
-    
     try {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMongooseAuthState(`Sub_${phoneNumber}`)
@@ -135,19 +129,18 @@ export async function assistant_accessJadiBot(options) {
                     const code = await sock.requestPairingCode(phoneNumber)
                     const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
                     await conn.sendMessage(m.chat, { 
-                        text: `🔑 *CÓDIGO:* ${formattedCode}\n\nEscríbelo en la notificación de WhatsApp para vincularte.` 
+                        text: `🔑 *CÓDIGO:* ${formattedCode}\n\nIngresa este código en tu WhatsApp (Dispositivos vinculados > Vincular con número de teléfono).` 
                     }, { quoted: m })
                 } catch (err) {
-                    console.error("Error al generar Pairing Code:", err)
-                    await conn.sendMessage(m.chat, { text: "❌ Error al generar el código. Reintente el comando." })
+                    await conn.sendMessage(m.chat, { text: "❌ Error al generar el código. Intenta de nuevo." })
                 }
-            }, 10000)
+            }, 8000) 
         }
 
         sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect } = update
             if (connection === 'open') {
-                await conn.sendMessage(m.chat, { text: '✅ *Sub-Bot conectado con éxito!*' }, { quoted: m })
+                await conn.sendMessage(m.chat, { text: '✅ *¡Sub-Bot vinculado con éxito en la nube!*' }, { quoted: m })
                 global.conns.push(sock)
             }
             if (connection === 'close') {
@@ -158,9 +151,9 @@ export async function assistant_accessJadiBot(options) {
 
         const handlerImport = await import('../handler.js')
         sock.ev.on('messages.upsert', handlerImport.handler.bind(sock))
-
     } catch (error) {
-        console.error("Error en asistente:", error)
-        if (m) conn.sendMessage(m.chat, { text: `❌ Error crítico: ${error.message}` })
+        if (error.message === "DATABASE_NOT_CONNECTED") {
+            m.reply("❌ Error: MongoDB no respondió a tiempo.")
+        }
     }
 }

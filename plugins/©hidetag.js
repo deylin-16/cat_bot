@@ -3,17 +3,20 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 
 var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
-    
+
     let users = participants.map(u => conn.decodeJid(u.id))
 
-    let tagText = text || (m.quoted && m.quoted.text ? m.quoted.text : "*Hola!!*")
     
-    let finalCaption = `${tagText}`
+    let tagText = text ? text : (m.quoted && m.quoted.text ? m.quoted.text : "")
+
+    if (!tagText && !m.quoted) return m.reply('*Escribe un mensaje para etiquetar a todos.*')
+
+    let finalCaption = tagText.trim()
 
     let quoted = m.quoted ? m.quoted : m
     let mime = (quoted.msg || quoted).mimetype || ''
     let isMedia = /image|video|sticker|audio/.test(mime)
-    
+
     if (isMedia) {
         try {
             let media = await quoted.download?.()
@@ -28,30 +31,28 @@ var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
             } else if (quoted.mtype === 'stickerMessage') {
                 messageContent = { sticker: media, mentions: users }
             }
-            
+
             await conn.sendMessage(m.chat, messageContent, { quoted: m })
 
         } catch (e) {
             
             await conn.sendMessage(
                 m.chat,
-                { extendedTextMessage: { text: finalCaption, contextInfo: { mentionedJid: users } } },
+                { text: finalCaption, mentions: users },
                 { quoted: m }
             )
         }
 
     } else {
-        let msg = generateWAMessageFromContent(
-            m.chat,
-            { extendedTextMessage: { text: finalCaption, contextInfo: { mentionedJid: users } } },
-            { quoted: m, userJid: conn.user.id }
+        
+        await conn.sendMessage(
+            m.chat, 
+            { text: finalCaption, mentions: users }, 
+            { quoted: m }
         )
-        await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
     }
 }
 
-handler.help = ['hidetag']
-handler.tags = ['grupo']
 handler.command = ['tag', 'n']
 handler.group = true
 handler.admin = true

@@ -69,9 +69,29 @@ const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
 
-global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile('database.json'));
+const mongoUrl = 'mongodb+srv://deylin1616_db_user:xZLcdCWwMUt7bdw6@cluster0.p7vky.mongodb.net/WhatsAppBot?retryWrites=true&w=majority';
+
+global.db = new Low(
+  /https?:\/\//.test(opts['db'] || '') 
+    ? new cloudDBAdapter(opts['db']) 
+    : /mongodb/.test(opts['db'] || mongoUrl) 
+      ? new mongoDB(opts['db'] || mongoUrl) 
+      : new JSONFile('database.json')
+);
 global.DATABASE = global.db;
+
 global.loadDatabase = async function loadDatabase() {
+  if (/mongodb/.test(opts['db'] || mongoUrl)) {
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(mongoUrl, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000
+      }).then(() => console.log(chalk.greenBright("✅ Conectado a MongoDB Atlas")))
+        .catch(e => console.error(chalk.redBright("❌ Error en MongoDB:"), e));
+    }
+  }
+
   if (global.db.READ) {
     return new Promise((resolve) => setInterval(async function() {
       if (!global.db.READ) {
@@ -121,7 +141,10 @@ async function useMongooseAuthState(modelName) {
         try { await SessionModel.deleteOne({ _id: id }); } catch {}
     };
 
-    const creds = await readData('creds') || initInMemoryKeyStore().creds;
+    let creds = await readData('creds');
+    if (!creds) {
+        creds = initInMemoryKeyStore().creds;
+    }
 
     return {
         state: {

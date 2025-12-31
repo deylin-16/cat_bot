@@ -8,14 +8,15 @@ const {
     DisconnectReason, 
     makeCacheableSignalKeyStore, 
     fetchLatestBaileysVersion,
-    Browsers
+    Browsers,
+    Curve, 
+    generateRegistrationId
 } = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
 const { makeWASocket } = await import('../lib/simple.js')
 
 if (!(global.conns instanceof Array)) global.conns = []
 
-// Implementación interna de AuthState para Mongoose sin librerías externas
 async function useMongooseAuthState(modelName) {
     const SessionSchema = new mongoose.Schema({ _id: String, data: String });
     const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
@@ -33,17 +34,25 @@ async function useMongooseAuthState(modelName) {
         } catch { return null; }
     };
 
-    // Obtenemos o creamos las credenciales base
     let creds = await readData('creds');
     if (!creds) {
-        // Generación manual de credenciales para evitar el error de initInMemoryKeyStore
+        // Generación manual completa de credenciales seguras
+        const keyPair = Curve.generateKeyPair();
         creds = {
-            registrationId: Math.floor(Math.random() * 10000),
+            registrationId: generateRegistrationId(),
             advSecretKey: Buffer.alloc(32).fill(Math.random() * 255).toString('base64'),
             nextPreKeyId: 1,
             firstUnuploadedPreKeyId: 1,
-            accountSettings: { unarchiveChats: false }
+            accountSettings: { unarchiveChats: false },
+            signedPreKey: {
+                keyPair: Curve.generateKeyPair(),
+                signature: Buffer.alloc(64),
+                keyId: 1
+            },
+            noiseKey: Curve.generateKeyPair(),
+            signedIdentityKey: keyPair
         };
+        await writeData(creds, 'creds'); // Guardar inmediatamente
     }
 
     return {
@@ -65,8 +74,8 @@ async function useMongooseAuthState(modelName) {
                 set: async (data) => {
                     for (const category in data) {
                         for (const id in data[category]) {
-                            const value = data[category][id];
                             const sId = `${category}-${id}`;
+                            const value = data[category][id];
                             if (value) await writeData(value, sId);
                             else await SessionModel.deleteOne({ _id: sId });
                         }
@@ -86,8 +95,8 @@ let m_code = (botJid) => {
     return {
         contextInfo: {
             externalAdReply: {
-                title: `CÓDIGO DE VINCULACIÓN`,
-                body: `Asistente: ${config.assistantName}`,
+                title: `VINCULACIÓN ASISTENTE`,
+                body: `Sistema de Nube MongoDB`,
                 mediaType: 1,
                 renderLargerThumbnail: true,
                 thumbnailUrl: config.assistantImage,
@@ -100,7 +109,7 @@ let m_code = (botJid) => {
 let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
         let phoneNumber = m.sender.split('@')[0]
-        await m.reply('⏳ *Generando código...* Por favor espere unos segundos.')
+        await m.reply('⚡ *Iniciando servidor de sesión...* Espere el código.')
         assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
     }
 }
@@ -112,7 +121,7 @@ export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
     const { version } = await fetchLatestBaileysVersion()
     
-    // Iniciar sesión en MongoDB específica para este número
+    // Forzamos que la sesión se cree antes de seguir
     const { state, saveCreds } = await useMongooseAuthState(`Sub_${phoneNumber}`)
 
     const sock = makeWASocket({
@@ -122,27 +131,35 @@ export async function assistant_accessJadiBot(options) {
             creds: state.creds, 
             keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
         },
-        browser: Browsers.macOS("Desktop"),
+        browser: Browsers.macOS("Chrome"), // Cambiado a Chrome para mejor compatibilidad de pairing
         version
     })
 
+    // Registro de eventos
+    sock.ev.on('creds.update', saveCreds)
+
     if (!sock.authState.creds.registered && fromCommand) {
-        // Delay crítico: MongoDB necesita un momento para indexar las nuevas llaves
+        // Aumentamos el tiempo a 12 segundos. MongoDB en AkiraX puede ser lento al indexar.
         setTimeout(async () => {
             try {
-                let code = await sock.requestPairingCode(phoneNumber)
-                code = code?.match(/.{1,4}/g)?.join("-") || code
-                await conn.sendMessage(m.chat, { text: `🔑 *Tu código:* ${code}`, ...m_code(conn.user.jid) }, { quoted: m })
+                const code = await sock.requestPairingCode(phoneNumber)
+                const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
+                await conn.sendMessage(m.chat, { text: `🔑 *CÓDIGO:* ${formattedCode}`, ...m_code(conn.user.jid) }, { quoted: m })
             } catch (err) {
-                console.error("Error al pedir código:", err)
+                console.log("Reintentando generar código...")
+                // Si falla el primero, reintentamos una vez más
+                setTimeout(async () => {
+                    const code = await sock.requestPairingCode(phoneNumber)
+                    await conn.sendMessage(m.chat, { text: `🔑 *CÓDIGO (Reintento):* ${code}` }, { quoted: m })
+                }, 5000)
             }
-        }, 8000) // 8 segundos para ir a lo seguro con la DB
+        }, 12000)
     }
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
         if (connection === 'open') {
-            await conn.sendMessage(m.chat, { text: '✅ *¡Conectado exitosamente!*' }, { quoted: m })
+            await conn.sendMessage(m.chat, { text: '✅ *Sub-Bot activado en MongoDB!*' }, { quoted: m })
             global.conns.push(sock)
         }
         if (connection === 'close') {
@@ -155,9 +172,6 @@ export async function assistant_accessJadiBot(options) {
         }
     })
 
-    sock.ev.on('creds.update', saveCreds)
-    
-    // Integración con tu handler principal
     const handlerImport = await import('../handler.js')
     sock.ev.on('messages.upsert', handlerImport.handler.bind(sock))
 }

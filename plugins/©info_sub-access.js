@@ -31,6 +31,6 @@ let handler = async (m, { conn: _envio, usedPrefix }) => {
 }
 
 
-handler.command = ['vinculaciones']
+handler.command = ['bots']
 
 export default handler

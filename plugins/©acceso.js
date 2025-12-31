@@ -9,17 +9,20 @@ const {
     fetchLatestBaileysVersion,
     Browsers,
     proto,
-    initInMemoryKeyStore 
+    Curve,
+    generateRegistrationId
 } = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
 const { makeWASocket } = await import('../lib/simple.js')
 
 if (!(global.conns instanceof Array)) global.conns = []
 
+// Función optimizada para UN SOLO ARCHIVO sin errores de librería
 async function useSingleFileAuthState(filePath) {
     let creds
     let keys = {}
 
+    // Intentar leer el archivo único si ya existe
     if (fs.existsSync(filePath)) {
         const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'), (k, v) => {
             if (v?.type === 'Buffer') return Buffer.from(v.data, 'base64')
@@ -28,7 +31,22 @@ async function useSingleFileAuthState(filePath) {
         creds = data.creds
         keys = data.keys || {}
     } else {
-        creds = initInMemoryKeyStore().creds
+        // Generar credenciales iniciales manualmente si el archivo no existe
+        const keyPair = Curve.generateKeyPair()
+        creds = {
+            registrationId: generateRegistrationId(),
+            advSecretKey: Buffer.alloc(32).fill(Math.random() * 255).toString('base64'),
+            nextPreKeyId: 1,
+            firstUnuploadedPreKeyId: 1,
+            accountSettings: { unarchiveChats: false },
+            signedPreKey: {
+                keyPair: Curve.generateKeyPair(),
+                signature: Buffer.alloc(64),
+                keyId: 1
+            },
+            noiseKey: Curve.generateKeyPair(),
+            signedIdentityKey: keyPair
+        }
     }
 
     const saveState = () => {
@@ -56,8 +74,9 @@ async function useSingleFileAuthState(filePath) {
                     for (const category in data) {
                         for (const id in data[category]) {
                             const value = data[category][id]
-                            if (value) keys[`${category}-${id}`] = value
-                            else delete keys[`${category}-${id}`]
+                            const sId = `${category}-${id}`
+                            if (value) keys[sId] = value
+                            else delete keys[sId]
                         }
                     }
                     saveState()
@@ -106,7 +125,7 @@ export async function assistant_accessJadiBot(options) {
                 try {
                     const code = await sock.requestPairingCode(phoneNumber)
                     const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
-                    await conn.sendMessage(m.chat, { text: ` ${formattedCode}` }, { quoted: m })
+                    await conn.sendMessage(m.chat, { text: `🔑 *CÓDIGO:* ${formattedCode}` }, { quoted: m })
                 } catch (err) { console.error(err) }
             }, 5000)
         }

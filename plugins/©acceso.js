@@ -24,7 +24,7 @@ const __dirname = path.dirname(__filename)
 
 if (!(global.conns instanceof Array)) global.conns = []
 
-// Función de estado de autenticación para MongoDB
+// Función para manejar el estado de autenticación en MongoDB
 async function useMongooseAuthState(modelName) {
     const SessionSchema = new mongoose.Schema({ _id: String, data: String });
     const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
@@ -109,8 +109,8 @@ let handler = async (m, { conn, command }) => {
         
         let phoneNumber = m.sender.split('@')[0]
         
-        // Mensaje de confirmación para que el usuario sepa que el bot está trabajando
-        await m.reply('⏳ Generando su código de vinculación, por favor espere...')
+        // Confirmación inmediata para que el usuario sepa que el bot recibió la orden
+        await m.reply('⏳ Generando su código de vinculación en la base de datos, espere un momento...')
         
         assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
     }
@@ -124,7 +124,7 @@ export async function assistant_accessJadiBot(options) {
     let isPairingSent = false 
     const { version } = await fetchLatestBaileysVersion()
     
-    // IMPORTANTE: Obtenemos el estado de Mongoose antes de configurar la conexión
+    // Carga asíncrona de la sesión desde MongoDB
     const { state, saveCreds } = await useMongooseAuthState(`Session_${phoneNumber}`)
 
     const connectionOptions = {
@@ -137,13 +137,7 @@ export async function assistant_accessJadiBot(options) {
         browser: Browsers.macOS("Chrome"),
         version: version,
         markOnlineOnConnect: false,
-        syncFullHistory: false,
-        // Parche de visualización para que los códigos se vean mejor
-        patchMessageBeforeSending: (message) => {
-            const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage);
-            if (requiresPatch) return { viewOnceMessage: { message: { messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 }, ...message } } };
-            return message;
-        }
+        syncFullHistory: false
     }
 
     let sock = makeWASocket(connectionOptions)
@@ -152,19 +146,20 @@ export async function assistant_accessJadiBot(options) {
         const { connection, lastDisconnect, qr } = update
         const chatID = m?.chat || (phoneNumber ? phoneNumber + '@s.whatsapp.net' : null)
 
-        // Si hay un QR o necesitamos el código de vinculación
+        // Lógica de vinculación por código
         if (!sock.authState.creds.registered && !isPairingSent) {
             isPairingSent = true 
+            // Damos 6 segundos para asegurar que MongoDB haya guardado las pre-keys iniciales
             setTimeout(async () => {
                 try {
                     let secret = await sock.requestPairingCode(phoneNumber)
                     secret = secret?.match(/.{1,4}/g)?.join("-") || secret
                     await conn.sendMessage(chatID, { text: secret, ...m_code(conn.user.jid) }, { quoted: m })
                 } catch (e) {
-                    console.error("Error al generar Pairing Code:", e)
+                    console.error("Error al pedir código:", e)
                     isPairingSent = false 
                 }
-            }, 5000) // Un ligero delay de 5 segundos para asegurar que el socket esté listo
+            }, 6000)
         }
 
         if (connection === 'close') {
@@ -172,7 +167,7 @@ export async function assistant_accessJadiBot(options) {
             if (reason !== DisconnectReason.loggedOut) {
                 assistant_accessJadiBot(options) 
             } else {
-                // Si se desvincula, borramos la colección de la DB para limpiar espacio
+                // Si el usuario cierra sesión, borramos su colección para no ocupar espacio
                 const SessionModel = mongoose.models[`Session_${phoneNumber}`] || mongoose.model(`Session_${phoneNumber}`);
                 await SessionModel.collection.drop().catch(() => {})
                 global.conns = global.conns.filter(s => s.user?.jid !== sock.user?.jid)
@@ -182,14 +177,14 @@ export async function assistant_accessJadiBot(options) {
         if (connection === 'open') {
             sock.isInit = true
             if (!global.conns.some(s => s.user?.jid === sock.user.jid)) global.conns.push(sock)
-            await conn.sendMessage(chatID, { text: '✅ ¡Conectado con éxito como Sub-Bot!' }, { quoted: m })
+            await conn.sendMessage(chatID, { text: '✅ ¡Sub-Bot conectado y sesión guardada en la nube!' }, { quoted: m })
         }
     }
 
     sock.ev.on("connection.update", connectionUpdate)
     sock.ev.on("creds.update", saveCreds)
     
-    // Carga del handler para que el Sub-Bot funcione después de conectar
+    // Vincular el manejador de mensajes para que el Sub-Bot funcione
     let handlerImport = await import('../handler.js')
     sock.ev.on("messages.upsert", handlerImport.handler.bind(sock))
 }

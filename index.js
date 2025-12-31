@@ -28,7 +28,7 @@ const { proto } = (await import('@whiskeysockets/baileys')).default;
 import pkg from 'google-libphonenumber';
 const { PhoneNumberUtil } = pkg;
 const phoneUtil = PhoneNumberUtil.getInstance();
-const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, initInMemoryKeyStore } = await import('@whiskeysockets/baileys');
+const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 import readline, { createInterface } from 'readline';
 import NodeCache from 'node-cache';
 import mongoose from 'mongoose';
@@ -62,8 +62,10 @@ const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
 
+// URL de respaldo solo para el adaptador de la librería
 const mongoUrl = 'mongodb+srv://deylin1616_db_user:xZLcdCWwMUt7bdw6@cluster0.p7vky.mongodb.net/WhatsAppBot?retryWrites=true&w=majority';
 
+// Usamos el adaptador de la librería mongoDBV2 que es más estable
 global.db = new mongoDBV2(mongoUrl);
 global.DATABASE = global.db;
 
@@ -93,55 +95,8 @@ global.loadDatabase = async function loadDatabase() {
 };
 await loadDatabase();
 
-async function useMongooseAuthState(modelName) {
-    const SessionSchema = new mongoose.Schema({ _id: String, data: String });
-    const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
-    const writeData = async (data, id) => {
-        const json = JSON.stringify(data, (k, v) => Buffer.isBuffer(v) ? { type: 'Buffer', data: v.toString('base64') } : v);
-        await SessionModel.replaceOne({ _id: id }, { data: json }, { upsert: true });
-    };
-    const readData = async (id) => {
-        try {
-            const res = await SessionModel.findOne({ _id: id });
-            if (!res) return null;
-            return JSON.parse(res.data, (k, v) => v?.type === 'Buffer' ? Buffer.from(v.data, 'base64') : v);
-        } catch { return null; }
-    };
-    const removeData = async (id) => {
-        try { await SessionModel.deleteOne({ _id: id }); } catch {}
-    };
-    let creds = await readData('creds') || initInMemoryKeyStore().creds;
-    return {
-        state: {
-            creds,
-            keys: {
-                get: async (type, ids) => {
-                    const data = {};
-                    await Promise.all(ids.map(async (id) => {
-                        let value = await readData(`${type}-${id}`);
-                        if (type === 'app-state-sync-key' && value) value = proto.Message.AppStateSyncKeyData.fromObject(value);
-                        data[id] = value;
-                    }));
-                    return data;
-                },
-                set: async (data) => {
-                    const tasks = [];
-                    for (const category in data) {
-                        for (const id in data[category]) {
-                            const value = data[category][id];
-                            const sId = `${category}-${id}`;
-                            tasks.push(value ? writeData(value, sId) : removeData(sId));
-                        }
-                    }
-                    await Promise.all(tasks);
-                }
-            }
-        },
-        saveCreds: () => writeData(creds, 'creds')
-    };
-}
-
-const { state, saveCreds } = await useMongooseAuthState('SessionMain');
+// Autenticación principal usando carpetas locales para evitar errores de conexión DNS iniciales
+const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
 const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
@@ -189,11 +144,12 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
-if (!existsSync(`./${global.sessions}/creds.json`) && (methodCode || !methodCodeQR)) {
+// Lógica de emparejamiento por código
+if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`) && (methodCode || !methodCodeQR)) {
     if (!conn.authState.creds.registered) {
       let addNumber = phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : null;
       if (!addNumber) {
-        phoneNumber = await question(chalk.blueBright(`[ INPUT ] Ingrese el número de WhatsApp:\n> `));
+        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número de WhatsApp (ej: 504xxxxxxx):\n> `));
         addNumber = phoneNumber.replace(/\D/g, '');
       }
       setTimeout(async () => {
@@ -266,8 +222,4 @@ function redefineConsoleMethod(methodName, filterStrings) {
     if (typeof arguments[0] === 'string' && filterStrings.some(s => arguments[0].includes(atob(s)))) arguments[0] = "";
     original.apply(console, arguments);
   };
-}
-
-async function isValidPhoneNumber(number) {
-  try { return phoneUtil.isValidNumber(phoneUtil.parseAndKeepRawInput(number)); } catch { return false; }
 }

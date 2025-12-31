@@ -13,7 +13,8 @@ const {
     DisconnectReason, 
     makeCacheableSignalKeyStore, 
     fetchLatestBaileysVersion,
-    Browsers
+    Browsers,
+    initInMemoryKeyStore
 } = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
 const { makeWASocket } = await import('../lib/simple.js')
@@ -23,11 +24,9 @@ const __dirname = path.dirname(__filename)
 
 if (!(global.conns instanceof Array)) global.conns = []
 
+// Función de estado de autenticación para MongoDB
 async function useMongooseAuthState(modelName) {
-    const SessionSchema = new mongoose.Schema({
-        _id: String,
-        data: String
-    });
+    const SessionSchema = new mongoose.Schema({ _id: String, data: String });
     const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
 
     const writeData = async (data, id) => {
@@ -47,14 +46,7 @@ async function useMongooseAuthState(modelName) {
         try { await SessionModel.deleteOne({ _id: id }); } catch {}
     };
 
-    // Corrección para evitar el error de initInMemoryKeyStore
-    const creds = await readData('creds') || (await import("@whiskeysockets/baileys")).initInMemoryKeyStore?.().creds || {
-        registrationId: Math.floor(Math.random() * 10000),
-        advSecretKey: Buffer.alloc(32).toString('base64'),
-        nextPreKeyId: 1,
-        firstUnuploadedPreKeyId: 1,
-        accountSettings: { unarchiveChats: false }
-    };
+    const creds = await readData('creds') || initInMemoryKeyStore().creds;
 
     return {
         state: {
@@ -110,11 +102,16 @@ let m_code = (botJid) => {
     }
 }
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
+let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
         let socklimit = global.conns.filter(sock => sock?.user).length
         if (socklimit >= 50) return m.reply(`No hay espacios disponibles.`)
+        
         let phoneNumber = m.sender.split('@')[0]
+        
+        // Mensaje de confirmación para que el usuario sepa que el bot está trabajando
+        await m.reply('⏳ Generando su código de vinculación, por favor espere...')
+        
         assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
     }
 }
@@ -127,19 +124,26 @@ export async function assistant_accessJadiBot(options) {
     let isPairingSent = false 
     const { version } = await fetchLatestBaileysVersion()
     
+    // IMPORTANTE: Obtenemos el estado de Mongoose antes de configurar la conexión
     const { state, saveCreds } = await useMongooseAuthState(`Session_${phoneNumber}`)
 
     const connectionOptions = {
-        logger: pino({ level: "fatal" }),
+        logger: pino({ level: "silent" }),
         printQRInTerminal: false,
         auth: { 
             creds: state.creds, 
-            keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'fatal'})) 
+            keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
         },
         browser: Browsers.macOS("Chrome"),
         version: version,
         markOnlineOnConnect: false,
-        syncFullHistory: false
+        syncFullHistory: false,
+        // Parche de visualización para que los códigos se vean mejor
+        patchMessageBeforeSending: (message) => {
+            const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage);
+            if (requiresPatch) return { viewOnceMessage: { message: { messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 }, ...message } } };
+            return message;
+        }
     }
 
     let sock = makeWASocket(connectionOptions)
@@ -148,8 +152,8 @@ export async function assistant_accessJadiBot(options) {
         const { connection, lastDisconnect, qr } = update
         const chatID = m?.chat || (phoneNumber ? phoneNumber + '@s.whatsapp.net' : null)
 
-        if (qr && !sock.authState.creds.registered && fromCommand && !isPairingSent) {
-            if (!chatID) return
+        // Si hay un QR o necesitamos el código de vinculación
+        if (!sock.authState.creds.registered && !isPairingSent) {
             isPairingSent = true 
             setTimeout(async () => {
                 try {
@@ -157,9 +161,10 @@ export async function assistant_accessJadiBot(options) {
                     secret = secret?.match(/.{1,4}/g)?.join("-") || secret
                     await conn.sendMessage(chatID, { text: secret, ...m_code(conn.user.jid) }, { quoted: m })
                 } catch (e) {
+                    console.error("Error al generar Pairing Code:", e)
                     isPairingSent = false 
                 }
-            }, 3000)
+            }, 5000) // Un ligero delay de 5 segundos para asegurar que el socket esté listo
         }
 
         if (connection === 'close') {
@@ -167,6 +172,7 @@ export async function assistant_accessJadiBot(options) {
             if (reason !== DisconnectReason.loggedOut) {
                 assistant_accessJadiBot(options) 
             } else {
+                // Si se desvincula, borramos la colección de la DB para limpiar espacio
                 const SessionModel = mongoose.models[`Session_${phoneNumber}`] || mongoose.model(`Session_${phoneNumber}`);
                 await SessionModel.collection.drop().catch(() => {})
                 global.conns = global.conns.filter(s => s.user?.jid !== sock.user?.jid)
@@ -176,11 +182,14 @@ export async function assistant_accessJadiBot(options) {
         if (connection === 'open') {
             sock.isInit = true
             if (!global.conns.some(s => s.user?.jid === sock.user.jid)) global.conns.push(sock)
+            await conn.sendMessage(chatID, { text: '✅ ¡Conectado con éxito como Sub-Bot!' }, { quoted: m })
         }
     }
 
     sock.ev.on("connection.update", connectionUpdate)
     sock.ev.on("creds.update", saveCreds)
+    
+    // Carga del handler para que el Sub-Bot funcione después de conectar
     let handlerImport = await import('../handler.js')
     sock.ev.on("messages.upsert", handlerImport.handler.bind(sock))
 }

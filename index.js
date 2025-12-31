@@ -22,7 +22,7 @@ import path, { join, dirname } from 'path';
 import { Boom } from '@hapi/boom';
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import { Low, JSONFile } from 'lowdb';
-import { mongoDB, mongoDBV2 } from './lib/mongoDB.js';
+// Eliminadas las importaciones de mongoDB
 import store from './lib/store.js';
 const { proto } = (await import('@whiskeysockets/baileys')).default;
 import pkg from 'google-libphonenumber';
@@ -31,7 +31,6 @@ const phoneUtil = PhoneNumberUtil.getInstance();
 const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 import readline, { createInterface } from 'readline';
 import NodeCache from 'node-cache';
-import mongoose from 'mongoose';
 
 const { CONNECTING } = ws;
 const { chain } = lodash;
@@ -62,11 +61,9 @@ const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
 
-// URL de respaldo solo para el adaptador de la librería
-const mongoUrl = 'mongodb+srv://deylin1616_db_user:xZLcdCWwMUt7bdw6@cluster0.p7vky.mongodb.net/WhatsAppBot?retryWrites=true&w=majority';
-
-// Usamos el adaptador de la librería mongoDBV2 que es más estable
-global.db = new mongoDBV2(mongoUrl);
+// --- CONFIGURACIÓN DE BASE DE DATOS LOCAL ---
+// Ya no usamos mongoUrl. El bot creará un archivo 'database.json' automáticamente.
+global.db = new Low(new JSONFile('database.json'));
 global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
@@ -95,7 +92,7 @@ global.loadDatabase = async function loadDatabase() {
 };
 await loadDatabase();
 
-// Autenticación principal usando carpetas locales para evitar errores de conexión DNS iniciales
+// Sesión principal en carpeta local
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
@@ -144,12 +141,11 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
-// Lógica de emparejamiento por código
 if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`) && (methodCode || !methodCodeQR)) {
     if (!conn.authState.creds.registered) {
       let addNumber = phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : null;
       if (!addNumber) {
-        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número de WhatsApp (ej: 504xxxxxxx):\n> `));
+        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número del Bot:\n> `));
         addNumber = phoneNumber.replace(/\D/g, '');
       }
       setTimeout(async () => {

@@ -21,7 +21,11 @@ async function useMongooseAuthState(modelName) {
         throw new Error("DATABASE_NOT_READY");
     }
 
-    const SessionSchema = new mongoose.Schema({ _id: String, data: String });
+    const SessionSchema = new mongoose.Schema({ 
+        _id: String, 
+        data: String 
+    });
+    
     const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
 
     const writeData = async (data, id) => {
@@ -39,7 +43,7 @@ async function useMongooseAuthState(modelName) {
 
     let creds = await readData('creds');
     if (!creds) {
-        // Generación manual de credenciales si no existen
+        const keyPair = Curve.generateKeyPair();
         creds = {
             registrationId: generateRegistrationId(),
             advSecretKey: Buffer.alloc(32).fill(Math.random() * 255).toString('base64'),
@@ -52,7 +56,7 @@ async function useMongooseAuthState(modelName) {
                 keyId: 1
             },
             noiseKey: Curve.generateKeyPair(),
-            signedIdentityKey: Curve.generateKeyPair()
+            signedIdentityKey: keyPair
         };
         await writeData(creds, 'creds');
     }
@@ -92,13 +96,14 @@ async function useMongooseAuthState(modelName) {
 let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
         if (mongoose.connection.readyState !== 1) {
-            return m.reply('❌ Esperando estabilidad de MongoDB... Reintenta en 10 segundos.');
+            return m.reply('❌ Error: MongoDB no está listo. Reintenta en 10 segundos.');
         }
         let phoneNumber = m.sender.split('@')[0];
-        await m.reply('⚡ *Iniciando proceso en la nube...*');
+        await m.reply('⚡ *Iniciando sesión en la nube...*\nEspere su código de vinculación.');
         assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true });
     }
 }
+
 handler.command = /^(conectar|conectar_assistant)$/i 
 export default handler 
 
@@ -106,6 +111,7 @@ export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
     try {
         const { version } = await fetchLatestBaileysVersion()
+        
         const { state, saveCreds } = await useMongooseAuthState(`Sub_${phoneNumber}`)
 
         const sock = makeWASocket({
@@ -126,25 +132,31 @@ export async function assistant_accessJadiBot(options) {
                     const code = await sock.requestPairingCode(phoneNumber)
                     const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
                     await conn.sendMessage(m.chat, { 
-                        text: `🔑 *CÓDIGO:* ${formattedCode}` 
+                        text: `🔑 *TU CÓDIGO:* ${formattedCode}\n\nUsa este código en la notificación de WhatsApp para conectar tu sub-bot.` 
                     }, { quoted: m })
                 } catch (err) {
-                    console.error(err)
+                    console.error("Error al generar Pairing Code:", err)
                 }
-            }, 5000)
+            }, 8000)
         }
 
         sock.ev.on('connection.update', async (update) => {
-            const { connection } = update
+            const { connection, lastDisconnect } = update
             if (connection === 'open') {
-                await conn.sendMessage(m.chat, { text: '✅ ¡Conectado!' }, { quoted: m })
+                await conn.sendMessage(m.chat, { text: '✅ *¡Sub-Bot conectado con éxito en MongoDB!*' }, { quoted: m })
                 global.conns.push(sock)
+            }
+            if (connection === 'close') {
+                const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
+                if (reason !== DisconnectReason.loggedOut) assistant_accessJadiBot(options)
             }
         })
 
         const handlerImport = await import('../handler.js')
         sock.ev.on('messages.upsert', handlerImport.handler.bind(sock))
+
     } catch (e) {
-        console.log(e)
+        console.error("Error en Sub-Bot:", e)
+        if (fromCommand) m.reply('❌ Error crítico al conectar a la base de datos.')
     }
 }

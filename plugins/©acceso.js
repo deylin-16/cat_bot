@@ -1,8 +1,6 @@
 import pino from 'pino'
 import { Boom } from '@hapi/boom'
 import mongoose from 'mongoose'
-import { fileURLToPath } from 'url'
-import path from "path"
 
 const { 
     DisconnectReason, 
@@ -10,7 +8,8 @@ const {
     fetchLatestBaileysVersion,
     Browsers,
     Curve, 
-    generateRegistrationId
+    generateRegistrationId,
+    proto 
 } = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
 const { makeWASocket } = await import('../lib/simple.js')
@@ -19,7 +18,7 @@ if (!(global.conns instanceof Array)) global.conns = []
 
 async function useMongooseAuthState(modelName) {
     if (mongoose.connection.readyState !== 1) {
-        throw new Error("DATABASE_NOT_CONNECTED");
+        throw new Error("DATABASE_NOT_READY");
     }
 
     const SessionSchema = new mongoose.Schema({ _id: String, data: String });
@@ -40,7 +39,7 @@ async function useMongooseAuthState(modelName) {
 
     let creds = await readData('creds');
     if (!creds) {
-        const keyPair = Curve.generateKeyPair();
+        // Generación manual de credenciales si no existen
         creds = {
             registrationId: generateRegistrationId(),
             advSecretKey: Buffer.alloc(32).fill(Math.random() * 255).toString('base64'),
@@ -53,7 +52,7 @@ async function useMongooseAuthState(modelName) {
                 keyId: 1
             },
             noiseKey: Curve.generateKeyPair(),
-            signedIdentityKey: keyPair
+            signedIdentityKey: Curve.generateKeyPair()
         };
         await writeData(creds, 'creds');
     }
@@ -67,7 +66,6 @@ async function useMongooseAuthState(modelName) {
                     await Promise.all(ids.map(async (id) => {
                         let value = await readData(`${type}-${id}`);
                         if (type === 'app-state-sync-key' && value) {
-                            const { proto } = (await import('@whiskeysockets/baileys')).default;
                             value = proto.Message.AppStateSyncKeyData.fromObject(value);
                         }
                         data[id] = value;
@@ -94,10 +92,10 @@ async function useMongooseAuthState(modelName) {
 let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
         if (mongoose.connection.readyState !== 1) {
-            return m.reply('❌ *La base de datos aún se está conectando.* Reintenta en 5 segundos.');
+            return m.reply('❌ Esperando estabilidad de MongoDB... Reintenta en 10 segundos.');
         }
         let phoneNumber = m.sender.split('@')[0];
-        await m.reply('⚡ *Iniciando sesión en la nube...*\nEspere el código de vinculación.');
+        await m.reply('⚡ *Iniciando proceso en la nube...*');
         assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true });
     }
 }
@@ -112,7 +110,6 @@ export async function assistant_accessJadiBot(options) {
 
         const sock = makeWASocket({
             logger: pino({ level: "silent" }),
-            printQRInTerminal: false,
             auth: { 
                 creds: state.creds, 
                 keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
@@ -129,31 +126,25 @@ export async function assistant_accessJadiBot(options) {
                     const code = await sock.requestPairingCode(phoneNumber)
                     const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
                     await conn.sendMessage(m.chat, { 
-                        text: `🔑 *CÓDIGO:* ${formattedCode}\n\nIngresa este código en tu WhatsApp (Dispositivos vinculados > Vincular con número de teléfono).` 
+                        text: `🔑 *CÓDIGO:* ${formattedCode}` 
                     }, { quoted: m })
                 } catch (err) {
-                    await conn.sendMessage(m.chat, { text: "❌ Error al generar el código. Intenta de nuevo." })
+                    console.error(err)
                 }
-            }, 8000) 
+            }, 5000)
         }
 
         sock.ev.on('connection.update', async (update) => {
-            const { connection, lastDisconnect } = update
+            const { connection } = update
             if (connection === 'open') {
-                await conn.sendMessage(m.chat, { text: '✅ *¡Sub-Bot vinculado con éxito en la nube!*' }, { quoted: m })
+                await conn.sendMessage(m.chat, { text: '✅ ¡Conectado!' }, { quoted: m })
                 global.conns.push(sock)
-            }
-            if (connection === 'close') {
-                const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-                if (reason !== DisconnectReason.loggedOut) assistant_accessJadiBot(options)
             }
         })
 
         const handlerImport = await import('../handler.js')
         sock.ev.on('messages.upsert', handlerImport.handler.bind(sock))
-    } catch (error) {
-        if (error.message === "DATABASE_NOT_CONNECTED") {
-            m.reply("❌ Error: MongoDB no respondió a tiempo.")
-        }
+    } catch (e) {
+        console.log(e)
     }
 }

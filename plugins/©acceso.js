@@ -17,7 +17,7 @@ const {
     Browsers
 } = (await import("@whiskeysockets/baileys"))
 
-const { makeWASocket, protoType, serialize } = await import('../lib/simple.js')
+const { makeWASocket } = await import('../lib/simple.js')
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -30,12 +30,10 @@ async function useMongooseAuthState(modelName) {
         data: String
     });
     const SessionModel = mongoose.models[modelName] || mongoose.model(modelName, SessionSchema);
-
     const writeData = async (data, id) => {
         const json = JSON.stringify(data, (k, v) => Buffer.isBuffer(v) ? { type: 'Buffer', data: v.toString('base64') } : v);
         await SessionModel.replaceOne({ _id: id }, { data: json }, { upsert: true });
     };
-
     const readData = async (id) => {
         try {
             const res = await SessionModel.findOne({ _id: id });
@@ -43,13 +41,10 @@ async function useMongooseAuthState(modelName) {
             return JSON.parse(res.data, (k, v) => v?.type === 'Buffer' ? Buffer.from(v.data, 'base64') : v);
         } catch { return null; }
     };
-
     const removeData = async (id) => {
         try { await SessionModel.deleteOne({ _id: id }); } catch {}
     };
-
     const creds = await readData('creds') || initInMemoryKeyStore().creds;
-
     return {
         state: {
             creds,
@@ -133,12 +128,7 @@ export async function assistant_accessJadiBot(options) {
         browser: Browsers.macOS("Chrome"),
         version: version,
         markOnlineOnConnect: false,
-        syncFullHistory: false,
-        patchMessageBeforeSending: (message) => {
-            const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage);
-            if (requiresPatch) return { viewOnceMessage: { message: { messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 }, ...message } } };
-            return message;
-        }
+        syncFullHistory: false
     }
 
     let sock = makeWASocket(connectionOptions)

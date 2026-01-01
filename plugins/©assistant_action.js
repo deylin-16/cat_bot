@@ -82,7 +82,7 @@ const handler = async (m, { conn, text, command, isAdmin, isBotAdmin, participan
     } else if (/tagall|ntodos|anuncio/i.test(command)) {
         let members = participants.map(p => p.id)
         let txt = text || 'Sin motivo.'
-        let msg = randomResponse('TAGALL_DEFAULT') + \n\n + 'Motivo =>' + txt + '\n\n' + members.map(v => '@' + v.replace(/@(s\.whatsapp\.net|lid)/g, '')).join('\n')
+        let msg = randomResponse('TAGALL_DEFAULT') + '\n\n' + 'Motivo =>' + txt + '\n\n' + members.map(v => '@' + v.replace(/@(s\.whatsapp\.net|lid)/g, '')).join('\n')
         conn.sendMessage(m.chat, { text: msg, mentions: members })
     }
 }

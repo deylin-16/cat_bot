@@ -47,7 +47,7 @@ const handler = async (m, { conn, text, command, isAdmin, isBotAdmin, participan
     if (!newDesc && m.text) {
         let hach = new RegExp(`^\\${usedPrefix}${command}`, 'i');
         let match = m.text.match(hach);
-        Let txt = text || ''
+        
         if (match) {
             newDesc = m.text.slice(match[0].length).trim();
         }
@@ -81,6 +81,7 @@ const handler = async (m, { conn, text, command, isAdmin, isBotAdmin, participan
 
     } else if (/tagall|todos|anuncio/i.test(command)) {
         let members = participants.map(p => p.id)
+        let txt = text || ''
         let msg = randomResponse('TAGALL_DEFAULT') + txt + '\n\n' + members.map(v => '@' + v.replace(/@(s\.whatsapp\.net|lid)/g, '')).join('\n')
         conn.sendMessage(m.chat, { text: msg, mentions: members })
     }

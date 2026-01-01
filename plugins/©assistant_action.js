@@ -79,15 +79,15 @@ const handler = async (m, { conn, text, command, isAdmin, isBotAdmin, participan
             await conn.sendMessage(m.chat, { text: randomResponse('REMOVE_SUCCESS', user), mentions: [user] })
         }
 
-    } else if (/tagall|todos|anuncio/i.test(command)) {
+    } else if (/tagall|ntodos|anuncio/i.test(command)) {
         let members = participants.map(p => p.id)
-        let txt = text || ''
-        let msg = randomResponse('TAGALL_DEFAULT') + txt + '\n\n' + members.map(v => '@' + v.replace(/@(s\.whatsapp\.net|lid)/g, '')).join('\n')
+        let txt = text || 'Sin motivo.'
+        let msg = randomResponse('TAGALL_DEFAULT') + \n\n + Motivo => + txt + '\n\n' + members.map(v => '@' + v.replace(/@(s\.whatsapp\.net|lid)/g, '')).join('\n')
         conn.sendMessage(m.chat, { text: msg, mentions: members })
     }
 }
 
-handler.command = /^(cierra|cerrar|abre|abrir|renombrar|setnombre|desc|setdesc|setfoto|setpp|elimina|kick|ban|echar|sacar|tagall|todos|anuncio)$/i
+handler.command = /^(cierra|cerrar|abre|abrir|renombrar|setnombre|desc|setdesc|setfoto|setpp|elimina|kick|ban|echar|sacar|tagall|ntodos|anuncio)$/i
 handler.group = true
 handler.admin = true
 

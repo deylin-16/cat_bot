@@ -171,7 +171,7 @@ export async function handler(chatUpdate) {
             if (!isAccept) continue;
 
             noPrefix = m.text.trim().substring(command.length).trim();
-            let text = args.join(' ');
+            let text = m.text.slice(usedPrefix.length + command.length).trim();
             args = noPrefix ? noPrefix.split(/\s+/).filter(v => v) : [];
 
             m.plugin = name;

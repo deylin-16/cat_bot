@@ -2,17 +2,14 @@ import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
 import * as fs from 'fs'
 import fetch from 'node-fetch'
 
-var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
+var handler = async (m, { conn, text, participants }) => {
 
     let users = participants.map(u => conn.decodeJid(u.id))
-
+    let tagText = text || (m.quoted && m.quoted.text ? m.quoted.text : "")
     
-    let tagText = text ? text : (m.quoted && m.quoted.text ? m.quoted.text : "")
-
-    if (!tagText && !m.quoted) return m.reply('*Escribe un mensaje para etiquetar a todos.*')
+    if (!tagText && !m.quoted) return
 
     let finalCaption = tagText.trim()
-
     let quoted = m.quoted ? m.quoted : m
     let mime = (quoted.msg || quoted).mimetype || ''
     let isMedia = /image|video|sticker|audio/.test(mime)
@@ -35,7 +32,6 @@ var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
             await conn.sendMessage(m.chat, messageContent, { quoted: m })
 
         } catch (e) {
-            
             await conn.sendMessage(
                 m.chat,
                 { text: finalCaption, mentions: users },
@@ -44,7 +40,6 @@ var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
         }
 
     } else {
-        
         await conn.sendMessage(
             m.chat, 
             { text: finalCaption, mentions: users }, 

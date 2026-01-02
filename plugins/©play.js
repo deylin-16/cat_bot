@@ -21,7 +21,7 @@ const handler = async (m, { conn, text, command }) => {
       url = videoInfo.url;
     }
 
-    const apiUrl = `${api_url}/api/download/yt?url=${encodeURIComponent(url)}&apikey=dk_ofical_user`;
+    const apiUrl = `${url_api}/api/download/yt?url=${encodeURIComponent(url)}&apikey=${key}`;
 
     const response = await fetch(apiUrl);
     const data = await response.json();

@@ -108,7 +108,7 @@ let handler = async (m, { conn, text }) => {
     const results = await pins(text);
     if (!results || results.length === 0) return global.design(conn, m, `No se encontraron resultados para "${text}".`);
 
-    const maxImages = Math.min(results.length, 4);
+    const maxImages = Math.min(results.length, 7);
     const medias = [];
 
     for (let i = 0; i < maxImages; i++) {

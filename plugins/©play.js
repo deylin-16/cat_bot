@@ -9,10 +9,11 @@ const handler = async (m, { conn, text, command }) => {
   try {
     let url;
     let videoInfo;
+    
     if (/youtube.com|youtu.be/.test(text)) {
-      const search = await yts(text);
-      videoInfo = search;
       url = text;
+      const search = await yts(url);
+      videoInfo = search;
     } else {
       const search = await yts(text);
       if (!search.videos.length) return global.design(conn, m, "❌ No se encontró el video.");
@@ -20,46 +21,49 @@ const handler = async (m, { conn, text, command }) => {
       url = videoInfo.url;
     }
 
-    const apiUrl = `${url_api}/api/download/yt?url=${encodeURIComponent(url)}&apikey=dk_ofical_user`;
-
+    const apiUrl = `${api_url}/api/download/yt?url=${encodeURIComponent(url)}&apikey=dk_ofical_user`;
 
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (!data || data.status !== "success") {
+    if (!data || data.success !== true || !data.result) {
       return global.design(conn, m, "❌ Error en el servidor de descargas.");
     }
 
+    const res = data.result; 
+
     const contextInfo = {
       externalAdReply: {
-        title: videoInfo.title || data.title,
+        title: res.title || videoInfo.title,
         body: `Canal: ${videoInfo.author?.name || "YouTube"}`,
         mediaType: 1,
         previewType: 0,
         renderLargerThumbnail: true,
-        thumbnailUrl: videoInfo.thumbnail || data.thumbnail,
+        thumbnailUrl: res.thumbnail || videoInfo.thumbnail,
         sourceUrl: url
       }
     };
 
+    
     if (command === 'play' || command === 'audio') {
       await m.react("🎧");
       await conn.sendMessage(m.chat, {
-        audio: { url: data.download_url },
+        audio: { url: res.download_url }, // Ruta corregida
         mimetype: "audio/mpeg",
-        fileName: `${data.title}.mp3`,
+        fileName: `${res.title}.mp3`,
         ptt: false,
         contextInfo
       }, { quoted: m });
     } 
     
+    
     else if (command === 'play2' || command === 'video') {
       await m.react("🎥");
       await conn.sendMessage(m.chat, {
-        video: { url: data.download_url },
-        caption: `✅ *Título:* ${data.title}\n🔗 *Link:* ${url}`,
+        video: { url: res.download_url }, // Ruta corregida
+        caption: `✅ *Título:* ${res.title}\n🔗 *Link:* ${url}\n\n*Nota:* ${res.info}`,
         mimetype: "video/mp4",
-        fileName: `${data.title}.mp4`,
+        fileName: `${res.title}.mp4`,
         contextInfo
       }, { quoted: m });
     }

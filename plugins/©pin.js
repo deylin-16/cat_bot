@@ -69,7 +69,7 @@ async function sendAlbumMessage(conn, jid, medias, options = {}) {
 
 const pins = async (judul) => {
   try {
-    const res = await axios.get(`${url_api}/api/search/pin?q=${encodeURIComponent(judul)}&apikey=dk_ofical_user`);
+    const res = await axios.get(`${url_api}/api/search/pin?q=${encodeURIComponent(judul)}&apikey=${key}`);
     if (Array.isArray(res.data.images)) {
       return res.data.images.map(url => ({
         image_large_url: url,

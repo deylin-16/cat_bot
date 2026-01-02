@@ -48,7 +48,7 @@ const handler = async (m, { conn, text, command }) => {
     if (command === 'play' || command === 'audio') {
       await m.react("🎧");
       await conn.sendMessage(m.chat, {
-        audio: { url: res.download_url }, // Ruta corregida
+        audio: { url: res.download_url }, 
         mimetype: "audio/mpeg",
         fileName: `${res.title}.mp3`,
         ptt: false,
@@ -60,7 +60,7 @@ const handler = async (m, { conn, text, command }) => {
     else if (command === 'play2' || command === 'video') {
       await m.react("🎥");
       await conn.sendMessage(m.chat, {
-        video: { url: res.download_url }, // Ruta corregida
+        video: { url: res.download_url }, 
         caption: `✅ *Título:* ${res.title}\n🔗 *Link:* ${url}\n\n*Nota:* ${res.info}`,
         mimetype: "video/mp4",
         fileName: `${res.title}.mp4`,

@@ -20,7 +20,7 @@ const handler = async (m, { conn, text, command }) => {
       url = videoInfo.url;
     }
 
-    const apiUrl = `${url_api}/api/download/yt?url=${encodeURIComponent(url)}&apikey=845dc`;
+    const apiUrl = `${url_api}/api/download/yt?url=${encodeURIComponent(url)}&apikey=dk_ofical_user`;
 
 
     const response = await fetch(apiUrl);

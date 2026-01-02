@@ -3,11 +3,13 @@ import axios from 'axios';
 let handler = async (m, { conn, text }) => {
   const rwait = '🕒';
   const done = '✅';
+  const url_api = 'https://api.dynlayer.xyz'; 
 
   if (!text) return global.design(conn, m, `Por favor, ingresa lo que deseas buscar.`);
 
   try {
     await m.react(rwait);
+
     
     const { data: response } = await axios.get(`https://www.tikwm.com/api/feed/search?keywords=${encodeURIComponent(text)}`);
 
@@ -16,25 +18,28 @@ let handler = async (m, { conn, text }) => {
       return global.design(conn, m, `No se encontraron resultados para "${text}".`);
     }
 
-    const video = response.data.videos[0];
-    const videoUrl = `https://www.tiktok.com/@${video.author.unique_id}/video/${video.video_id}`;
+    
+    const videoData = response.data.videos[0];
+    const videoUrl = `https://www.tiktok.com/@${videoData.author.unique_id}/video/${videoData.video_id}`;
 
+    
     const { data: dlData } = await axios.get(`${url_api}/api/download/tiktok?url=${encodeURIComponent(videoUrl)}&apikey=dk_ofical_user`);
 
     let finalVideo, finalTitle, finalAuthor;
 
     if (dlData.success) {
-      finalVideo = dlData.video_url;
+      
+      finalVideo = dlData.play; 
       finalTitle = dlData.title;
-      finalAuthor = dlData.author || dlData.autor;
+      finalAuthor = dlData.autor; 
     } else {
-      finalVideo = video.play;
-      finalTitle = video.title;
-      finalAuthor = video.author.nickname;
+      finalVideo = videoData.play;
+      finalTitle = videoData.title;
+      finalAuthor = videoData.author.nickname;
     }
 
     const caption = `
-     *TIKTOK SEARCH*
+*TIKTOK SEARCH*
 📝 *Título:* ${finalTitle || 'Sin título'}
 👤 *Autor:* ${finalAuthor}
 🔗 *Link:* ${videoUrl}
@@ -49,11 +54,11 @@ let handler = async (m, { conn, text }) => {
     await m.react(done);
 
   } catch (error) {
+    console.error(error);
     await m.react('❌');
     conn.reply(m.chat, `Error: ${error.message}`, m);
   }
 };
-
 
 handler.command = ['tiktoksearch', 'ttss', 'tiktoks'];
 

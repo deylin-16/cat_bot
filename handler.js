@@ -1,37 +1,30 @@
 import { smsg } from './lib/simple.js'
 import { format } from 'util'
 import { fileURLToPath } from 'url'
-import path, { join } from 'path'
-import chalk from 'chalk'
-
-const isNumber = x => typeof x === 'number' && !isNaN(x)
+import path from 'path'
 
 export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now()
-    const conn = this
-
-if (m.isBaileys || (global.opts && global.opts['nyimak'] && !isOwner)) return
-
-
-    if (!chatUpdate || !chatUpdate.messages || chatUpdate.messages.length === 0) return
-
+    if (!chatUpdate.messages) return
+    
+    // Inicialización inmediata de m
     let m = chatUpdate.messages[chatUpdate.messages.length - 1]
     if (!m) return
+    
+    const conn = this
     if (global.db.data == null) await global.loadDatabase()
-
-    const chatJid = m.key.remoteJid
-    const mainBotJid = global.conn?.user?.jid
-    const isSubAssistant = conn.user.jid !== mainBotJid
-
-    if (chatJid.endsWith('@g.us')) {
-        global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' }
-        const chatData = global.db.data.chats[chatJid]
-        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant)
-        if (chatData?.primaryBot && chatData.primaryBot !== conn.user.jid && !isROwner) return
-    }
 
     m = smsg(conn, m) || m
     if (!m) return
+
+    const chatJid = m.key.remoteJid
+    const isSubAssistant = conn.user.jid !== global.conn?.user?.jid
+
+    if (chatJid.endsWith('@g.us')) {
+        global.db.data.chats[chatJid] ||= { isBanned: false, primaryBot: '' }
+        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
+        if (global.db.data.chats[chatJid]?.primaryBot && global.db.data.chats[chatJid].primaryBot !== conn.user.jid && !isROwner) return
+    }
 
     conn.processedMessages = conn.processedMessages || new Map()
     if (conn.processedMessages.has(m.key.id)) return
@@ -39,27 +32,19 @@ if (m.isBaileys || (global.opts && global.opts['nyimak'] && !isOwner)) return
     if (conn.processedMessages.size > 100) conn.processedMessages.delete(conn.processedMessages.keys().next().value)
 
     try {
-        const senderJid = m.sender
-        if (typeof global.db.data.users[senderJid] !== 'object') global.db.data.users[senderJid] = {}
-        let user = global.db.data.users[senderJid]
-
-        if (user) {
-            if (!isNumber(user.exp)) user.exp = 0
-            if (!isNumber(user.coin)) user.coin = 0
-            if (!('muto' in user)) user.muto = false 
-        }
-
-        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + (m.sender.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(senderJid)
+        const user = global.db.data.users[m.sender] ||= {}
+        if (typeof user !== 'object') global.db.data.users[m.sender] = {}
+        
+        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + (m.sender.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(m.sender)
         const isOwner = isROwner || m.fromMe
 
-        if (m.isBaileys || (opts['nyimak'] && !isOwner)) return
-        if (typeof m.text !== 'string') m.text = ''
+        if (m.isBaileys || (global.opts && global.opts['nyimak'] && !isOwner)) return
 
-        let groupMetadata, participants, isAdmin, isBotAdmin
+        let isAdmin = false, isBotAdmin = false
         if (m.isGroup) {
-            groupMetadata = await conn.groupMetadata(m.chat).catch(_ => ({}))
-            participants = groupMetadata.participants || []
-            isAdmin = (participants.find(p => p.id === senderJid))?.admin || false
+            const groupMetadata = await conn.groupMetadata(m.chat).catch(_ => ({}))
+            const participants = groupMetadata.participants || []
+            isAdmin = (participants.find(p => p.id === m.sender))?.admin || false
             isBotAdmin = !!(participants.find(p => p.id === conn.user.jid))?.admin
         }
 
@@ -76,7 +61,7 @@ if (m.isBaileys || (global.opts && global.opts['nyimak'] && !isOwner)) return
             if (!plugin || plugin.disabled) continue
 
             if (typeof plugin.before === 'function') {
-                if (await plugin.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin, isSubAssistant })) continue
+                if (await plugin.before.call(conn, m, { isROwner, isOwner, isAdmin, isBotAdmin, isSubAssistant })) continue
             }
 
             if (typeof plugin !== 'function') continue
@@ -87,21 +72,16 @@ if (m.isBaileys || (global.opts && global.opts['nyimak'] && !isOwner)) return
 
             if (!isAccept) continue
 
-            m.plugin = name
-            if (global.db.data.chats[m.chat]?.isBanned && !isROwner) return
-
             if (plugin.rowner && !isROwner) { global.dfail('rowner', m, conn); continue }
             if (plugin.owner && !isOwner) { global.dfail('owner', m, conn); continue }
             if (plugin.group && !m.isGroup) { global.dfail('group', m, conn); continue }
             if (plugin.admin && !isAdmin) { global.dfail('admin', m, conn); continue }
             if (plugin.botAdmin && !isBotAdmin) { global.dfail('botAdmin', m, conn); continue }
-            if (plugin.subBot && !isSubAssistant && !isROwner) { global.dfail('subBot', m, conn); continue }
 
             m.isCommand = true
             try {
-                await plugin.call(conn, m, { usedPrefix, noPrefix, args, command, text: args.join(' '), conn, participants, isROwner, isOwner, isAdmin, isBotAdmin, isSubAssistant })
+                await plugin.call(conn, m, { usedPrefix, noPrefix, args, command, text: args.join(' '), isROwner, isOwner, isAdmin, isBotAdmin, isSubAssistant })
             } catch (e) {
-                m.error = e
                 m.reply(format(e))
             }
         }
@@ -112,10 +92,8 @@ global.dfail = (type, m, conn) => {
     const msg = {
         rowner: `Solo Deylin.`,
         owner: `Solo Deylin.`,
-        group: `Solo en grupos.`,
         admin: `Solo admins.`,
-        botAdmin: `Dame admin.`,
-        subBot: `Solo sub-bot.`
+        botAdmin: `Dame admin.`
     }[type]
     if (msg) conn.reply(m.chat, msg, m)
 }

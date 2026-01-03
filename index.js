@@ -15,14 +15,15 @@ import { handler } from './handler.js'
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 
-const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
-
+// CAPTURA DE ARGUMENTOS
 const args = process.argv.slice(2)
-const session_arg = args.find(a => a.startsWith('--session='))
-const chat_arg = args.find(a => a.startsWith('--chatId='))
-const isSubBot = !!session_arg
-const subBotNumber = isSubBot ? session_arg.split('=')[1] : null
-const targetChat = chat_arg ? chat_arg.split('=')[1] : null
+const subBotNumber = args.find(a => a.startsWith('--session='))?.split('=')[1]
+const targetChat = args.find(a => a.startsWith('--chatId='))?.split('=')[1]
+const isSubBot = !!subBotNumber
+
+if (isSubBot) console.log(chalk.blueBright(`[ HIJO ] Iniciando sesión para: ${subBotNumber} | Chat: ${targetChat}`))
+
+const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
 
 const folder_session = isSubBot ? `./jadibts/${subBotNumber}` : (global.sessions || 'sessions')
 if (!existsSync('./jadibts')) mkdirSync('./jadibts', { recursive: true })
@@ -54,22 +55,25 @@ global.conn = makeWASocket({
   version,
 })
 
+// LÓGICA DE EMPAREJAMIENTO MEJORADA
 if (!state.creds.registered) {
     if (isSubBot && subBotNumber) {
+        console.log(chalk.yellow(`[ HIJO ] Solicitando código para ${subBotNumber}...`))
         setTimeout(async () => {
             try {
                 let codeBot = await global.conn.requestPairingCode(subBotNumber)
                 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+                console.log(chalk.greenBright(`[ HIJO ] Código generado: ${codeBot}`))
                 if (targetChat) {
-                    await global.conn.sendMessage(targetChat, { text: `🔑 *CÓDIGO DE VINCULACIÓN*\n\nUsa este código para conectar tu asistente:\n\n*${codeBot}*` })
+                    await global.conn.sendMessage(targetChat, { text: `🔑 *CÓDIGO DE VINCULACIÓN*\n\nUsa este código en tu WhatsApp:\n\n*${codeBot}*` })
                 }
-            } catch (e) { console.error("Error al pedir código:", e) }
-        }, 3000)
+            } catch (e) { console.error(chalk.red("[ ERROR HIJO ]"), e) }
+        }, 5000) // 5 segundos para asegurar conexión
     } else {
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-        rl.question(chalk.cyan.bold('\nNúmero del Bot Principal:\n> '), async (num) => {
+        rl.question(chalk.cyan.bold('\nNúmero Principal:\n> '), async (num) => {
             let code = await global.conn.requestPairingCode(num.replace(/\D/g, ''))
-            console.log(chalk.black.bgGreen('\n CÓDIGO: '), chalk.bold.white(code?.match(/.{1,4}/g)?.join("-") || code), '\n')
+            console.log(chalk.green(`\n CÓDIGO: ${code?.match(/.{1,4}/g)?.join("-") || code}\n`))
             rl.close()
         })
     }

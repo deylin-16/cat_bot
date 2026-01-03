@@ -17,6 +17,15 @@ import { handler } from './handler.js'
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 
+const { 
+    default: makeWASocketBaileys,
+    DisconnectReason, 
+    useMultiFileAuthState, 
+    fetchLatestBaileysVersion, 
+    makeCacheableSignalKeyStore, 
+    Browsers 
+} = await import('@whiskeysockets/baileys')
+
 const args_terminal = process.argv.slice(2)
 const session_arg = args_terminal.find(a => a.startsWith('--session='))
 const isSubBot = !!session_arg
@@ -47,8 +56,6 @@ await global.loadDatabase()
 
 const { state, saveCreds } = await useMultiFileAuthState(folder_session)
 const { version } = await fetchLatestBaileysVersion()
-
-const { DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
 
 global.conn = makeWASocket({
   logger: pino({ level: 'silent' }),

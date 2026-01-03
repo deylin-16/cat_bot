@@ -66,12 +66,7 @@ global.loadDatabase = async function loadDatabase() {
   await global.db.read().catch(console.error);
   global.db.READ = null;
   global.db.data = {
-    users: {},
-    chats: {},
-    stats: {},
-    msgs: {},
-    sticker: {},
-    settings: {},
+    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {},
     ...(global.db.data || {}),
   };
   global.db.chain = chain(global.db.data);
@@ -79,7 +74,6 @@ global.loadDatabase = async function loadDatabase() {
 await loadDatabase();
 
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
-
 const msgRetryCounterCache = new NodeCache();
 const userDevicesCache = new NodeCache();
 const { version } = await fetchLatestBaileysVersion();
@@ -189,23 +183,16 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
 
 await global.reloadHandler();
 
-// --- LÓGICA DE AUTO-RECONEXIÓN DE SUB-BOTS AL INICIAR ---
+// AUTO-ARRANQUE DE SUB-BOTS
 async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (existsSync(jadibtsPath)) {
         const folders = readdirSync(jadibtsPath);
         for (const folder of folders) {
             if (statSync(join(jadibtsPath, folder)).isDirectory()) {
-                console.log(chalk.cyanBright(`[AUTO-START] Reconectando Sub-Bot: ${folder}`));
                 try {
                     const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-                    assistant_accessJadiBot({ 
-                        m: null, 
-                        conn: global.conn, 
-                        phoneNumber: folder, 
-                        fromCommand: false 
-                    }).catch(e => console.error(`Error reconectando ${folder}:`, e));
-                    // Delay para evitar saturación de RAM en el arranque
+                    assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
                     await new Promise(resolve => setTimeout(resolve, 5000));
                 } catch (e) {}
             }
@@ -232,12 +219,7 @@ app.get('/api/get-pairing-code', async (req, res) => {
     try {
         const num = number.replace(/\D/g, '');
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-        const code = await assistant_accessJadiBot({ 
-            m: null, 
-            conn: global.conn, 
-            phoneNumber: num, 
-            fromCommand: false 
-        }); 
+        const code = await assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: num, fromCommand: false }); 
         res.status(200).send({ code });
     } catch (e) {
         res.status(500).send({ error: e.message });

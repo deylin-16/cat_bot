@@ -10,6 +10,7 @@ import pino from 'pino'
 import express from 'express'
 import cors from 'cors'
 import readline from 'readline'
+import yargs from 'yargs'
 import { Low, JSONFile } from 'lowdb'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
 import { handler } from './handler.js'
@@ -22,6 +23,9 @@ const chat_arg = args_terminal.find(a => a.startsWith('--chatId='))
 const isSubBot = !!session_arg
 const subBotNumber = isSubBot ? session_arg.split('=')[1] : null
 const targetChat = chat_arg ? chat_arg.split('=')[1] : null
+
+// --- LÍNEA AGREGADA PARA CORREGIR EL ERROR ---
+global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 
 const folder_session = isSubBot ? `./jadibts/${subBotNumber}` : (global.sessions || 'sessions')
 if (!existsSync('./jadibts')) mkdirSync('./jadibts', { recursive: true })

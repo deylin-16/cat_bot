@@ -8,18 +8,17 @@ let handler = async (m, { conn }) => {
     
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
 
-    await m.reply('⚡ *Iniciando motor independiente...*\nEspere su código de vinculación en este chat.')
+    await m.reply('⚡ *Iniciando motor independiente...*\nEspere un momento, el código se enviará automáticamente a este chat.')
 
-        const child = spawn('node', [
+    const child = spawn('node', [
         'index.js', 
         `--session=${phoneNumber}`, 
         `--chatId=${m.chat}`
     ], {
         cwd: process.cwd(),
-        stdio: 'inherit', // Mantiene la salida en la consola principal
+        stdio: 'inherit',
         detached: true
     })
-
 
     child.unref()
 }

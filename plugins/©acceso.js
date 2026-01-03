@@ -8,12 +8,13 @@ let handler = async (m, { conn }) => {
     
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
 
-    await m.reply('⚡ *Iniciando motor independiente...*\nEl código se enviará automáticamente en unos segundos.')
+    await m.reply('⚡ *Iniciando motor independiente...*\nGenerando código de respuesta...')
 
     const child = spawn('node', [
         'index.js', 
         `--session=${phoneNumber}`, 
-        `--chatId=${m.chat}`
+        `--chatId=${m.chat}`,
+        `--msgId=${m.key.id}`
     ], {
         cwd: process.cwd(),
         stdio: 'inherit',

@@ -92,7 +92,7 @@ let handler = async (m, { conn, args }) => {
     await m.react('✅')
   } catch (e) {
     await m.react('✖️')
-    console.error(e)
+    global.design(conn, m, e)
   }
 }
 

@@ -9,6 +9,10 @@ const isNumber = x => typeof x === 'number' && !isNaN(x)
 export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now()
     const conn = this
+
+if (m.isBaileys || (global.opts && global.opts['nyimak'] && !isOwner)) return
+
+
     if (!chatUpdate || !chatUpdate.messages || chatUpdate.messages.length === 0) return
 
     let m = chatUpdate.messages[chatUpdate.messages.length - 1]

@@ -9,45 +9,42 @@ let handler = async (m, { conn, text, command }) => {
     const searchJson = await searchRes.json()
 
     if (!searchJson.status || !searchJson.data?.length) {
-      return m.reply('❌ No se encontraron resultados para tu búsqueda.')
+      return m.reply('❌ No se encontraron resultados.')
     }
 
     const pick = searchJson.data[Math.floor(Math.random() * searchJson.data.length)]
     const packName = pick.name || 'Sasuke Pack'
     const authorName = pick.author || 'Deylin'
 
-    await m.reply(`📦 *Pack:* ${packName}\n👤 *Autor:* ${authorName}\n\n_Preparando envío múltiple..._`)
+    await m.reply(`📦 *Pack:* ${packName}\n👤 *Autor:* ${authorName}\n\n_Enviando ráfaga de stickers..._`)
 
     const downloadRes = await fetch(`https://delirius-apiofc.vercel.app/download/stickerly?url=${encodeURIComponent(pick.url)}`)
     const downloadJson = await downloadRes.json()
 
-    if (!downloadJson.status || !downloadJson.data?.stickers) {
-      return m.reply('⚠️ Error al obtener los archivos del pack.')
-    }
+    if (!downloadJson.status || !downloadJson.data?.stickers) return m.reply('⚠️ Error al descargar.')
 
-    const stickersToSend = downloadJson.data.stickers.slice(0, 5) // Aumentado a 10 stickers
+    const stickersToSend = downloadJson.data.stickers.slice(0, 10)
 
-    // Enviamos los stickers en una promesa masiva para que salgan casi al mismo tiempo
-    await Promise.all(stickersToSend.map(async (url, i) => {
+    for (let url of stickersToSend) {
       const sticker = new Sticker(url, {
         pack: packName,
         author: authorName,
         type: 'full',
-        categories: ['🔥'],
-        id: `sasuke-${Date.now()}-${i}`
+        id: `sasuke-${Date.now()}`
       })
+      
       const buffer = await sticker.toBuffer()
-      return conn.sendMessage(m.chat, { sticker: buffer }, { quoted: m })
-    }))
+      // Enviamos sin 'quoted' para que WhatsApp no intente separarlos por el mensaje de referencia
+      // Esto ayuda a que se agrupen visualmente mejor
+      await conn.sendMessage(m.chat, { sticker: buffer })
+    }
 
   } catch (e) {
     console.error(e)
-    m.reply('⚠️ Ocurrió un fallo al procesar el paquete de stickers.')
+    m.reply('⚠️ Error al procesar el paquete.')
   }
 }
 
-handler.help = ['stikerly <búsqueda>']
-handler.tags = ['sticker']
 handler.command = ['stikerly', 'sly']
 
 export default handler

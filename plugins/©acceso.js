@@ -30,6 +30,7 @@ export default handler
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
+    
     if (!fs.existsSync(authFolder)) {
         fs.mkdirSync(authFolder, { recursive: true })
     }
@@ -37,8 +38,6 @@ export async function assistant_accessJadiBot(options) {
     try {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
-        
-        // Memoria aislada para este bot específico
         const msgRetryCounterCache = new NodeCache()
 
         const sock = makeWASocket({
@@ -51,37 +50,33 @@ export async function assistant_accessJadiBot(options) {
             version,
             msgRetryCounterCache,
             markOnlineOnConnect: false,
-            // Prioriza el rendimiento limitando la carga de historial
             syncFullHistory: false
         })
 
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
+            if (!fromCommand) return; // No intentar reconectar si no hay credenciales
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
                         const code = await sock.requestPairingCode(phoneNumber)
                         const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
-
                         if (fromCommand && m && conn) {
                             await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
                         }
-
                         configurarEventos(sock, authFolder, m, conn)
                         resolve(formattedCode)
-                    } catch (err) {
-                        reject(err)
-                    }
+                    } catch (err) { reject(err) }
                 }, 5000)
             })
         } else {
             configurarEventos(sock, authFolder, m, conn)
-            return "Ya conectado"
+            return "Conectando..."
         }
 
     } catch (e) {
-        if (fromCommand && m) m.reply('❌ Error al iniciar sesión local.')
+        console.error('Error en JadiBot:', e)
         throw e
     }
 }
@@ -89,26 +84,33 @@ export async function assistant_accessJadiBot(options) {
 function configurarEventos(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
+        
         if (connection === 'open') {
-            if (m && conn) await conn.sendMessage(m.chat, { text: '✅ *Sub-Bot conectado en línea independiente.*' }, { quoted: m })
-            global.conns.push(sock)
+            console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
+            if (!global.conns.includes(sock)) global.conns.push(sock)
         }
+        
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            if (reason !== DisconnectReason.loggedOut) {
-                // Reinicio automático sin afectar al bot principal
+            
+            if (reason === DisconnectReason.restartRequired || reason === DisconnectReason.connectionLost || reason === DisconnectReason.connectionClosed) {
+                console.log(chalk.yellowBright(`[SUB-BOT] Reintentando conexión: ${path.basename(authFolder)}`))
                 assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false })
-            } else {
+            } else if (reason === DisconnectReason.loggedOut) {
+                console.log(chalk.redBright(`[SUB-BOT] Sesión cerrada permanentemente.`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                const i = global.conns.indexOf(sock)
-                if (i !== -1) global.conns.splice(i, 1)
+                global.conns = global.conns.filter(c => c !== sock)
+            } else {
+                // Cualquier otro error, intentar reconectar de todos modos por seguridad
+                assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false })
             }
         }
     })
 
-    // Carga del handler de forma independiente para cada mensaje
     sock.ev.on('messages.upsert', async (chatUpdate) => {
-        const handlerImport = await import('../handler.js')
-        await handlerImport.handler.call(sock, chatUpdate)
+        try {
+            const handlerImport = await import('../handler.js')
+            await handlerImport.handler.call(sock, chatUpdate)
+        } catch (e) { console.error(e) }
     })
 }

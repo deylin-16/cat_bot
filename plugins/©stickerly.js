@@ -1,47 +1,39 @@
 import fetch from 'node-fetch'
-import { Sticker, StickerTypes } from 'wa-sticker-formatter'
 
 let handler = async (m, { conn, text }) => {
-  if (!text) return m.reply(`✨ Escribe un término para buscar stickers.`)
+  if (!text) return m.reply(`✨ Escribe un término para buscar packs en Sticker.ly`)
 
   try {
     const searchRes = await fetch(`https://delirius-apiofc.vercel.app/search/stickerly?query=${encodeURIComponent(text)}`)
     const searchJson = await searchRes.json()
 
-    if (!searchJson.status || !searchJson.data?.length) return m.reply('❌ Sin resultados.')
+    if (!searchJson.status || !searchJson.data?.length) return m.reply('❌ No se encontraron paquetes.')
 
+    // Elegimos un pack aleatorio de los resultados
     const pick = searchJson.data[Math.floor(Math.random() * searchJson.data.length)]
     
-    // Aviso de envío limitado para evitar spam
-    await m.reply(`📦 *Pack:* ${pick.name || 'Sasuke'}\n🚀 Enviando 2 stickers optimizados...`)
+    // El secreto está en enviar el enlace directo de Sticker.ly. 
+    // WhatsApp genera automáticamente la tarjeta verde que viste en la captura.
+    const packUrl = pick.url 
 
-    const downloadRes = await fetch(`https://delirius-apiofc.vercel.app/download/stickerly?url=${encodeURIComponent(pick.url)}`)
-    const downloadJson = await downloadRes.json()
-
-    if (!downloadJson.status || !downloadJson.data?.stickers) return m.reply('⚠️ Error al descargar.')
-
-    // Solo tomamos los primeros 2 stickers para no hacer spam
-    const stickersToSend = downloadJson.data.stickers.slice(0, 2)
-
-    for (let url of stickersToSend) {
-      const sticker = new Sticker(url, {
-        pack: pick.name || 'Sasuke Bot',
-        author: 'Deylin',
-        type: StickerTypes.FULL,
-        categories: ['🔥'],
-        id: `sask-${Date.now()}`,
-        quality: 50 // Reducimos la calidad para que pesen poco y se agrupen
-      })
-      
-      const buffer = await sticker.toBuffer()
-      
-      // Enviamos sin 'quoted' para facilitar que WhatsApp los agrupe visualmente
-      await conn.sendMessage(m.chat, { sticker: buffer })
-    }
+    await conn.sendMessage(m.chat, {
+      text: packUrl,
+      contextInfo: {
+        externalAdReply: {
+          title: pick.name || 'Pack de Stickers',
+          body: `Autor: ${pick.author || 'Sticker.ly'}`,
+          sourceUrl: packUrl,
+          mediaType: 1,
+          showAdAttribution: false,
+          renderLargerThumbnail: false,
+          thumbnailUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/dd/93/2d/dd932d94-386b-640a-313b-8575048d087b/AppIcon-0-0-1x_U007emarketing-0-0-0-7-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/512x512bb.jpg'
+        }
+      }
+    }, { quoted: m })
 
   } catch (e) {
     console.error(e)
-    m.reply('⚠️ Error al procesar el pack.')
+    m.reply('⚠️ Ocurrió un error al generar la vista previa del paquete.')
   }
 }
 

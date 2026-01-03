@@ -3,6 +3,7 @@ import { Boom } from '@hapi/boom'
 import fs from 'fs'
 import path from 'path'
 import NodeCache from 'node-cache'
+import chalk from 'chalk' // <--- IMPORTACIÓN FALTANTE QUE CAUSA EL ERROR
 
 const { 
     DisconnectReason, 
@@ -56,7 +57,7 @@ export async function assistant_accessJadiBot(options) {
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
-            if (!fromCommand) return; // No intentar reconectar si no hay credenciales
+            if (!fromCommand) return; 
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
@@ -87,22 +88,19 @@ function configurarEventos(sock, authFolder, m, conn) {
         
         if (connection === 'open') {
             console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
-            if (!global.conns.includes(sock)) global.conns.push(sock)
+            if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
         }
         
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             
-            if (reason === DisconnectReason.restartRequired || reason === DisconnectReason.connectionLost || reason === DisconnectReason.connectionClosed) {
+            if (reason !== DisconnectReason.loggedOut) {
                 console.log(chalk.yellowBright(`[SUB-BOT] Reintentando conexión: ${path.basename(authFolder)}`))
                 assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false })
-            } else if (reason === DisconnectReason.loggedOut) {
-                console.log(chalk.redBright(`[SUB-BOT] Sesión cerrada permanentemente.`))
+            } else {
+                console.log(chalk.redBright(`[SUB-BOT] Sesión cerrada.`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c !== sock)
-            } else {
-                // Cualquier otro error, intentar reconectar de todos modos por seguridad
-                assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false })
             }
         }
     })

@@ -48,7 +48,7 @@ global.name = (conn) => global.getAssistantConfig(conn.user.jid).assistantName
 global.img = (conn) => global.getAssistantConfig(conn.user.jid).assistantImage
 
 
-global.design = async (conn, m, text = '') => {
+    global.design = async (conn, m, text = '') => {
     const config = global.getAssistantConfig(conn.user.jid)
     const mainBotJid = global.conn?.user?.jid.split('@')[0] 
     const currentBotJid = conn.user.jid.split('@')[0]
@@ -57,31 +57,30 @@ global.design = async (conn, m, text = '') => {
         return await conn.sendMessage(m.chat, { text: text }, { quoted: m })
     }
 
-    let canalLink = 'https://deylin.xyz/1' 
-    let bufferRaw = config.assistantIcon || config.assistantImage
-    let buffer = typeof bufferRaw === 'string' ? await (await fetch(bufferRaw)).buffer() : bufferRaw
+    let canalLink = 'https://Deylin.xyz/1' 
+    let buffer = config.assistantIcon || config.assistantImage
 
-    const messageStruct = {
-        extendedTextMessage: {
-            text: text || canalLink,
-            matchedText: canalLink,
-            description: "h",
-            title: config.assistantName || "",
-            previewType: "NONE",
-            jpegThumbnail: buffer,
-            inviteLinkGroupTypeV2: "DEFAULT",
-            contextInfo: {
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363406846602793@newsletter',
-                    newsletterName: `SIGUE EL CANAL DE: ${config.assistantName}`,
-                    serverMessageId: 1
-                }
+    return await conn.sendMessage(m.chat, {
+        text: text || canalLink,
+        contextInfo: {
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: '120363406846602793@newsletter',
+                newsletterName: `SIGUE EL CANAL DE: ${config.assistantName}`,
+                serverMessageId: 1
+            },
+            externalAdReply: {
+                title: config.assistantName,
+                body: '🚀 Toca para ver canal',
+                thumbnail: typeof buffer === 'string' ? await global.getBuffer(buffer) : buffer,
+                mediaType: 1,
+                renderLargerThumbnail: false,
+                showAdAttribution: true,
+                sourceUrl: canalLink,
+                mediaUrl: canalLink
             }
         }
-    }
-
-    return await conn.relayMessage(m.chat, messageStruct, { quoted: m })
+    }, { quoted: m })
 }
 
 

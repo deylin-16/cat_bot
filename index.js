@@ -1,18 +1,18 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
 import './config.js'
-import { readdirSync, statSync, existsSync, mkdirSync, rmSync, watch } from 'fs'
+import { readdirSync, statSync, existsSync, mkdirSync, rmSync } from 'fs'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { platform } from 'process'
 import path, { join } from 'path'
 import { Boom } from '@hapi/boom'
 import chalk from 'chalk'
 import pino from 'pino'
-import yargs from 'yargs'
 import express from 'express'
 import cors from 'cors'
 import readline from 'readline'
 import { Low, JSONFile } from 'lowdb'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
+import { handler } from './handler.js'
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
 
@@ -39,11 +39,11 @@ global.__dirname = function dirname(pathURL) {
 const __dirname = global.__dirname(import.meta.url)
 global.db = new Low(new JSONFile(isSubBot ? `./jadibts/db_${subBotNumber}.json` : 'database.json'))
 
-async function loadDatabase() {
+global.loadDatabase = async function loadDatabase() {
   await global.db.read().catch(() => {})
   global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}, ...(global.db.data || {}) }
 }
-await loadDatabase()
+await global.loadDatabase()
 
 const { state, saveCreds } = await useMultiFileAuthState(folder_session)
 const { version } = await fetchLatestBaileysVersion()
@@ -71,41 +71,38 @@ if (!state.creds.registered) {
                 let codeBot = await global.conn.requestPairingCode(subBotNumber)
                 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
                 if (targetChat) {
-                    await global.conn.sendMessage(targetChat, { text: `✅ *CÓDIGO DE VINCULACIÓN*\n\nNúmero: ${subBotNumber}\nCódigo: *${codeBot}*` })
+                    await global.conn.sendMessage(targetChat, { text: codeBot })
                 }
             } catch (e) { console.error(e) }
         }, 5000)
     } else {
-        rl.question(chalk.cyan.bold('\n\n[ CONFIG ] Ingrese el número del Bot Principal:\n> '), async (phoneNumber) => {
+        rl.question(chalk.cyan.bold('\n\nNúmero del Bot Principal:\n> '), async (phoneNumber) => {
             phoneNumber = phoneNumber.replace(/\D/g, '')
             let code = await global.conn.requestPairingCode(phoneNumber)
             code = code?.match(/.{1,4}/g)?.join("-") || code
-            console.log(chalk.black.bgGreen('\n CÓDIGO DE VINCULACIÓN: '), chalk.bold.white(code), '\n')
+            console.log(chalk.black.bgGreen('\n CÓDIGO: '), chalk.bold.white(code), '\n')
             rl.close()
         })
     }
 }
 
-// --- PROCESAMIENTO DE MENSAJES (HANDLER) ---
-let handler = await import('./handler.js')
 global.conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
         const m = chatUpdate.messages[0]
-        if (!m) return
-        if (!handler) handler = await import('./handler.js')
-        await handler.handler.bind(global.conn)(m, chatUpdate)
+        if (!m || (m.key.fromMe && isSubBot)) return
+        await handler.call(global.conn, chatUpdate)
     } catch (e) { console.error(e) }
 })
 
 global.conn.ev.on('connection.update', async (update) => {
   const { connection, lastDisconnect } = update
   if (connection === 'open') {
-      console.log(chalk.greenBright(`\n[ OK ] Sesión ${isSubBot ? 'Sub-Bot ' + subBotNumber : 'Principal'} activa.`))
+      console.log(chalk.greenBright(`\n[ OK ] ${isSubBot ? 'SUB ' + subBotNumber : 'PRINCIPAL'} ONLINE`))
   }
   if (connection === 'close') {
     const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
     if (reason !== DisconnectReason.loggedOut) {
-        process.exit() 
+        process.exit()
     } else {
         if (existsSync(folder_session)) rmSync(folder_session, { recursive: true, force: true })
         process.exit()

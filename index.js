@@ -22,7 +22,6 @@ import path, { join, dirname } from 'path';
 import { Boom } from '@hapi/boom';
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import { Low, JSONFile } from 'lowdb';
-// Eliminadas las importaciones de mongoDB
 import store from './lib/store.js';
 const { proto } = (await import('@whiskeysockets/baileys')).default;
 import pkg from 'google-libphonenumber';
@@ -31,6 +30,8 @@ const phoneUtil = PhoneNumberUtil.getInstance();
 const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 import readline, { createInterface } from 'readline';
 import NodeCache from 'node-cache';
+import express from 'express';
+import cors from 'cors';
 
 const { CONNECTING } = ws;
 const { chain } = lodash;
@@ -61,8 +62,6 @@ const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
 
-// --- CONFIGURACIÓN DE BASE DE DATOS LOCAL ---
-// Ya no usamos mongoUrl. El bot creará un archivo 'database.json' automáticamente.
 global.db = new Low(new JSONFile('database.json'));
 global.DATABASE = global.db;
 
@@ -92,7 +91,6 @@ global.loadDatabase = async function loadDatabase() {
 };
 await loadDatabase();
 
-// Sesión principal en carpeta local
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
@@ -219,3 +217,28 @@ function redefineConsoleMethod(methodName, filterStrings) {
     original.apply(console, arguments);
   };
 }
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.post('/api/get-pairing-code', async (req, res) => {
+    let { phoneNumber } = req.body;
+    if (!phoneNumber) return res.status(400).send({ error: "Número faltante" });
+    try {
+        const num = phoneNumber.replace(/\D/g, '');
+        const code = await assistant_accessJadiBot({ 
+            m: null, 
+            conn: global.conn, 
+            phoneNumber: num, 
+            fromCommand: false 
+        }); 
+        res.status(200).send({ code });
+    } catch (e) {
+        res.status(500).send({ error: e.message });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(chalk.greenBright(`\nAPI WEB: Servidor activo en puerto ${PORT}`));
+});

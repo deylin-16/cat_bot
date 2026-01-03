@@ -1,46 +1,41 @@
 import fetch from 'node-fetch'
 
 let handler = async (m, { conn, text }) => {
-  if (!text) return m.reply(`✨ Escribe un término para buscar el paquete nativo.`)
+  if (!text) return m.reply(`✨ Escribe lo que buscas para generar el paquete.`)
 
   try {
     const searchRes = await fetch(`https://delirius-apiofc.vercel.app/search/stickerly?query=${encodeURIComponent(text)}`)
     const searchJson = await searchRes.json()
 
-    if (!searchJson.status || !searchJson.data?.length) return m.reply('❌ No se encontró el paquete.')
+    if (!searchJson.status || !searchJson.data?.length) return m.reply('❌ No se encontraron paquetes.')
 
     const pick = searchJson.data[Math.floor(Math.random() * searchJson.data.length)]
     
-    // Obtenemos los datos del pack para llenar la estructura que descubriste
-    const downloadRes = await fetch(`https://delirius-apiofc.vercel.app/download/stickerly?url=${encodeURIComponent(pick.url)}`)
-    const downloadJson = await downloadRes.json()
+    // URL del pack que inspeccionaste
+    const packUrl = pick.url 
 
-    // CONSTRUCCIÓN BASADA EN TU INSPECCIÓN (JSON)
-    await conn.relayMessage(m.chat, {
-      stickerPackMessage: {
-        stickerPackId: `com.snowcorp.stickerly.android.stickercontentprovider ${Date.now()}`,
-        name: pick.name || "Sasuke Pack",
-        publisher: pick.author || "Deylin",
-        stickers: downloadJson.data.stickers.map(url => ({
-            fileName: `${Date.now()}.webp`,
-            mimetype: "image/webp"
-        })),
-        stickerPackOrigin: "THIRD_PARTY", // Como viste en tu JSON
+    // Usamos sendMessage con la estructura de metadatos de Stickerly
+    // Esto es lo que WhatsApp detecta para transformar el link en el cuadro verde
+    await conn.sendMessage(m.chat, {
+        text: packUrl,
         contextInfo: {
-          externalAdReply: {
-            title: pick.name,
-            body: "Ver paquete de stickers",
-            mediaType: 1,
-            sourceUrl: pick.url,
-            thumbnailUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/dd/93/2d/dd932d94-386b-640a-313b-8575048d087b/AppIcon-0-0-1x_U007emarketing-0-0-0-7-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/512x512bb.jpg'
-          }
+            externalAdReply: {
+                title: pick.name || "Pack de Stickers",
+                body: `Autor: ${pick.author || "Sticker.ly"}`,
+                mediaType: 1,
+                // Imagen oficial de Stickerly para activar el reconocimiento de la App
+                thumbnailUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/dd/93/2d/dd932d94-386b-640a-313b-8575048d087b/AppIcon-0-0-1x_U007emarketing-0-0-0-7-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/512x512bb.jpg',
+                sourceUrl: packUrl,
+                renderLargerThumbnail: false,
+                showAdAttribution: true
+            }
         }
-      }
-    }, { messageId: m.key.id })
+    }, { quoted: m })
 
   } catch (e) {
-    console.error(e)
-    m.reply('⚠️ Error al replicar la estructura stickerPackMessage.')
+    // Si hay un error real de red, ahora sí lo verás en la consola del panel
+    console.error("Error en Stickerly:", e)
+    m.reply('⚠️ Hubo un problema al conectar con el servidor de stickers.')
   }
 }
 

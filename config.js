@@ -47,7 +47,6 @@ global.getAssistantConfig = (botJid) => {
 global.name = (conn) => global.getAssistantConfig(conn.user.jid).assistantName
 global.img = (conn) => global.getAssistantConfig(conn.user.jid).assistantImage
 
-import fetch from 'node-fetch'
 
 global.design = async (conn, m, text = '') => {
     const config = global.getAssistantConfig(conn.user.jid)

@@ -1,40 +1,28 @@
-import fetch from 'node-fetch'
+let handler = async (m, { conn }) => {
+    // Verificamos si estás respondiendo a un mensaje
+    if (!m.quoted) return m.reply('❌ Responde a un paquete de stickers (la tarjeta de Sticker.ly) con este comando.');
 
-let handler = async (m, { conn, text }) => {
-  if (!text) return m.reply(`✨ Escribe un término para buscar paquetes en Sticker.ly`)
+    try {
+        // Obtenemos el mensaje citado directamente de la base de datos de Baileys
+        const quotedMsg = m.quoted.fakeObj ? m.quoted.fakeObj : m.quoted;
+        
+        // Extraemos la estructura del mensaje para ver sus metadatos
+        const messageStructure = quotedMsg.message;
 
-  try {
-    const searchRes = await fetch(`https://delirius-apiofc.vercel.app/search/stickerly?query=${encodeURIComponent(text)}`)
-    const searchJson = await searchRes.json()
+        // Convertimos el objeto a JSON con formato para que sea legible
+        const spec = JSON.stringify(messageStructure, null, 2);
 
-    if (!searchJson.status || !searchJson.data?.length) return m.reply('❌ No se encontraron paquetes.')
+        // Devolvemos la estructura técnica del paquete
+        await m.reply(spec);
 
-    const pick = searchJson.data[Math.floor(Math.random() * searchJson.data.length)]
-    const packUrl = pick.url 
-
-    // Mensaje configurado para forzar la vista de "Paquete de Stickers"
-    await conn.sendMessage(m.chat, {
-      text: packUrl,
-      contextInfo: {
-        externalAdReply: {
-          title: `PAQUETE: ${pick.name || 'Stickers'}`,
-          body: `Click aquí para añadir stickers`,
-          sourceUrl: packUrl,
-          mediaType: 1,
-          renderLargerThumbnail: true,
-          thumbnailUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/dd/93/2d/dd932d94-386b-640a-313b-8575048d087b/AppIcon-0-0-1x_U007emarketing-0-0-0-7-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/512x512bb.jpg',
-          // Este campo es clave para que aparezca el botón de acción
-          mediaUrl: packUrl 
-        }
-      }
-    }, { quoted: m })
-
-  } catch (e) {
-    console.error(e)
-    m.reply('⚠️ Error al intentar generar el paquete.')
-  }
+    } catch (e) {
+        console.error(e);
+        m.reply('⚠️ No se pudo obtener la estructura de este mensaje.');
+    }
 }
 
-handler.command = ['stikerly', 'sly']
+handler.help = ['mspec'];
+handler.tags = ['tools'];
+handler.command = ['mspec', 'inspect', 'mstructure'];
 
-export default handler
+export default handler;

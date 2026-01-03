@@ -3,7 +3,7 @@ import path from 'path'
 import fs from 'fs'
 
 let handler = async (m, { conn, command }) => {
-    if (!globalThis.db.data.settings[conn.user.jid]?.jadibotmd) return m.reply(`El comando está desactivado.`)
+   // if (!globalThis.db.data.settings[conn.user.jid]?.jadibotmd) return m.reply(`El comando está desactivado.`)
     
     let phoneNumber = m.sender.split('@')[0]
     let authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)

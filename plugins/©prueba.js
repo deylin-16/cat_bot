@@ -1,24 +1,20 @@
-import { fileURLToPath } from 'url'
-import path from 'path'
-
 let handler = async (m, { conn }) => {
-    
-    await conn.sendMessage(m.chat, {
-        text: "https://hola.com//",
-        contextInfo: {
-            externalAdReply: {
-                title: "HOLA.com, últimas noticias de famosos, moda, belleza y actualidad",
-                body: "Número 1 en actualidad y tendencias de moda, belleza y estilo de vida. Noticias diarias sobre las estrellas de cine, la música, tendencias de moda, consejos de belleza, recetas de cocina, estilo de vida y la actualidad de las principales casas reales del mundo.",
-                previewType: "NONE",
-                thumbnailUrl: "https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767466951467_BNENXDN6p.jpeg", // Puedes cambiar por una URL de imagen real
-                sourceUrl: "https://hola.com//",
-                mediaType: 1,
-                renderLargerThumbnail: true
-            }
+
+    const messageStruct = {
+        extendedTextMessage: {
+            text: "https://hola.com//",
+            matchedText: "https://hola.com//",
+            description: "Número 1 en actualidad y tendencias de moda, belleza y estilo de vida. Noticias diarias sobre las estrellas de cine, la música, tendencias de moda, consejos de belleza, recetas de cocina, estilo de vida y la actualidad de las principales casas reales del mundo.",
+            title: "HOLA.com, últimas noticias de famosos, moda, belleza y actualidad",
+            previewType: "NONE",
+            jpegThumbnail: Buffer.from("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DI7fjJODyacfUeaoJFb42V2czhyrpMI84lllWdXuuzvbYvParrnTt81FoyptdxE8FBWmWpdwZG8Nu/Ec4LQTya7pnorAr9rGipaGpjjvbS98bmtHg03MkH+4smIimyTbPUnK2kkjjieWVYXW67u99ie7JtoEmiLnMKiJ9RaqrHHijxvtI6PbnAzzxjIz6gr8btd0Q5oPw3jzGlmz7iyMijGXLFUi7iPLmj4hL40l45d6rf62mXXtg2s0l9tclj01xXUkxHhFU9pZxGjBDWA88Z6kgdMdCursY1/pnTuiIqC83MU1WJ5HmPgSP5E8jlrSFn9E8XLq6ic+XdJlo1olaxu7VW377foa6/pc0P/bjf9LN/4UX2Z7RdI2LRFtt1fdxFVRCR0jDBK7dLpHO6hmP3lm1FPjZXZhrlHRqNxdeVNp+a7Wv5fdlkbRtpF1uGsK+bTl9uENpG4ynbDI6JpAaATu8urt48+fNXBpra1pRmnbW263si4NpYm1O9TyuPEDRvZIZg889FldFClyTsy9Vy5o9TDhC7xWHdUm9q323NEbHtbabt9ZqS3VNxhp21F0mq6apqP6tk0TuQ8Y43ThucOx+ty71E+0Hq+1ajuNtorNM2qbQcXiVDObC526N1p7wNzqORyMKo0RyN49J6h4BBDrfjlk3l6drqr/AIiKs3gREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREB/9k=", "base64"),
+            inviteLinkGroupTypeV2: "DEFAULT"
         }
-    }, { quoted: m })
+    }
+
+    await conn.relayMessage(m.chat, messageStruct, { quoted: m })
 }
 
-handler.command = /^(prueba)$/i
+handler.command = ['prueba']
 
 export default handler

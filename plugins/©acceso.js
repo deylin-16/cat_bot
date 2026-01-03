@@ -2,11 +2,10 @@ import { spawn } from 'child_process'
 import path from 'path'
 import fs from 'fs'
 
-let handler = async (m, { conn, command }) => {
-   // if (!globalThis.db.data.settings[conn.user.jid]?.jadibotmd) return m.reply(`El comando está desactivado.`)
-    
+let handler = async (m, { conn }) => {
     let phoneNumber = m.sender.split('@')[0]
     let authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
+    
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
 
     await m.reply('⚡ *Iniciando motor independiente...*\nEspere su código de vinculación en este chat.')
@@ -14,7 +13,7 @@ let handler = async (m, { conn, command }) => {
     const child = spawn('node', [
         'index.js', 
         `--session=${phoneNumber}`, 
-        `--chatId=${m.chat}`
+        `--chatId=${m.chat}` // <-- IMPORTANTE: Aquí se pasa el JID del chat
     ], {
         cwd: process.cwd(),
         stdio: 'inherit',

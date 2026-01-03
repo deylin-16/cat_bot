@@ -2,6 +2,7 @@ import pino from 'pino'
 import { Boom } from '@hapi/boom'
 import fs from 'fs'
 import path from 'path'
+import NodeCache from 'node-cache'
 
 const { 
     DisconnectReason, 
@@ -18,7 +19,7 @@ if (!(global.conns instanceof Array)) global.conns = []
 let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
         let phoneNumber = m.sender.split('@')[0];
-        await m.reply('⚡ *Iniciando sistema de emparejamiento...*\nEspere su código de vinculación.');
+        await m.reply('⚡ *Iniciando instancia independiente...*\nEspere su código de vinculación.');
         assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true });
     }
 }
@@ -36,6 +37,9 @@ export async function assistant_accessJadiBot(options) {
     try {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
+        
+        // Memoria aislada para este bot específico
+        const msgRetryCounterCache = new NodeCache()
 
         const sock = makeWASocket({
             logger: pino({ level: "silent" }),
@@ -44,7 +48,11 @@ export async function assistant_accessJadiBot(options) {
                 keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
             },
             browser: Browsers.macOS("Chrome"),
-            version
+            version,
+            msgRetryCounterCache,
+            markOnlineOnConnect: false,
+            // Prioriza el rendimiento limitando la carga de historial
+            syncFullHistory: false
         })
 
         sock.ev.on('creds.update', saveCreds)
@@ -82,20 +90,25 @@ function configurarEventos(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
         if (connection === 'open') {
-            if (m && conn) await conn.sendMessage(m.chat, { text: '✅ *¡Sub-Bot conectado con éxito...*' }, { quoted: m })
+            if (m && conn) await conn.sendMessage(m.chat, { text: '✅ *Sub-Bot conectado en línea independiente.*' }, { quoted: m })
             global.conns.push(sock)
         }
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             if (reason !== DisconnectReason.loggedOut) {
+                // Reinicio automático sin afectar al bot principal
                 assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false })
             } else {
-                fs.rmSync(authFolder, { recursive: true, force: true })
+                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
+                const i = global.conns.indexOf(sock)
+                if (i !== -1) global.conns.splice(i, 1)
             }
         }
     })
 
-    import('../handler.js').then(handlerImport => {
-        sock.ev.on('messages.upsert', handlerImport.handler.bind(sock))
+    // Carga del handler de forma independiente para cada mensaje
+    sock.ev.on('messages.upsert', async (chatUpdate) => {
+        const handlerImport = await import('../handler.js')
+        await handlerImport.handler.call(sock, chatUpdate)
     })
 }

@@ -1,4 +1,4 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
+Process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
 import './config.js';
 import { setupMaster, fork } from 'cluster';
 import { watchFile, unwatchFile } from 'fs';
@@ -35,14 +35,31 @@ import cors from 'cors';
 
 const { CONNECTING } = ws;
 const { chain } = lodash;
+
+// --- LÓGICA DE ARGUMENTOS PARA SUB-BOTS ---
+const args_terminal = process.argv.slice(2);
+const session_arg = args_terminal.find(a => a.startsWith('--session='));
+const chat_arg = args_terminal.find(a => a.startsWith('--chatId='));
+
+const isSubBot = !!session_arg;
+const subBotNumber = isSubBot ? session_arg.split('=')[1] : null;
+const targetChat = chat_arg ? chat_arg.split('=')[1] : null;
+
+// Carpeta de sesión dinámica
+const folder_session = isSubBot ? `./jadibots/${subBotNumber}` : (global.sessions || 'sessions');
+if (isSubBot && !existsSync('./jadibots')) mkdirSync('./jadibots');
+// ------------------------------------------
+
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 let { say } = cfonts;
-console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
-console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM INITATING...      │'));
-console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
-say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
-say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
+if (!isSubBot) {
+    console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
+    console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM INITATING...      │'));
+    console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
+    say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
+    say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
+}
 
 protoType();
 serialize();
@@ -57,194 +74,89 @@ global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
 
-global.timestamp = { start: new Date };
 const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
 
-global.db = new Low(new JSONFile('database.json'));
+global.db = new Low(new JSONFile(isSubBot ? `./jadibots/db_${subBotNumber}.json` : 'database.json'));
 global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
-  if (global.db.READ) {
-    return new Promise((resolve) => setInterval(async function() {
-      if (!global.db.READ) {
-        clearInterval(this);
-        resolve(global.db.data == null ? global.loadDatabase() : global.db.data);
-      }
-    }, 1 * 1000));
-  }
-  if (global.db.data !== null) return;
-  global.db.READ = true;
+  if (global.db.READ) return;
   await global.db.read().catch(console.error);
-  global.db.READ = null;
-  global.db.data = {
-    users: {},
-    chats: {},
-    stats: {},
-    msgs: {},
-    sticker: {},
-    settings: {},
-    ...(global.db.data || {}),
-  };
-  global.db.chain = chain(global.db.data);
+  global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}, ...(global.db.data || {}) };
 };
 await loadDatabase();
 
-const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
-
-const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
-const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
+const { state, saveCreds } = await useMultiFileAuthState(folder_session);
+const msgRetryCounterCache = new NodeCache();
 const { version } = await fetchLatestBaileysVersion();
-let phoneNumber = global.botNumber;
-const methodCodeQR = process.argv.includes("qr");
-const methodCode = !!phoneNumber || process.argv.includes("code");
-const MethodMobile = process.argv.includes("mobile");
-
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
-
-const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ=", "U2Vzc2lvbiBlcnJvcg==", "RXJyb3I6IEJhZCBNQUM=", "RGVjcnlwdGVkIG1lc3NhZ2U="];
-['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
 
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
-  printQRInTerminal: false,
-  mobile: MethodMobile,
+  printQRInTerminal: !isSubBot,
   browser: Browsers.macOS("Chrome"),
   auth: {
     creds: state.creds,
-    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
+    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
   },
   markOnlineOnConnect: false,
-  generateHighQualityLinkPreview: true,
-  syncFullHistory: false,
-  patchMessageBeforeSending: (message) => {
-    const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage);
-    if (requiresPatch) return { viewOnceMessage: { message: { messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 }, ...message } } };
-    return message;
-  },
-  getMessage: async (key) => {
-    try {
-      let jid = jidNormalizedUser(key.remoteJid);
-      let msg = await store.loadMessage(jid, key.id);
-      return msg?.message || "";
-    } catch { return ""; }
-  },
+  syncFullHistory: false, // Optimizado para servidores baratos
+  getMessage: async (key) => { return "" },
   msgRetryCounterCache,
-  userDevicesCache,
   version,
-  keepAliveIntervalMs: 55000,
 };
 
 global.conn = makeWASocket(connectionOptions);
 
-if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`) && (methodCode || !methodCodeQR)) {
-    if (!conn.authState.creds.registered) {
-      let addNumber = phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : null;
-      if (!addNumber) {
-        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número del Bot:\n> `));
-        addNumber = phoneNumber.replace(/\D/g, '');
-      }
-      setTimeout(async () => {
-          let codeBot = await conn.requestPairingCode(addNumber);
-          codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-          console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
-      }, 3000);
-    }
+if (isSubBot && !conn.authState.creds.registered) {
+    setTimeout(async () => {
+        let codeBot = await conn.requestPairingCode(subBotNumber);
+        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+        if (targetChat) {
+            await conn.sendMessage(targetChat, { 
+                text: `✅ *CÓDIGO PARA TU SUB-BOT*\n\nNúmero: ${subBotNumber}\nCódigo: *${codeBot}*\n\n_Úsalo en Dispositivos Vinculados._` 
+            });
+        }
+    }, 3000);
+} else if (!isSubBot && !existsSync(`./${folder_session}/creds.json`)) {
+    
 }
-
-conn.isInit = false;
-if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
 
 async function connectionUpdate(update) {
-  const { connection, lastDisconnect, isNewLogin } = update;
-  if (isNewLogin) conn.isInit = true;
+  const { connection, lastDisconnect } = update;
   if (connection === 'close') {
-    if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
+    if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) {
+        // En servidores baratos, un reinicio limpio es mejor
+        process.exit(); 
+    }
   }
 }
 
-process.on('uncaughtException', console.error);
-let handler = await import('./handler.js');
-global.reloadHandler = async function(restatConn) {
-  try {
-    const Handler = await import(`./handler.js?update=${Date.now()}`);
-    if (Object.keys(Handler || {}).length) handler = Handler;
-  } catch (e) { console.error(e); }
-  if (restatConn) {
-    try { global.conn.ws.close(); } catch {}
-    conn.ev.removeAllListeners();
-    global.conn = makeWASocket(connectionOptions);
-  }
-  conn.handler = handler.handler.bind(global.conn);
-  conn.connectionUpdate = connectionUpdate.bind(global.conn);
-  conn.credsUpdate = saveCreds.bind(global.conn, true);
-  conn.ev.on('messages.upsert', conn.handler);
-  conn.ev.on('connection.update', conn.connectionUpdate);
-  conn.ev.on('creds.update', conn.credsUpdate);
-  return true;
-};
+// Vinculación de Handlers
+conn.handler = handler.handler.bind(global.conn);
+conn.connectionUpdate = connectionUpdate.bind(global.conn);
+conn.credsUpdate = saveCreds.bind(global.conn, true);
+conn.ev.on('messages.upsert', conn.handler);
+conn.ev.on('connection.update', conn.connectionUpdate);
+conn.ev.on('creds.update', conn.credsUpdate);
 
 const pluginFolder = join(__dirname, './plugins');
-const pluginFilter = (filename) => /\.js$/.test(filename);
+const readRecursive = async (folder) => {
+    for (const filename of readdirSync(folder)) {
+        const file = join(folder, filename);
+        if (statSync(file).isDirectory()) await readRecursive(file);
+        else if (/\.js$/.test(filename)) {
+            const module = await import(global.__filename(file));
+            global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+        }
+    }
+};
 global.plugins = {};
-async function readRecursive(folder) {
-  for (const filename of readdirSync(folder)) {
-    const file = join(folder, filename);
-    if (statSync(file).isDirectory()) await readRecursive(file);
-    else if (pluginFilter(filename)) {
-      const module = await import(global.__filename(file));
-      global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
-    }
-  }
-}
 await readRecursive(pluginFolder);
-watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
-  if (pluginFilter(filename)) {
-    const dir = global.__filename(join(pluginFolder, filename), true);
-    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
-  }
-});
 
-await global.reloadHandler();
-
-function redefineConsoleMethod(methodName, filterStrings) {
-  const original = console[methodName];
-  console[methodName] = function() {
-    if (typeof arguments[0] === 'string' && filterStrings.some(s => arguments[0].includes(atob(s)))) arguments[0] = "";
-    original.apply(console, arguments);
-  };
+if (!isSubBot) {
+    const app = express();
+    app.use(cors());
+    app.listen(PORT, () => console.log(chalk.greenBright(`API WEB ACTIVA: ${PORT}`)));
 }
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.get('/api/get-pairing-code', async (req, res) => {
-    let { number } = req.query; 
-    if (!number) {
-        return res.status(200).send({ 
-            status: "Online", 
-            message: "API del Bot funcionando. Para obtener un código usa el parámetro ?number=tu_numero" 
-        });
-    }
-    try {
-        const num = number.replace(/\D/g, '');
-        const code = await assistant_accessJadiBot({ 
-            m: null, 
-            conn: global.conn, 
-            phoneNumber: num, 
-            fromCommand: false 
-        }); 
-        res.status(200).send({ code });
-    } catch (e) {
-        res.status(500).send({ error: e.message });
-    }
-});
-
-
-app.listen(PORT, () => {
-    console.log(chalk.greenBright(`\nAPI WEB: Servidor activo en puerto ${PORT}`));
-});

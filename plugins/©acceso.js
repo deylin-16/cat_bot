@@ -8,7 +8,7 @@ let handler = async (m, { conn }) => {
     
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
 
-    await m.reply('⚡ *Iniciando motor independiente...*\nEspere un momento, el código se enviará automáticamente a este chat.')
+    await m.reply('⚡ *Iniciando motor independiente...*\nEl código se enviará automáticamente en unos segundos.')
 
     const child = spawn('node', [
         'index.js', 

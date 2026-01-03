@@ -7,7 +7,6 @@ export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now()
     if (!chatUpdate.messages) return
     
-    // Inicialización inmediata de m
     let m = chatUpdate.messages[chatUpdate.messages.length - 1]
     if (!m) return
     
@@ -32,8 +31,8 @@ export async function handler(chatUpdate) {
     if (conn.processedMessages.size > 100) conn.processedMessages.delete(conn.processedMessages.keys().next().value)
 
     try {
-        const user = global.db.data.users[m.sender] ||= {}
-        if (typeof user !== 'object') global.db.data.users[m.sender] = {}
+        if (typeof global.db.data.users[m.sender] !== 'object') global.db.data.users[m.sender] = {}
+        const user = global.db.data.users[m.sender]
         
         const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + (m.sender.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(m.sender)
         const isOwner = isROwner || m.fromMe

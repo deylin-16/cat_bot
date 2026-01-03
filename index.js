@@ -212,33 +212,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// API CORREGIDA: Ahora espera el código real
+// Dentro de index.js en la ruta de la API
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
-    if (!number) return res.status(200).send({ status: "Online" });
+    if (!number) return res.status(400).send({ error: "Número requerido" });
     
     try {
         const num = number.replace(/\D/g, '');
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
         
-        // Esperamos a que la función resuelva la promesa con el código
         const code = await assistant_accessJadiBot({ 
             m: null, 
             conn: global.conn, 
             phoneNumber: num, 
-            fromCommand: false 
+            fromCommand: false,
+            apiCall: true // <--- ESTO ACTIVARÁ LA GENERACIÓN DEL CÓDIGO
         }); 
 
-        // Si el código es válido, lo enviamos. Si devuelve un objeto vacío, enviamos error.
-        if (code && typeof code === 'string') {
-            res.status(200).send({ code: code });
-        } else {
-            res.status(500).send({ error: "No se pudo generar el código. Intente de nuevo." });
-        }
+        res.status(200).send({ code });
     } catch (e) {
         res.status(500).send({ error: e.message });
     }
 });
+
 
 app.listen(PORT, () => {
     console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));

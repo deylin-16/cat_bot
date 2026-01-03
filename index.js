@@ -149,7 +149,6 @@ global.reloadHandler = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
   
-  // Independencia de hilos: Bind asíncrono del handler
   conn.handler = async (chatUpdate) => {
     try {
       await handler.handler.call(global.conn, chatUpdate);
@@ -190,6 +189,31 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
 
 await global.reloadHandler();
 
+// --- LÓGICA DE AUTO-RECONEXIÓN DE SUB-BOTS AL INICIAR ---
+async function autostartSubBots() {
+    const jadibtsPath = join(process.cwd(), 'jadibts');
+    if (existsSync(jadibtsPath)) {
+        const folders = readdirSync(jadibtsPath);
+        for (const folder of folders) {
+            if (statSync(join(jadibtsPath, folder)).isDirectory()) {
+                console.log(chalk.cyanBright(`[AUTO-START] Reconectando Sub-Bot: ${folder}`));
+                try {
+                    const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+                    assistant_accessJadiBot({ 
+                        m: null, 
+                        conn: global.conn, 
+                        phoneNumber: folder, 
+                        fromCommand: false 
+                    }).catch(e => console.error(`Error reconectando ${folder}:`, e));
+                    // Delay para evitar saturación de RAM en el arranque
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                } catch (e) {}
+            }
+        }
+    }
+}
+autostartSubBots();
+
 function redefineConsoleMethod(methodName, filterStrings) {
   const original = console[methodName];
   console[methodName] = function() {
@@ -207,7 +231,6 @@ app.get('/api/get-pairing-code', async (req, res) => {
     if (!number) return res.status(200).send({ status: "Online" });
     try {
         const num = number.replace(/\D/g, '');
-        // Importación dinámica para mantener el hilo del plugin separado
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
         const code = await assistant_accessJadiBot({ 
             m: null, 

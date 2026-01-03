@@ -20,6 +20,7 @@ const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, make
 const args = process.argv.slice(2)
 const subBotNumber = args.find(a => a.startsWith('--session='))?.split('=')[1]
 const targetChat = args.find(a => a.startsWith('--chatId='))?.split('=')[1]
+const targetMessageId = args.find(a => a.startsWith('--msgId='))?.split('=')[1]
 const isSubBot = !!subBotNumber
 
 const folder_session = isSubBot ? `./jadibts/${subBotNumber}` : (global.sessions || 'sessions')
@@ -52,34 +53,27 @@ global.conn = makeWASocket({
   version,
 })
 
-if (!state.creds.registered) {
-    if (isSubBot && subBotNumber) {
-        let codeSent = false
-        global.conn.ev.on('connection.update', async (update) => {
-            const { connection } = update
-            if (connection === 'connecting' && !codeSent) {
-                codeSent = true
-                setTimeout(async () => {
-                    try {
-                        let codeBot = await global.conn.requestPairingCode(subBotNumber)
-                        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-                        if (targetChat) {
-                            await global.conn.sendMessage(targetChat, { 
-                                text: `✅ *CÓDIGO DE VINCULACIÓN*\n\nUsa este código en tu WhatsApp:\n\n*${codeBot}*` 
-                            })
-                        }
-                    } catch (e) { console.error(e) }
-                }, 10000)
-            }
-        })
-    } else {
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-        rl.question(chalk.cyan.bold('\nNúmero Principal:\n> '), async (num) => {
-            let code = await global.conn.requestPairingCode(num.replace(/\D/g, ''))
-            console.log(chalk.green(`\n CÓDIGO: ${code?.match(/.{1,4}/g)?.join("-") || code}\n`))
-            rl.close()
-        })
-    }
+if (!state.creds.registered && isSubBot) {
+    let codeSent = false
+    global.conn.ev.on('connection.update', async (update) => {
+        const { connection } = update
+        if (connection === 'connecting' && !codeSent) {
+            codeSent = true
+            setTimeout(async () => {
+                try {
+                    let codeBot = await global.conn.requestPairingCode(subBotNumber)
+                    codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+                    
+                    if (targetChat) {
+                        const fakeMsg = targetMessageId ? { key: { remoteJid: targetChat, fromMe: false, id: targetMessageId } } : null
+                        await global.conn.sendMessage(targetChat, { 
+                            text: `🔑 *CÓDIGO DE VINCULACIÓN*\n\nUsa este código en tu WhatsApp:\n\n*${codeBot}*` 
+                        }, { quoted: fakeMsg })
+                    }
+                } catch (e) { console.error(e) }
+            }, 8000)
+        }
+    })
 }
 
 global.conn.ev.on('messages.upsert', async (chatUpdate) => {
@@ -91,10 +85,9 @@ global.conn.ev.on('messages.upsert', async (chatUpdate) => {
 
 global.conn.ev.on('connection.update', async (update) => {
   const { connection, lastDisconnect } = update
-  if (connection === 'open') console.log(chalk.greenBright(`\n[ OK ] ${isSubBot ? 'SUB ' + subBotNumber : 'PRINCIPAL'} ONLINE`))
+  if (connection === 'open') console.log(chalk.greenBright(`\n[ OK ] SUB ${subBotNumber} ONLINE`))
   if (connection === 'close') {
-    const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-    if (reason !== DisconnectReason.loggedOut) process.exit()
+    if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) process.exit()
     else {
         if (existsSync(folder_session)) rmSync(folder_session, { recursive: true, force: true })
         process.exit()

@@ -1,24 +1,18 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
 import './config.js'
 import { readdirSync, statSync, existsSync, mkdirSync, rmSync, watch } from 'fs'
-import cfonts from 'cfonts'
-import { createRequire } from 'module'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { platform } from 'process'
-import * as ws from 'ws'
-import yargs from 'yargs'
-import { spawn } from 'child_process'
-import lodash from 'lodash'
-import chalk from 'chalk'
-import pino from 'pino'
 import path, { join } from 'path'
 import { Boom } from '@hapi/boom'
-import { makeWASocket, protoType, serialize } from './lib/simple.js'
-import { Low, JSONFile } from 'lowdb'
-import readline from 'readline'
-import NodeCache from 'node-cache'
+import chalk from 'chalk'
+import pino from 'pino'
+import yargs from 'yargs'
 import express from 'express'
 import cors from 'cors'
+import readline from 'readline'
+import { Low, JSONFile } from 'lowdb'
+import { makeWASocket, protoType, serialize } from './lib/simple.js'
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
 
@@ -32,7 +26,6 @@ const targetChat = chat_arg ? chat_arg.split('=')[1] : null
 const folder_session = isSubBot ? `./jadibts/${subBotNumber}` : (global.sessions || 'sessions')
 if (!existsSync('./jadibts')) mkdirSync('./jadibts', { recursive: true })
 
-const PORT = process.env.PORT || 3000
 protoType()
 serialize()
 
@@ -70,7 +63,6 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions)
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-const question = (texto) => new Promise((resolver) => rl.question(texto, resolver))
 
 if (!state.creds.registered) {
     if (isSubBot) {
@@ -84,17 +76,28 @@ if (!state.creds.registered) {
             } catch (e) { console.error(e) }
         }, 5000)
     } else {
-        let phoneNumber = await question(chalk.cyan.bold('\n\n[ CONFIG ] Ingrese el número del Bot Principal:\n> '))
-        phoneNumber = phoneNumber.replace(/\D/g, '')
-        setTimeout(async () => {
+        rl.question(chalk.cyan.bold('\n\n[ CONFIG ] Ingrese el número del Bot Principal:\n> '), async (phoneNumber) => {
+            phoneNumber = phoneNumber.replace(/\D/g, '')
             let code = await global.conn.requestPairingCode(phoneNumber)
             code = code?.match(/.{1,4}/g)?.join("-") || code
             console.log(chalk.black.bgGreen('\n CÓDIGO DE VINCULACIÓN: '), chalk.bold.white(code), '\n')
-        }, 3000)
+            rl.close()
+        })
     }
 }
 
-async function connectionUpdate(update) {
+// --- PROCESAMIENTO DE MENSAJES (HANDLER) ---
+let handler = await import('./handler.js')
+global.conn.ev.on('messages.upsert', async (chatUpdate) => {
+    try {
+        const m = chatUpdate.messages[0]
+        if (!m) return
+        if (!handler) handler = await import('./handler.js')
+        await handler.handler.bind(global.conn)(m, chatUpdate)
+    } catch (e) { console.error(e) }
+})
+
+global.conn.ev.on('connection.update', async (update) => {
   const { connection, lastDisconnect } = update
   if (connection === 'open') {
       console.log(chalk.greenBright(`\n[ OK ] Sesión ${isSubBot ? 'Sub-Bot ' + subBotNumber : 'Principal'} activa.`))
@@ -102,21 +105,15 @@ async function connectionUpdate(update) {
   if (connection === 'close') {
     const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
     if (reason !== DisconnectReason.loggedOut) {
-        process.exit()
+        process.exit() 
     } else {
         if (existsSync(folder_session)) rmSync(folder_session, { recursive: true, force: true })
         process.exit()
     }
   }
-}
-
-global.conn.ev.on('connection.update', connectionUpdate)
-global.conn.ev.on('creds.update', saveCreds)
-
-let handler = await import('./handler.js')
-global.conn.ev.on('messages.upsert', async (m) => {
-    if (handler) await handler.handler.bind(global.conn)(m)
 })
+
+global.conn.ev.on('creds.update', saveCreds)
 
 const pluginFolder = join(__dirname, './plugins')
 global.plugins = {}
@@ -135,7 +132,7 @@ await readRecursive(pluginFolder)
 if (!isSubBot) {
     const app = express()
     app.use(cors())
-    app.listen(PORT, () => console.log(chalk.magentaBright(`API WEB ACTIVA EN PUERTO: ${PORT}`)))
+    app.listen(process.env.PORT || 3000)
 }
 
 setInterval(async () => { if (global.db.data) await global.db.write() }, 30 * 1000)

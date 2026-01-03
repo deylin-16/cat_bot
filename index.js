@@ -1,39 +1,26 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
 import './config.js';
-import { setupMaster, fork } from 'cluster';
-import { watchFile, unwatchFile } from 'fs';
-import cfonts from 'cfonts';
-import { createRequire } from 'module';
-import { fileURLToPath, pathToFileURL } from 'url';
 import { platform } from 'process';
-import * as ws from 'ws';
-import { readdirSync, statSync, unlinkSync, existsSync, mkdirSync, readFileSync, rmSync, watch } from 'fs';
-import yargs from 'yargs';
-import { spawn, execSync } from 'child_process';
-import lodash from 'lodash';
-import { assistant_accessJadiBot } from './plugins/©acceso.js';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { createRequire } from 'module';
+import path, { join } from 'path';
+import fs, { existsSync, readdirSync, statSync, watch } from 'fs';
 import chalk from 'chalk';
-import syntaxerror from 'syntax-error';
-import { tmpdir } from 'os';
-import { format } from 'util';
-import boxen from 'boxen';
 import pino from 'pino';
-import path, { join, dirname } from 'path';
+import yargs from 'yargs';
+import lodash from 'lodash';
+import { Low, JSONFile } from 'lowdb';
 import { Boom } from '@hapi/boom';
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
-import { Low, JSONFile } from 'lowdb';
 import store from './lib/store.js';
-const { proto } = (await import('@whiskeysockets/baileys')).default;
-import pkg from 'google-libphonenumber';
-const { PhoneNumberUtil } = pkg;
-const phoneUtil = PhoneNumberUtil.getInstance();
-const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
-import readline, { createInterface } from 'readline';
 import NodeCache from 'node-cache';
+import readline from 'readline';
 import express from 'express';
 import cors from 'cors';
+import cfonts from 'cfonts';
 
-const { CONNECTING } = ws;
+const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
+
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
@@ -93,16 +80,9 @@ await loadDatabase();
 
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 
-const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
-const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
+const msgRetryCounterCache = new NodeCache();
+const userDevicesCache = new NodeCache();
 const { version } = await fetchLatestBaileysVersion();
-let phoneNumber = global.botNumber;
-const methodCodeQR = process.argv.includes("qr");
-const methodCode = !!phoneNumber || process.argv.includes("code");
-const MethodMobile = process.argv.includes("mobile");
-
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
 
 const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ=", "U2Vzc2lvbiBlcnJvcg==", "RXJyb3I6IEJhZCBNQUM=", "RGVjcnlwdGVkIG1lc3NhZ2U="];
 ['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
@@ -110,20 +90,14 @@ const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
   printQRInTerminal: false,
-  mobile: MethodMobile,
   browser: Browsers.macOS("Chrome"),
   auth: {
     creds: state.creds,
-    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
+    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
   },
   markOnlineOnConnect: false,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
-  patchMessageBeforeSending: (message) => {
-    const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage);
-    if (requiresPatch) return { viewOnceMessage: { message: { messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 }, ...message } } };
-    return message;
-  },
   getMessage: async (key) => {
     try {
       let jid = jidNormalizedUser(key.remoteJid);
@@ -134,24 +108,24 @@ const connectionOptions = {
   msgRetryCounterCache,
   userDevicesCache,
   version,
-  keepAliveIntervalMs: 55000,
+  keepAliveIntervalMs: 30000,
 };
 
 global.conn = makeWASocket(connectionOptions);
 
-if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`) && (methodCode || !methodCodeQR)) {
-    if (!conn.authState.creds.registered) {
-      let addNumber = phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : null;
-      if (!addNumber) {
+if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
+    let phoneNumber = global.botNumber;
+    if (!phoneNumber) {
         phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número del Bot:\n> `));
-        addNumber = phoneNumber.replace(/\D/g, '');
-      }
-      setTimeout(async () => {
-          let codeBot = await conn.requestPairingCode(addNumber);
-          codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-          console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
-      }, 3000);
     }
+    let addNumber = phoneNumber.replace(/\D/g, '');
+    setTimeout(async () => {
+        let codeBot = await conn.requestPairingCode(addNumber);
+        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+        console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
+    }, 3000);
 }
 
 conn.isInit = false;
@@ -166,20 +140,25 @@ async function connectionUpdate(update) {
 }
 
 process.on('uncaughtException', console.error);
-let handler = await import('./handler.js');
+
 global.reloadHandler = async function(restatConn) {
-  try {
-    const Handler = await import(`./handler.js?update=${Date.now()}`);
-    if (Object.keys(Handler || {}).length) handler = Handler;
-  } catch (e) { console.error(e); }
+  let handler = await import(`./handler.js?update=${Date.now()}`);
   if (restatConn) {
     try { global.conn.ws.close(); } catch {}
     conn.ev.removeAllListeners();
     global.conn = makeWASocket(connectionOptions);
   }
-  conn.handler = handler.handler.bind(global.conn);
+  
+  // Independencia de hilos: Bind asíncrono del handler
+  conn.handler = async (chatUpdate) => {
+    try {
+      await handler.handler.call(global.conn, chatUpdate);
+    } catch (e) { console.error(e); }
+  };
+  
   conn.connectionUpdate = connectionUpdate.bind(global.conn);
   conn.credsUpdate = saveCreds.bind(global.conn, true);
+  
   conn.ev.on('messages.upsert', conn.handler);
   conn.ev.on('connection.update', conn.connectionUpdate);
   conn.ev.on('creds.update', conn.credsUpdate);
@@ -199,6 +178,7 @@ async function readRecursive(folder) {
     }
   }
 }
+
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
   if (pluginFilter(filename)) {
@@ -224,14 +204,11 @@ app.use(express.json());
 
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
-    if (!number) {
-        return res.status(200).send({ 
-            status: "Online", 
-            message: "API del Bot funcionando. Para obtener un código usa el parámetro ?number=tu_numero" 
-        });
-    }
+    if (!number) return res.status(200).send({ status: "Online" });
     try {
         const num = number.replace(/\D/g, '');
+        // Importación dinámica para mantener el hilo del plugin separado
+        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
         const code = await assistant_accessJadiBot({ 
             m: null, 
             conn: global.conn, 
@@ -244,7 +221,6 @@ app.get('/api/get-pairing-code', async (req, res) => {
     }
 });
 
-
 app.listen(PORT, () => {
-    console.log(chalk.greenBright(`\nAPI WEB: Servidor activo en puerto ${PORT}`));
+    console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
 });

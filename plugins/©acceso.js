@@ -21,7 +21,8 @@ let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
         let phoneNumber = m.sender.split('@')[0];
         await m.reply('⚡ *Iniciando instancia independiente...*\nEspere su código de vinculación.');
-        assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true });
+        // Aquí pasamos apiCall: true para que genere el código
+        assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true, apiCall: true });
     }
 }
 
@@ -29,9 +30,9 @@ handler.command = /^(conectar|conectar_assistant)$/i
 export default handler 
 
 export async function assistant_accessJadiBot(options) {
-    let { m, conn, phoneNumber, fromCommand } = options
+    let { m, conn, phoneNumber, fromCommand, apiCall } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
-    
+
     if (!fs.existsSync(authFolder)) {
         fs.mkdirSync(authFolder, { recursive: true })
     }
@@ -57,23 +58,32 @@ export async function assistant_accessJadiBot(options) {
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
-            if (!fromCommand) return; 
+            // CAMBIO CLAVE: Si no es comando NI es llamada de API, no pidas código (evita spam en consola al reiniciar)
+            if (!fromCommand && !apiCall) return; 
+
             return new Promise((resolve, reject) => {
+                // Reducimos el timeout a 3 segundos para que la API responda más rápido
                 setTimeout(async () => {
                     try {
                         const code = await sock.requestPairingCode(phoneNumber)
                         const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
+                        
+                        // Si viene de un mensaje de WhatsApp, enviamos el código al chat
                         if (fromCommand && m && conn) {
                             await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
                         }
+                        
                         configurarEventos(sock, authFolder, m, conn)
-                        resolve(formattedCode)
-                    } catch (err) { reject(err) }
-                }, 5000)
+                        resolve(formattedCode) // Esto es lo que recibe la API
+                    } catch (err) { 
+                        console.error('Error al pedir código:', err)
+                        reject(err) 
+                    }
+                }, 3000)
             })
         } else {
             configurarEventos(sock, authFolder, m, conn)
-            return "Conectando..."
+            return "Conectado"
         }
 
     } catch (e) {
@@ -85,20 +95,19 @@ export async function assistant_accessJadiBot(options) {
 function configurarEventos(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
-        
+
         if (connection === 'open') {
             console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
         }
-        
+
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            
             if (reason !== DisconnectReason.loggedOut) {
-                console.log(chalk.yellowBright(`[SUB-BOT] Reintentando conexión: ${path.basename(authFolder)}`))
-                assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false })
+                console.log(chalk.yellowBright(`[SUB-BOT] Reintentando: ${path.basename(authFolder)}`))
+                assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false })
             } else {
-                console.log(chalk.redBright(`[SUB-BOT] Sesión cerrada.`))
+                console.log(chalk.redBright(`[SUB-BOT] Sesión eliminada.`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c !== sock)
             }

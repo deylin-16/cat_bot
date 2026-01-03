@@ -183,7 +183,6 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
 
 await global.reloadHandler();
 
-// AUTO-ARRANQUE DE SUB-BOTS
 async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (existsSync(jadibtsPath)) {
@@ -213,14 +212,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// API CORREGIDA: Ahora espera el código real
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
     if (!number) return res.status(200).send({ status: "Online" });
+    
     try {
         const num = number.replace(/\D/g, '');
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-        const code = await assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: num, fromCommand: false }); 
-        res.status(200).send({ code });
+        
+        // Esperamos a que la función resuelva la promesa con el código
+        const code = await assistant_accessJadiBot({ 
+            m: null, 
+            conn: global.conn, 
+            phoneNumber: num, 
+            fromCommand: false 
+        }); 
+
+        // Si el código es válido, lo enviamos. Si devuelve un objeto vacío, enviamos error.
+        if (code && typeof code === 'string') {
+            res.status(200).send({ code: code });
+        } else {
+            res.status(500).send({ error: "No se pudo generar el código. Intente de nuevo." });
+        }
     } catch (e) {
         res.status(500).send({ error: e.message });
     }

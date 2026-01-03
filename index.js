@@ -15,17 +15,13 @@ import { Low, JSONFile } from 'lowdb'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
 import { handler } from './handler.js'
 
-const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
+global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 
 const args_terminal = process.argv.slice(2)
 const session_arg = args_terminal.find(a => a.startsWith('--session='))
-const chat_arg = args_terminal.find(a => a.startsWith('--chatId='))
 const isSubBot = !!session_arg
 const subBotNumber = isSubBot ? session_arg.split('=')[1] : null
-const targetChat = chat_arg ? chat_arg.split('=')[1] : null
-
-// --- LÍNEA AGREGADA PARA CORREGIR EL ERROR ---
-global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
+const targetChat = args_terminal.find(a => a.startsWith('--chatId='))?.split('=')[1]
 
 const folder_session = isSubBot ? `./jadibts/${subBotNumber}` : (global.sessions || 'sessions')
 if (!existsSync('./jadibts')) mkdirSync('./jadibts', { recursive: true })
@@ -52,7 +48,9 @@ await global.loadDatabase()
 const { state, saveCreds } = await useMultiFileAuthState(folder_session)
 const { version } = await fetchLatestBaileysVersion()
 
-const connectionOptions = {
+const { DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
+
+global.conn = makeWASocket({
   logger: pino({ level: 'silent' }),
   printQRInTerminal: false,
   browser: Browsers.macOS("Chrome"),
@@ -60,31 +58,23 @@ const connectionOptions = {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
   },
-  markOnlineOnConnect: false,
-  syncFullHistory: false,
   version,
-}
+})
 
-global.conn = makeWASocket(connectionOptions)
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-
 if (!state.creds.registered) {
     if (isSubBot) {
         setTimeout(async () => {
             try {
                 let codeBot = await global.conn.requestPairingCode(subBotNumber)
                 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-                if (targetChat) {
-                    await global.conn.sendMessage(targetChat, { text: codeBot })
-                }
+                if (targetChat) await global.conn.sendMessage(targetChat, { text: codeBot })
             } catch (e) { console.error(e) }
         }, 5000)
     } else {
-        rl.question(chalk.cyan.bold('\n\nNúmero del Bot Principal:\n> '), async (phoneNumber) => {
-            phoneNumber = phoneNumber.replace(/\D/g, '')
-            let code = await global.conn.requestPairingCode(phoneNumber)
-            code = code?.match(/.{1,4}/g)?.join("-") || code
-            console.log(chalk.black.bgGreen('\n CÓDIGO: '), chalk.bold.white(code), '\n')
+        rl.question(chalk.cyan.bold('\n\nNúmero del Bot Principal:\n> '), async (num) => {
+            let code = await global.conn.requestPairingCode(num.replace(/\D/g, ''))
+            console.log(chalk.black.bgGreen('\n CÓDIGO: '), chalk.bold.white(code?.match(/.{1,4}/g)?.join("-") || code), '\n')
             rl.close()
         })
     }
@@ -92,22 +82,17 @@ if (!state.creds.registered) {
 
 global.conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
-        const m = chatUpdate.messages[0]
-        if (!m || (m.key.fromMe && isSubBot)) return
+        if (!chatUpdate.messages[0]) return
         await handler.call(global.conn, chatUpdate)
     } catch (e) { console.error(e) }
 })
 
 global.conn.ev.on('connection.update', async (update) => {
   const { connection, lastDisconnect } = update
-  if (connection === 'open') {
-      console.log(chalk.greenBright(`\n[ OK ] ${isSubBot ? 'SUB ' + subBotNumber : 'PRINCIPAL'} ONLINE`))
-  }
+  if (connection === 'open') console.log(chalk.greenBright(`\n[ OK ] ${isSubBot ? 'SUB ' + subBotNumber : 'PRINCIPAL'} ONLINE`))
   if (connection === 'close') {
-    const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-    if (reason !== DisconnectReason.loggedOut) {
-        process.exit()
-    } else {
+    if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) process.exit()
+    else {
         if (existsSync(folder_session)) rmSync(folder_session, { recursive: true, force: true })
         process.exit()
     }
@@ -135,5 +120,4 @@ if (!isSubBot) {
     app.use(cors())
     app.listen(process.env.PORT || 3000)
 }
-
 setInterval(async () => { if (global.db.data) await global.db.write() }, 30 * 1000)

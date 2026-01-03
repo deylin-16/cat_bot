@@ -10,15 +10,16 @@ let handler = async (m, { conn }) => {
 
     await m.reply('⚡ *Iniciando motor independiente...*\nEspere su código de vinculación en este chat.')
 
-    const child = spawn('node', [
+        const child = spawn('node', [
         'index.js', 
         `--session=${phoneNumber}`, 
-        `--chatId=${m.chat}` // <-- IMPORTANTE: Aquí se pasa el JID del chat
+        `--chatId=${m.chat}`
     ], {
         cwd: process.cwd(),
-        stdio: 'inherit',
+        stdio: 'inherit', // Mantiene la salida en la consola principal
         detached: true
     })
+
 
     child.unref()
 }

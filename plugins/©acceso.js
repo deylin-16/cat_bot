@@ -3,7 +3,7 @@ import { Boom } from '@hapi/boom'
 import fs from 'fs'
 import path from 'path'
 import NodeCache from 'node-cache'
-import chalk from 'chalk' // <--- IMPORTACIÓN FALTANTE QUE CAUSA EL ERROR
+import chalk from 'chalk'
 
 const { 
     DisconnectReason, 

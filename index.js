@@ -7,8 +7,6 @@ import path, { join } from 'path'
 import { Boom } from '@hapi/boom'
 import chalk from 'chalk'
 import pino from 'pino'
-import express from 'express'
-import cors from 'cors'
 import readline from 'readline'
 import yargs from 'yargs'
 import { Low, JSONFile } from 'lowdb'
@@ -17,20 +15,14 @@ import { handler } from './handler.js'
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 
-const { 
-    default: makeWASocketBaileys,
-    DisconnectReason, 
-    useMultiFileAuthState, 
-    fetchLatestBaileysVersion, 
-    makeCacheableSignalKeyStore, 
-    Browsers 
-} = await import('@whiskeysockets/baileys')
+const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
 
-const args_terminal = process.argv.slice(2)
-const session_arg = args_terminal.find(a => a.startsWith('--session='))
+const args = process.argv.slice(2)
+const session_arg = args.find(a => a.startsWith('--session='))
+const chat_arg = args.find(a => a.startsWith('--chatId='))
 const isSubBot = !!session_arg
 const subBotNumber = isSubBot ? session_arg.split('=')[1] : null
-const targetChat = args_terminal.find(a => a.startsWith('--chatId='))?.split('=')[1]
+const targetChat = chat_arg ? chat_arg.split('=')[1] : null
 
 const folder_session = isSubBot ? `./jadibts/${subBotNumber}` : (global.sessions || 'sessions')
 if (!existsSync('./jadibts')) mkdirSync('./jadibts', { recursive: true })
@@ -38,16 +30,10 @@ if (!existsSync('./jadibts')) mkdirSync('./jadibts', { recursive: true })
 protoType()
 serialize()
 
-global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
-  return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString()
-}
-global.__dirname = function dirname(pathURL) {
-  return path.dirname(global.__filename(pathURL, true))
-}
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-const __dirname = global.__dirname(import.meta.url)
 global.db = new Low(new JSONFile(isSubBot ? `./jadibts/db_${subBotNumber}.json` : 'database.json'))
-
 global.loadDatabase = async function loadDatabase() {
   await global.db.read().catch(() => {})
   global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}, ...(global.db.data || {}) }
@@ -68,18 +54,20 @@ global.conn = makeWASocket({
   version,
 })
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
 if (!state.creds.registered) {
-    if (isSubBot) {
+    if (isSubBot && subBotNumber) {
         setTimeout(async () => {
             try {
                 let codeBot = await global.conn.requestPairingCode(subBotNumber)
                 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-                if (targetChat) await global.conn.sendMessage(targetChat, { text: codeBot })
-            } catch (e) { console.error(e) }
-        }, 5000)
+                if (targetChat) {
+                    await global.conn.sendMessage(targetChat, { text: `🔑 *CÓDIGO DE VINCULACIÓN*\n\nUsa este código para conectar tu asistente:\n\n*${codeBot}*` })
+                }
+            } catch (e) { console.error("Error al pedir código:", e) }
+        }, 3000)
     } else {
-        rl.question(chalk.cyan.bold('\n\nNúmero del Bot Principal:\n> '), async (num) => {
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+        rl.question(chalk.cyan.bold('\nNúmero del Bot Principal:\n> '), async (num) => {
             let code = await global.conn.requestPairingCode(num.replace(/\D/g, ''))
             console.log(chalk.black.bgGreen('\n CÓDIGO: '), chalk.bold.white(code?.match(/.{1,4}/g)?.join("-") || code), '\n')
             rl.close()
@@ -115,16 +103,10 @@ async function readRecursive(folder) {
     const file = join(folder, filename)
     if (statSync(file).isDirectory()) await readRecursive(file)
     else if (/\.js$/.test(filename)) {
-      const module = await import(global.__filename(file))
-      global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module
+      const module = await import(pathToFileURL(file).href)
+      global.plugins[file.replace(pluginFolder + path.sep, '')] = module.default || module
     }
   }
 }
 await readRecursive(pluginFolder)
-
-if (!isSubBot) {
-    const app = express()
-    app.use(cors())
-    app.listen(process.env.PORT || 3000)
-}
 setInterval(async () => { if (global.db.data) await global.db.write() }, 30 * 1000)

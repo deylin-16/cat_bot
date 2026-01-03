@@ -15,15 +15,12 @@ import { handler } from './handler.js'
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 
-// CAPTURA DE ARGUMENTOS
+const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
+
 const args = process.argv.slice(2)
 const subBotNumber = args.find(a => a.startsWith('--session='))?.split('=')[1]
 const targetChat = args.find(a => a.startsWith('--chatId='))?.split('=')[1]
 const isSubBot = !!subBotNumber
-
-if (isSubBot) console.log(chalk.blueBright(`[ HIJO ] Iniciando sesión para: ${subBotNumber} | Chat: ${targetChat}`))
-
-const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys')
 
 const folder_session = isSubBot ? `./jadibts/${subBotNumber}` : (global.sessions || 'sessions')
 if (!existsSync('./jadibts')) mkdirSync('./jadibts', { recursive: true })
@@ -55,20 +52,24 @@ global.conn = makeWASocket({
   version,
 })
 
-// LÓGICA DE EMPAREJAMIENTO MEJORADA
 if (!state.creds.registered) {
     if (isSubBot && subBotNumber) {
-        console.log(chalk.yellow(`[ HIJO ] Solicitando código para ${subBotNumber}...`))
-        setTimeout(async () => {
-            try {
-                let codeBot = await global.conn.requestPairingCode(subBotNumber)
-                codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-                console.log(chalk.greenBright(`[ HIJO ] Código generado: ${codeBot}`))
-                if (targetChat) {
-                    await global.conn.sendMessage(targetChat, { text: `🔑 *CÓDIGO DE VINCULACIÓN*\n\nUsa este código en tu WhatsApp:\n\n*${codeBot}*` })
-                }
-            } catch (e) { console.error(chalk.red("[ ERROR HIJO ]"), e) }
-        }, 5000) // 5 segundos para asegurar conexión
+        global.conn.ev.on('connection.update', async (update) => {
+            const { connection } = update
+            if (connection === 'connecting') {
+                setTimeout(async () => {
+                    try {
+                        let codeBot = await global.conn.requestPairingCode(subBotNumber)
+                        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+                        if (targetChat) {
+                            await global.conn.sendMessage(targetChat, { 
+                                text: `✅ *CONEXIÓN INICIADA*\n\nUsa este código en tu WhatsApp para vincular al asistente:\n\n*${codeBot}*\n\n_El proceso puede tardar unos segundos en reflejarse._` 
+                            })
+                        }
+                    } catch (e) { console.error(e) }
+                }, 5000)
+            }
+        })
     } else {
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
         rl.question(chalk.cyan.bold('\nNúmero Principal:\n> '), async (num) => {

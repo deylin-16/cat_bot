@@ -28,7 +28,6 @@ export default handler
 
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
-    
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
     if (!fs.existsSync(authFolder)) {
         fs.mkdirSync(authFolder, { recursive: true })
@@ -36,7 +35,6 @@ export async function assistant_accessJadiBot(options) {
 
     try {
         const { version } = await fetchLatestBaileysVersion()
-        
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
 
         const sock = makeWASocket({
@@ -51,41 +49,53 @@ export async function assistant_accessJadiBot(options) {
 
         sock.ev.on('creds.update', saveCreds)
 
-        if (!sock.authState.creds.registered && fromCommand) {
-            setTimeout(async () => {
-                try {
-                    const code = await sock.requestPairingCode(phoneNumber)
-                    const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
-                    await conn.sendMessage(m.chat, { 
-                        text: `${formattedCode}` 
-                    }, { quoted: m })
-                } catch (err) {
-                    console.error("Error al generar Pairing Code:", err)
-                }
-            }, 5000)
+        if (!sock.authState.creds.registered) {
+            return new Promise((resolve, reject) => {
+                setTimeout(async () => {
+                    try {
+                        const code = await sock.requestPairingCode(phoneNumber)
+                        const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
+                        
+                        if (fromCommand && m && conn) {
+                            await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
+                        }
+                        
+                        configurarEventos(sock, authFolder, m, conn)
+                        resolve(formattedCode)
+                    } catch (err) {
+                        reject(err)
+                    }
+                }, 5000)
+            })
+        } else {
+            configurarEventos(sock, authFolder, m, conn)
+            return "Ya conectado"
         }
 
-        sock.ev.on('connection.update', async (update) => {
-            const { connection, lastDisconnect } = update
-            if (connection === 'open') {
-                await conn.sendMessage(m.chat, { text: '✅ *¡Sub-Bot conectado con éxito...*' }, { quoted: m })
-                global.conns.push(sock)
-            }
-            if (connection === 'close') {
-                const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-                if (reason !== DisconnectReason.loggedOut) assistant_accessJadiBot(options)
-                else {
-                    
-                    fs.rmSync(authFolder, { recursive: true, force: true })
-                }
-            }
-        })
-
-        const handlerImport = await import('../handler.js')
-        sock.ev.on('messages.upsert', handlerImport.handler.bind(sock))
-
     } catch (e) {
-        console.error("Error en Sub-Bot Local:", e)
-        if (fromCommand) m.reply('❌ Error al iniciar sesión local.')
+        if (fromCommand && m) m.reply('❌ Error al iniciar sesión local.')
+        throw e
     }
+}
+
+function configurarEventos(sock, authFolder, m, conn) {
+    sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect } = update
+        if (connection === 'open') {
+            if (m && conn) await conn.sendMessage(m.chat, { text: '✅ *¡Sub-Bot conectado con éxito...*' }, { quoted: m })
+            global.conns.push(sock)
+        }
+        if (connection === 'close') {
+            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
+            if (reason !== DisconnectReason.loggedOut) {
+                assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false })
+            } else {
+                fs.rmSync(authFolder, { recursive: true, force: true })
+            }
+        }
+    })
+
+    import('../handler.js').then(handlerImport => {
+        sock.ev.on('messages.upsert', handlerImport.handler.bind(sock))
+    })
 }

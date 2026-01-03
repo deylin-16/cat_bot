@@ -54,20 +54,22 @@ global.conn = makeWASocket({
 
 if (!state.creds.registered) {
     if (isSubBot && subBotNumber) {
+        let codeSent = false
         global.conn.ev.on('connection.update', async (update) => {
             const { connection } = update
-            if (connection === 'connecting') {
+            if (connection === 'connecting' && !codeSent) {
+                codeSent = true
                 setTimeout(async () => {
                     try {
                         let codeBot = await global.conn.requestPairingCode(subBotNumber)
                         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
                         if (targetChat) {
                             await global.conn.sendMessage(targetChat, { 
-                                text: `✅ *CONEXIÓN INICIADA*\n\nUsa este código en tu WhatsApp para vincular al asistente:\n\n*${codeBot}*\n\n_El proceso puede tardar unos segundos en reflejarse._` 
+                                text: `✅ *CÓDIGO DE VINCULACIÓN*\n\nUsa este código en tu WhatsApp:\n\n*${codeBot}*` 
                             })
                         }
                     } catch (e) { console.error(e) }
-                }, 5000)
+                }, 10000)
             }
         })
     } else {
@@ -91,7 +93,8 @@ global.conn.ev.on('connection.update', async (update) => {
   const { connection, lastDisconnect } = update
   if (connection === 'open') console.log(chalk.greenBright(`\n[ OK ] ${isSubBot ? 'SUB ' + subBotNumber : 'PRINCIPAL'} ONLINE`))
   if (connection === 'close') {
-    if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) process.exit()
+    const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
+    if (reason !== DisconnectReason.loggedOut) process.exit()
     else {
         if (existsSync(folder_session)) rmSync(folder_session, { recursive: true, force: true })
         process.exit()

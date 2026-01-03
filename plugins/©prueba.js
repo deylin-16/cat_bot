@@ -1,4 +1,11 @@
+import fetch from 'node-fetch'
+
 let handler = async (m, { conn }) => {
+    
+    let imagenUrl = "https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767466951467_BNENXDN6p.jpeg" // Pon aquí la URL de la imagen
+    let response = await fetch(imagenUrl)
+    let bufferImagen = await response.buffer()
+
     await conn.sendMessage(m.chat, {
         text: "https://hola.com//",
         contextInfo: {
@@ -8,11 +15,13 @@ let handler = async (m, { conn }) => {
                 previewType: "NONE",
                 mediaType: 1,
                 renderLargerThumbnail: true,
-                thumbnailUrl: "https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767466951467_BNENXDN6p.jpeg", // <--- CAMBIA ESTO
-                sourceUrl: "https://hola.com//"
+                thumbnail: bufferImagen, // Al ser Buffer, el clic no va a la imagen
+                sourceUrl: "https://hola.com//" // El clic ahora irá siempre aquí
             }
         }
     }, { quoted: m })
 }
+
 handler.command = /^(prueba)$/i
+
 export default handler

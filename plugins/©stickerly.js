@@ -1,4 +1,5 @@
 import fetch from 'node-fetch'
+import { Sticker } from 'wa-sticker-formatter'
 
 let handler = async (m, { conn, text, command }) => {
   if (!text) return m.reply(`📌 Ejemplo: .${command} My Melody`)
@@ -17,22 +18,36 @@ let handler = async (m, { conn, text, command }) => {
 
     const { stickers, name, author } = downloadJson.data
 
+    // 1. Descargamos y procesamos el primer sticker para subirlo a WA
+    const stickerBuffer = await (await fetch(stickers[0])).buffer()
+    
+    // 2. Subimos el sticker como media para obtener el directPath, mediaKey y hashes
+    const upload = await conn.waUploadToServer(stickerBuffer, 'sticker')
+    
+    // 3. Construimos el stickerPackMessage con datos reales del servidor
     await conn.relayMessage(m.chat, {
       stickerPackMessage: {
-        stickerPackId: `com.snowcorp.stickerly.android.stickercontentprovider${Math.random()}`,
-        name: name,
-        publisher: author,
-        stickers: stickers.slice(0, 5).map(url => ({
-          url: url,
+        stickerPackId: `com.snowcorp.stickerly.android.stickercontentprovider${Date.now()}`,
+        name: name || 'Pack',
+        publisher: author || 'Bot',
+        stickers: stickers.slice(0, 5).map(() => ({
+          fileSha256: upload.fileSha256,
+          fileEncSha256: upload.fileEncSha256,
+          mediaKey: upload.mediaKey,
+          directPath: upload.directPath,
+          fileLength: upload.fileLength,
           mimetype: 'image/webp'
         })),
-        stickerPackOrigin: 'THIRD_PARTY'
+        stickerPackOrigin: 'THIRD_PARTY',
+        thumbnailDirectPath: upload.directPath,
+        thumbnailSha256: upload.fileSha256,
+        thumbnailEncSha256: upload.fileEncSha256
       }
     }, { quoted: m })
 
   } catch (e) {
     console.error(e)
-    m.reply('⚠️ Error técnico al intentar enviar el paquete nativo.')
+    m.reply('⚠️ Error al subir el paquete a los servidores.')
   }
 }
 

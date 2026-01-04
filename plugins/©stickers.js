@@ -58,7 +58,6 @@ let handler = async (m, { conn, args }) => {
     let q = m.quoted ? m.quoted : m
     let mime = (q.msg || q).mimetype || q.mediaType || ''
     let buffer
-    let user = m.pushName || 'Usuario'
 
     if (/image|sticker|video|gif/.test(mime) || (m.quoted && /sticker/.test(q.mtype))) {
       buffer = await q.download()
@@ -66,38 +65,29 @@ let handler = async (m, { conn, args }) => {
       const res = await fetch(args[0])
       buffer = Buffer.from(await res.arrayBuffer())
     } else {
-      return m.reply(`*⚠️ Formato incorrecto*\nResponde a una imagen o video con: *.s <texto>*`)
+      return m.reply('*⚠️ Responde a una imagen o video con: .s <texto>*')
     }
 
-    if (!buffer) throw 'No pude obtener el archivo.'
+    if (!buffer) return
     await m.react('🕓')
 
     let finalBuffer = buffer
-    
     if (txt && /image/.test(mime) && !/gif|video/.test(mime)) {
        try {
           const brightness = await averageBrightness(buffer)
           finalBuffer = await makeImageWithText(buffer, txt, brightness < 128 ? 'white' : 'black')
-       } catch (e) { console.error('Error en texto:', e) }
+       } catch (e) { console.error(e) }
     }
 
-    const stiker = await sticker(finalBuffer, false, `BOT: ${global.name(conn)}`, user)
+    const stiker = await sticker(finalBuffer, false, 'Deylin-Bot', m.pushName)
 
     if (stiker) {
-    await conn.sendMessage(m.chat, { 
-        sticker: stiker 
-    }, { 
-        quoted: m,
-        linkPreview: false 
-    })
-    await m.react('✅')
-}
-
-
+        await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m, linkPreview: false })
+        await m.react('✅')
+    }
   } catch (e) {
-    console.error(e)
     await m.react('✖️')
-    m.reply(e)
+    console.error(e)
   }
 }
 

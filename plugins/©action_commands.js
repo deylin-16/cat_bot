@@ -90,7 +90,7 @@ ${animeCommands}
 ┃
 ┃   *UTILIDADES*
 ┃ ◦ kick / elimina
-┃ ◦ todos / tagall
+┃ ◦ ntodos / tagall
 ┃
 ┃   *EXTRACCIÓN / DOWNLOAD*
 ┃ ◦ descarga (FB, TikTok, IG)

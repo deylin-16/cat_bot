@@ -7,32 +7,32 @@ let handler = async (m, { conn, text, command }) => {
     const searchRes = await fetch(`https://delirius-apiofc.vercel.app/search/stickerly?query=${encodeURIComponent(text)}`)
     const searchJson = await searchRes.json()
 
-    if (!searchJson.status || !Array.isArray(searchJson.data) || searchJson.data.length === 0) {
+    if (!searchJson.status || !searchJson.data?.length) {
       return m.reply('❌ No se encontraron stickers.')
     }
 
     const pick = searchJson.data[Math.floor(Math.random() * searchJson.data.length)]
-    
     const downloadRes = await fetch(`https://delirius-apiofc.vercel.app/download/stickerly?url=${encodeURIComponent(pick.url)}`)
     const downloadJson = await downloadRes.json()
 
-    if (!downloadJson.status || !downloadJson.data) {
-      return m.reply('⚠️ No se pudo obtener la información del paquete.')
-    }
+    if (!downloadJson.status || !downloadJson.data) return m.reply('⚠️ Error al obtener el pack.')
 
-    const data = downloadJson.data
+    const { stickers, name, author } = downloadJson.data
 
-    await conn.relayMessage(m.chat, {
-      stickerPackMessage: {
-        stickerPackId: `com.snowcorp.stickerly.android.stickercontentprovider ${data.name}`,
-        name: data.name || 'Pack',
-        publisher: data.author || 'Sticker.ly',
-        stickers: data.stickers.map(url => ({
-          url: url,
-          isAnimated: false,
-          mimetype: 'image/webp'
-        })),
-        stickerPackOrigin: 'THIRD_PARTY'
+    await conn.sendMessage(m.chat, {
+      document: { url: stickers[0] },
+      mimetype: 'image/webp',
+      fileName: `${name}.wastickers`,
+      caption: `📦 *Pack:* ${name}\n👤 *Autor:* ${author}`,
+      contextInfo: {
+        externalAdReply: {
+          showAdAttribution: true,
+          title: name,
+          body: author,
+          mediaType: 1,
+          thumbnailUrl: stickers[0],
+          sourceUrl: pick.url
+        }
       }
     }, { quoted: m })
 

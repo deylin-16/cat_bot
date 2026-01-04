@@ -11,7 +11,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
     if (/menu2|anime|interaccion/i.test(command)) {
         let animeCommands = `
-┏━━⬣  *INTERACCIONES* ⬣━━┓
+┏━━⬣   *INTERACCIONES*  ⬣━━┓
 ┃ ◌ Kiss / Kiss2 / Kiss3
 ┃ ◌ Beso / Beso2 / Beso3
 ┃ ◌ Hug / Hug2 / Abrazo / Abrazo2
@@ -66,9 +66,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
         let caption = `*⛩️ ANIME INTERACTION MENU ⛩️*
 
-*— Usuario:* @${m.sender.split('@')[0]}
-*— Bot:* ${assistantName}
-*— Versión:* ${_package.version}
+— *Usuario:* @${m.sender.split('@')[0]}
+— *Bot:* ${assistantName}
+— *Versión:* ${_package.version}
 
 ${animeCommands}
 
@@ -83,7 +83,7 @@ ${animeCommands}
         return
     }
 
-    // MENU PRINCIPAL (Original)
+    
     let customCommands = `
 *• GRUPOS*
 ◦ \`cierra\` / \`abre\`

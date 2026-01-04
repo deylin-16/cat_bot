@@ -6,72 +6,119 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 let handler = async (m, { conn, usedPrefix, command }) => {
     let { assistantName, assistantImage } = global.getAssistantConfig(conn.user.jid)
-
-    let isSub = conn.user.jid !== global.conn?.user?.jid
     let ownerBot = global.owner.map(([jid, name]) => ({ jid, name }))
-
     let _package = JSON.parse(await fs.promises.readFile(path.join(__dirname, '../package.json')).catch(_ => '{}')) || {}
 
-            let customCommands = `
+    if (/menu2|anime|interaccion/i.test(command)) {
+        let animeCommands = `
+┏━━⬣  *INTERACCIONES* ⬣━━┓
+┃ ◌ Kiss / Kiss2 / Kiss3
+┃ ◌ Beso / Beso2 / Beso3
+┃ ◌ Hug / Hug2 / Abrazo / Abrazo2
+┃ ◌ Slap / Golpe / Cachetada
+┃ ◌ Kill / Matar / Disparar / Shoot
+┃ ◌ Pat / Acariciar / Mimar / Cuddle
+┃ ◌ Dance / Bailar / Twerk
+┃ ◌ Kick / Patada / Boxeo
+┃ ◌ Laugh / Reir / Llorar_risa
+┃ ◌ Sad / Triste / Cry / Sneeze
+┃ ◌ Angry / Enojado / Gritar
+┃ ◌ Wave / Saludo / Desprecio
+┃ ◌ Bite / Morder / Lamer / Lick
+┃ ◌ Sleep / Dormir / Despertar
+┃ ◌ Eat / Comer / Burger / Pizza
+┃ ◌ Ramen / Tacos / Icecream
+┃ ◌ Drink / Beber / Coffee / Tea
+┃ ◌ Soda / Juice / Water / Beer
+┃ ◌ Scare / Asustar / Fear / Beg
+┃ ◌ Run / Correr / Viajar / Travel
+┃ ◌ Stare / Mirar / Mirror / Stars
+┃ ◌ Wow / Asombro / Smug
+┃ ◌ Blush / Tímido / Avergonzado
+┃ ◌ Think / Pensar / Confundido
+┃ ◌ Smoke / Fumar / Vape / Candy
+┃ ◌ Play / Jugar / Pc / Tv / Music
+┃ ◌ Hide / Esconderse / Stalk
+┃ ◌ Suicide / Suicidio / Lie
+┃ ◌ Ignore / Ignorar / Bored
+┃ ◌ Clap / Aplaudir / Excited
+┃ ◌ Vomit / Vomitar / Sick / Curar
+┃ ◌ Cook / Cocinar / Clean / Shop
+┃ ◌ Marry / Casar / Divorce
+┃ ◌ Study / Estudiar / Write / Read
+┃ ◌ Work / Trabajar / Money
+┃ ◌ Workout / Ejercicio / Gym
+┃ ◌ Shower / Bañarse / Dress / Makeup
+┃ ◌ Fly / Volar / Teleport
+┃ ◌ Explode / Explotar / Burn
+┃ ◌ Freeze / Congelar / Lightning
+┃ ◌ Summon / Invocar / Morph
+┃ ◌ Heal / Sanar / Protect
+┃ ◌ Fall / Caerse / Fish / Garden
+┃ ◌ Yoga / Meditar / Gamble / Steal
+┃ ◌ Photo / Record / Skate / Surf
+┃ ◌ Ski / Camp / Guitar / Piano
+┃ ◌ Sing / Cantar / Draw / Bike
+┃ ◌ Soccer / Basketball / Swim
+┃ ◌ Spank / Beso_mano / Beso_frente
+┃ ◌ Pillowfight / Carrito_hombros
+┗━━━━━━━━━━━━━━━━━━━━━━┛`;
+
+        let caption = `*⛩️ ANIME INTERACTION MENU ⛩️*
+
+*— Usuario:* @${m.sender.split('@')[0]}
+*— Bot:* ${assistantName}
+*— Versión:* ${_package.version}
+
+${animeCommands}
+
+*Nota:* _Puedes usarlos sin prefijo._`.trim()
+
+        try {
+            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
+            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
+        } catch (e) {
+            await conn.reply(m.chat, caption, m)
+        }
+        return
+    }
+
+    // MENU PRINCIPAL (Original)
+    let customCommands = `
 *• GRUPOS*
-◦ \`cierra\` / \`abre\` (Controlar el grupo)
-◦ \`renombrar\` (Cambiar nombre del grupo)
-◦ \`setdesc\` (Cambiar descripción)
-◦ \`setpp\` (Cambiar foto del grupo)
+◦ \`cierra\` / \`abre\`
+◦ \`renombrar\` / \`setdesc\`
 
 *• UTILIDADES*
-◦ \`kick\` / \`elimina\` (@tag o responder)
-◦ \`todos\` / \`tagall\` (Mencionar a todos)
+◦ \`kick\` / \`elimina\`
+◦ \`todos\` / \`tagall\`
 
-*• EXTRACCIÓN DE CONTENIDO*
-◦ \`descarga\` (FB, TikTok, Instagram)
+*• DESCARGAS*
+◦ \`descarga\` (FB, IG, TK)
+◦ \`pin\` / \`play\` / \`ttss\`
 
-*• BÚSQUEDA DE CONTENIDO*
-◦ \`pin\` (Buscá imágenes en Pinterest)
-◦ \`ttss\` (Buscá un vídeo en tiktok)
-◦ \`play\` / \`🎧\` (Busca música de YouTube)
-
-*• FUNCIONES*
-◦ \`robar perfil\` (@usuario o número)
-◦ \`tomar perfil\` (@usuario o número)
-◦ \`s/sticker\` (Crea un sticker con un vídeo o imagen)
-◦ \`toimg\` (Convierte un sticker a imagen)
-
-*• INTELIGENCIA ARTIFICIAL*
-◦ \`ia\` (Habla con chatGPT)
-◦ \`hd\` (Mejora la calidad de una imagen)
-◦ \`res\` (Activa las respuestas de IA)
-
-*• FUNCIÓN ESPÍA*
-◦ \`read\` / \`ver\` / \`:) \` (Ver archivos de una sola vista)
+*• IA & TOOLS*
+◦ \`ia\` / \`hd\` / \`res\`
+◦ \`s\` (Sticker) / \`toimg\`
+◦ \`ver\` (Read ViewOnce)
 `;
 
-    let caption = `*HOLA, SOY ${assistantName.toUpperCase()}* 
+    let caption = `*HOLA, SOY ${assistantName.toUpperCase()}* *— Creador:* ${ownerBot[0].name}
+*— Activo:* ${msToDate(process.uptime() * 1000)}
 
-*— Versión:* ${_package.version}
-*— Creador:* ${ownerBot[0].name}
-*— Tiempo activo:* ${msToDate(process.uptime() * 1000)}
+${customCommands}
 
-*NOTA:* _Comandos directos sin prefijo._
-
-*— LISTA DE COMANDOS —*
-${customCommands}`
-
+*Para ver los comandos de anime usa:* \`.menu2\``
 
     try {
         let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
-        
-        await conn.sendMessage(m.chat, { 
-            image: sendImage, 
-            caption: caption.trim()
-        }, { quoted: m })
-        
+        await conn.sendMessage(m.chat, { image: sendImage, caption: caption.trim() }, { quoted: m })
     } catch (e) {
         await conn.reply(m.chat, caption.trim(), m)
     }
 }
 
-handler.command = ['menu', 'comandos', 'funcioned', 'ayuda']
+handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime']
 
 export default handler
 

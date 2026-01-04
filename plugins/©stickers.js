@@ -79,7 +79,7 @@ let handler = async (m, { conn, args }) => {
        } catch (e) { console.error(e) }
     }
 
-    const stiker = await sticker(finalBuffer, false, 'Deylin-Bot', m.pushName)
+    const stiker = await sticker(finalBuffer, false, 'Deylin-Bot', m.pushName || 'User')
 
     if (stiker) {
         await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m, linkPreview: false })

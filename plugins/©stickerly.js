@@ -42,8 +42,6 @@ let handler = async (m, { conn, text, command }) => {
   }
 }
 
-handler.help = ['stikerly <consulta>']
-handler.tags = ['sticker']
-handler.command = /^stikerly$/i
+handler.command = /^sly$/i
 
 export default handler

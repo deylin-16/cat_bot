@@ -1,7 +1,7 @@
 import { sticker } from '../lib/sticker.js'
 import { webp2png } from '../lib/webp2mp4.js'
 import Jimp from 'jimp'
-import { uploadFile } from '../lib/uploadFile.js'
+import uploadFile from '../lib/uploadFile.js'
 
 const isUrl = (text) => text && text.match(/https?:\/\/[^\s]+/i)
 

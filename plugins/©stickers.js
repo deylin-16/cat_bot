@@ -8,7 +8,7 @@ let handler = async (m, { conn, args }) => {
   let userId = m.sender
   let packstickers = global.db.data.users[userId] || {}
   let texto1 = `BOT: ${name(conn)}`
-  let texto2 = m.
+  let texto2 = `USER: ${m.pushName}`
   
   try {
     let q = m.quoted ? m.quoted : m

@@ -11,68 +11,65 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
     if (/menu2|anime|interaccion/i.test(command)) {
         let animeCommands = `
-┏━━⬣   *INTERACCIONES*  ⬣━━┓
-┃ ◌ Kiss / Kiss2 / Kiss3
-┃ ◌ Beso / Beso2 / Beso3
-┃ ◌ Hug / Hug2 / Abrazo / Abrazo2
-┃ ◌ Slap / Golpe / Cachetada
-┃ ◌ Kill / Matar / Disparar / Shoot
-┃ ◌ Pat / Acariciar / Mimar / Cuddle
-┃ ◌ Dance / Bailar / Twerk
-┃ ◌ Kick / Patada / Boxeo
-┃ ◌ Laugh / Reir / Llorar_risa
-┃ ◌ Sad / Triste / Cry / Sneeze
-┃ ◌ Angry / Enojado / Gritar
-┃ ◌ Wave / Saludo / Desprecio
-┃ ◌ Bite / Morder / Lamer / Lick
-┃ ◌ Sleep / Dormir / Despertar
-┃ ◌ Eat / Comer / Burger / Pizza
-┃ ◌ Ramen / Tacos / Icecream
-┃ ◌ Drink / Beber / Coffee / Tea
-┃ ◌ Soda / Juice / Water / Beer
-┃ ◌ Scare / Asustar / Fear / Beg
-┃ ◌ Run / Correr / Viajar / Travel
-┃ ◌ Stare / Mirar / Mirror / Stars
-┃ ◌ Wow / Asombro / Smug
-┃ ◌ Blush / Tímido / Avergonzado
-┃ ◌ Think / Pensar / Confundido
-┃ ◌ Smoke / Fumar / Vape / Candy
-┃ ◌ Play / Jugar / Pc / Tv / Music
-┃ ◌ Hide / Esconderse / Stalk
-┃ ◌ Suicide / Suicidio / Lie
-┃ ◌ Ignore / Ignorar / Bored
-┃ ◌ Clap / Aplaudir / Excited
-┃ ◌ Vomit / Vomitar / Sick / Curar
-┃ ◌ Cook / Cocinar / Clean / Shop
-┃ ◌ Marry / Casar / Divorce
-┃ ◌ Study / Estudiar / Write / Read
-┃ ◌ Work / Trabajar / Money
-┃ ◌ Workout / Ejercicio / Gym
-┃ ◌ Shower / Bañarse / Dress / Makeup
-┃ ◌ Fly / Volar / Teleport
-┃ ◌ Explode / Explotar / Burn
-┃ ◌ Freeze / Congelar / Lightning
-┃ ◌ Summon / Invocar / Morph
-┃ ◌ Heal / Sanar / Protect
-┃ ◌ Fall / Caerse / Fish / Garden
-┃ ◌ Yoga / Meditar / Gamble / Steal
-┃ ◌ Photo / Record / Skate / Surf
-┃ ◌ Ski / Camp / Guitar / Piano
-┃ ◌ Sing / Cantar / Draw / Bike
-┃ ◌ Soccer / Basketball / Swim
-┃ ◌ Spank / Beso_mano / Beso_frente
-┃ ◌ Pillowfight / Carrito_hombros
-┗━━━━━━━━━━━━━━━━━━━━━━┛`;
+┏━⊜ *INTERACCIONES* ⊜━┓
+┃ ◌ Kiss, Kiss2, Kiss3
+┃ ◌ Beso, Beso2, Beso3
+┃ ◌ Hug, Hug2, Abrazo
+┃ ◌ Slap, Golpe, Cachetada
+┃ ◌ Kill, Matar, Disparar
+┃ ◌ Pat, Acariciar, Mimar
+┃ ◌ Dance, Bailar, Twerk
+┃ ◌ Kick, Patada, Boxeo
+┃ ◌ Laugh, Reir, Llorar_risa
+┃ ◌ Sad, Triste, Cry, Sneeze
+┃ ◌ Angry, Enojado, Gritar
+┃ ◌ Wave, Saludo, Desprecio
+┃ ◌ Bite, Morder, Lamer
+┃ ◌ Sleep, Dormir, Despertar
+┃ ◌ Eat, Comer, Burger, Pizza
+┃ ◌ Ramen, Tacos, Icecream
+┃ ◌ Drink, Beber, Coffee, Tea
+┃ ◌ Soda, Juice, Water, Beer
+┃ ◌ Scare, Asustar, Fear, Beg
+┃ ◌ Run, Correr, Viajar, Stare
+┃ ◌ Wow, Asombro, Smug, Blush
+┃ ◌ Think, Pensar, Confundido
+┃ ◌ Smoke, Fumar, Vape, Candy
+┃ ◌ Play, Jugar, Pc, Tv, Music
+┃ ◌ Hide, Esconderse, Stalk
+┃ ◌ Suicide, Suicidio, Lie
+┃ ◌ Ignore, Ignorar, Bored
+┃ ◌ Clap, Aplaudir, Excited
+┃ ◌ Vomit, Vomitar, Sick, Curar
+┃ ◌ Cook, Cocinar, Clean, Shop
+┃ ◌ Marry, Casar, Divorce
+┃ ◌ Study, Estudiar, Write, Read
+┃ ◌ Work, Trabajar, Money
+┃ ◌ Workout, Ejercicio, Gym
+┃ ◌ Shower, Bañarse, Dress
+┃ ◌ Fly, Volar, Teleport
+┃ ◌ Explode, Burn, Freeze
+┃ ◌ Lightning, Summon, Morph
+┃ ◌ Heal, Sanar, Protect, Fall
+┃ ◌ Fish, Garden, Yoga, Gamble
+┃ ┃ Steal, Photo, Record, Skate
+┃ ◌ Surf, Ski, Camp, Guitar
+┃ ◌ Piano, Sing, Draw, Bike
+┃ ◌ Soccer, Basketball, Swim
+┃ ◌ Spank, Beso_mano
+┃ ◌ Beso_frente, Pillowfight
+┗━━━━━━━━━━━━━━━┛`;
 
-        let caption = `*⛩️ ANIME INTERACTION MENU ⛩️*
+        let caption = `
+⛩️ *ANIME INTERACTION* ⛩️
 
-- *Usuario:* @${m.sender.split('@')[0]}
-- *Bot:* ${assistantName}
-- *Versión:* ${_package.version}
+❒ *Usuario:* @${m.sender.split('@')[0]}
+❒ *Bot:* ${assistantName}
+❒ *Versión:* ${_package.version}
 
 ${animeCommands}
 
-*Nota:* _Puedes usarlos sin prefijo._`.trim()
+> *Nota:* Comandos directos sin prefijo.`.trim()
 
         try {
             let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
@@ -85,36 +82,55 @@ ${animeCommands}
 
     
     let customCommands = `
-*• GRUPOS*
-◦ \`cierra\` / \`abre\`
-◦ \`renombrar\` / \`setdesc\`
+┏━━━━━━━━━━━━━━━━━━┓
+┃   *GRUPOS*
+┃ ◦ cierra / abre
+┃ ◦ renombrar / setdesc
+┃ ◦ setpp (Cambiar foto)
+┃
+┃   *UTILIDADES*
+┃ ◦ kick / elimina
+┃ ◦ todos / tagall
+┃
+┃   *EXTRACCIÓN / DOWNLOAD*
+┃ ◦ descarga (FB, TikTok, IG)
+┃
+┃   *BÚSQUEDA*
+┃ ◦ pin (Pinterest)
+┃ ◦ ttss (TikTok Search)
+┃ ◦ play / 🎧 (YouTube)
+┃
+┃   *FUNCIONES*
+┃ ◦ robar perfil
+┃ ◦ tomar perfil
+┃ ◦ s / sticker
+┃ ◦ toimg (Sticker a imagen)
+┃
+┃   *IA & SISTEMA*
+┃ ◦ ia (ChatGPT)
+┃ ◦ hd (Mejorar calidad)
+┃ ◦ res (Auto-IA)
+┃
+┃   *ESPÍA*
+┃ ◦ read / ver / :) (ViewOnce)
+┗━━━━━━━━━━━━━━━━━━┛`;
 
-*• UTILIDADES*
-◦ \`kick\` / \`elimina\`
-◦ \`todos\` / \`tagall\`
+    let caption = `
+👋 *HOLA, SOY ${assistantName.toUpperCase()}*
 
-*• DESCARGAS*
-◦ \`descarga\` (FB, IG, TK)
-◦ \`pin\` / \`play\` / \`ttss\`
-
-*• IA & TOOLS*
-◦ \`ia\` / \`hd\` / \`res\`
-◦ \`s\` (Sticker) / \`toimg\`
-◦ \`ver\` (Read ViewOnce)
-`;
-
-    let caption = `*HOLA, SOY ${assistantName.toUpperCase()}* *— Creador:* ${ownerBot[0].name}
-*— Activo:* ${msToDate(process.uptime() * 1000)}
+❒ *Creador:* ${ownerBot[0].name}
+❒ *Versión:* ${_package.version}
+❒ *Activo:* ${msToDate(process.uptime() * 1000)}
 
 ${customCommands}
 
-*Para ver los comandos de anime usa:* \`.menu2\``
+> Usa *.menu2* para ver los comandos de Anime.`.trim()
 
     try {
         let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
-        await conn.sendMessage(m.chat, { image: sendImage, caption: caption.trim() }, { quoted: m })
+        await conn.sendMessage(m.chat, { image: sendImage, caption: caption }, { quoted: m })
     } catch (e) {
-        await conn.reply(m.chat, caption.trim(), m)
+        await conn.reply(m.chat, caption, m)
     }
 }
 

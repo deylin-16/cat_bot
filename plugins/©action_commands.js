@@ -66,9 +66,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
         let caption = `*⛩️ ANIME INTERACTION MENU ⛩️*
 
-— *Usuario:* @${m.sender.split('@')[0]}
-— *Bot:* ${assistantName}
-— *Versión:* ${_package.version}
+- *Usuario:* @${m.sender.split('@')[0]}
+- *Bot:* ${assistantName}
+- *Versión:* ${_package.version}
 
 ${animeCommands}
 

@@ -129,8 +129,8 @@ export async function handler(chatUpdate) {
             isRAdmin = isAdmin = isBotAdmin = false;
         }
 
-        const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
-        let usedPrefix = ''; 
+                const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
+        const prefixRegex = /^[.#\/]/;
 
         for (const name in global.plugins) {
             const plugin = global.plugins[name];
@@ -154,11 +154,20 @@ export async function handler(chatUpdate) {
 
             if (typeof plugin !== 'function') continue;
 
-            let noPrefix = m.text.trim();
-            if (!noPrefix) continue; 
+            let str = m.text.trim();
+            let usedPrefix = '';
+            let command = '';
+            const match = str.match(prefixRegex);
 
-            let [command, ...args] = noPrefix.split(/\s+/).filter(v => v);
-            command = (command || '').toLowerCase();
+            if (match) {
+                usedPrefix = match[0];
+                command = str.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
+            } else {
+                command = str.split(/\s+/)[0].toLowerCase();
+                usedPrefix = '';
+            }
+
+            if (!command) continue;
 
             const isAccept = plugin.command instanceof RegExp ?
                 plugin.command.test(command) :
@@ -170,11 +179,12 @@ export async function handler(chatUpdate) {
 
             if (!isAccept) continue;
 
-            noPrefix = m.text.trim().substring(command.length).trim();
-            let text = m.text.slice(usedPrefix.length + command.length).trim();
-            args = noPrefix ? noPrefix.split(/\s+/).filter(v => v) : [];
+            const noPrefix = str.slice(usedPrefix.length + command.length).trim();
+            const text = noPrefix;
+            const args = noPrefix ? noPrefix.split(/\s+/).filter(v => v) : [];
 
             m.plugin = name;
+
 
             if (chat?.isBanned && !isROwner) return;
             if (chat?.modoadmin && !isOwner && !isROwner && m.isGroup && !isAdmin) return;

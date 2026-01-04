@@ -17,17 +17,23 @@ let handler = async (m, { conn, text, command }) => {
     if (!downloadJson.status || !downloadJson.data) return m.reply('⚠️ Error al obtener el pack.')
 
     const { stickers, name, author } = downloadJson.data
+    const firstStickerUrl = stickers[0]
 
-    // 1. Descargamos y procesamos el primer sticker para subirlo a WA
-    const stickerBuffer = await (await fetch(stickers[0])).buffer()
-    
-    // 2. Subimos el sticker como media para obtener el directPath, mediaKey y hashes
-    const upload = await conn.waUploadToServer(stickerBuffer, 'sticker')
-    
-    // 3. Construimos el stickerPackMessage con datos reales del servidor
+    const response = await fetch(firstStickerUrl)
+    const buffer = await response.buffer()
+
+    const sticker = new Sticker(buffer, {
+      pack: name,
+      author: author,
+      type: 'full'
+    })
+    const finalBuffer = await sticker.toBuffer()
+
+    const upload = await conn.waUploadToServer(finalBuffer, 'sticker')
+
     await conn.relayMessage(m.chat, {
       stickerPackMessage: {
-        stickerPackId: `com.snowcorp.stickerly.android.stickercontentprovider${Date.now()}`,
+        stickerPackId: `com.snowcorp.stickerly.android.stickercontentprovider${Math.random().toString(36).substring(7)}`,
         name: name || 'Pack',
         publisher: author || 'Bot',
         stickers: stickers.slice(0, 5).map(() => ({
@@ -41,13 +47,15 @@ let handler = async (m, { conn, text, command }) => {
         stickerPackOrigin: 'THIRD_PARTY',
         thumbnailDirectPath: upload.directPath,
         thumbnailSha256: upload.fileSha256,
-        thumbnailEncSha256: upload.fileEncSha256
+        thumbnailEncSha256: upload.fileEncSha256,
+        thumbnailHeight: 252,
+        thumbnailWidth: 252
       }
     }, { quoted: m })
 
   } catch (e) {
     console.error(e)
-    m.reply('⚠️ Error al subir el paquete a los servidores.')
+    m.reply('⚠️ Error: Asegúrate de que wa-sticker-formatter esté instalado y actualizado.')
   }
 }
 

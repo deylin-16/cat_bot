@@ -1,5 +1,5 @@
-import { sticker } from '../../lib/sticker.js'
-import { webp2png } from '../../lib/webp2mp4.js'
+import { sticker } from '../lib/sticker.js'
+import { webp2png } from '../lib/webp2mp4.js'
 import Jimp from 'jimp'
 import fs from 'fs'
 import os from 'os'

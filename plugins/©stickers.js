@@ -84,11 +84,15 @@ let handler = async (m, { conn, args }) => {
     const stiker = await sticker(finalBuffer, false, `BOT: ${global.name(conn)}`, user)
 
     if (stiker) {
-        await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m })
-        await m.react('✅')
-    } else {
-        throw 'La librería de stickers falló.'
-    }
+    await conn.sendMessage(m.chat, { 
+        sticker: stiker 
+    }, { 
+        quoted: m,
+        linkPreview: false 
+    })
+    await m.react('✅')
+}
+
 
   } catch (e) {
     console.error(e)

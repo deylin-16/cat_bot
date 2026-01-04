@@ -7,8 +7,8 @@ let handler = async (m, { conn, args }) => {
   let stiker = false
   let userId = m.sender
   let packstickers = global.db.data.users[userId] || {}
-  let texto1 = packstickers.text1 || global.packsticker || 'Bot'
-  let texto2 = packstickers.text2 || global.packsticker2 || 'Deylin'
+  let texto1 = `BOT: ${name(conn)}`
+  let texto2 = m.
   
   try {
     let q = m.quoted ? m.quoted : m
@@ -26,12 +26,12 @@ let handler = async (m, { conn, args }) => {
       let marca = txt ? txt.split(/[\u2022|]/).map(part => part.trim()) : [texto1, texto2]
 
       try {
-        // Se añade 'conn' como tercer argumento si tu lib lo requiere para ffmpeg
-        // O se intenta la conversión directa
+        
+        
         stiker = await sticker(buffer, false, marca[0], marca[1])
       } catch (err) {
         console.error('Error en sticker directo:', err)
-        // Si falla el buffer directo por ffmpeg, usamos URL (más estable)
+        
         let out = /video/.test(mime) ? await uploadFile(buffer) : await uploadImage(buffer)
         stiker = await sticker(false, out, marca[0], marca[1])
       }

@@ -3,59 +3,41 @@ import uploadFile from '../lib/uploadFile.js'
 import uploadImage from '../lib/uploadImage.js'
 import { webp2png } from '../lib/webp2mp4.js'
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
-  let stiker = false
-  try {
-    let q = m.quoted ? m.quoted : m
-    let mime = (q.msg || q).mimetype || q.mediaType || ''
-    let name = await conn.getName(m.sender)
+let handler = async (m, { conn, args }) => {
+let stiker = false
+let userId = m.sender
+let packstickers = global.db.data.users[userId] || {}
+let texto1 = packstickers.text1 || global.packsticker
+let texto2 = packstickers.text2 || global.packsticker2
+try {
+let q = m.quoted ? m.quoted : m
+let mime = (q.msg || q).mimetype || q.mediaType || ''
+let txt = args.join(' ')
+if (/webp|image|video/g.test(mime) && q.download) {
+if (/video/.test(mime) && (q.msg || q).seconds > 16)
+return conn.reply(m.chat, '✧ El video no puede durar más de *15 segundos*', m)
+let buffer = await q.download()
+await m.react('🕓')
+let marca = txt ? txt.split(/[\u2022|]/).map(part => part.trim()) : [texto1, texto2]
+stiker = await sticker(buffer, false, marca[0], marca[1])
+} else if (args[0] && isUrl(args[0])) {
+let buffer = await sticker(false, args[0], texto1, texto2)
+stiker = buffer
+} else {
+return conn.reply(m.chat, '❀ Por favor, envía una *imagen* o *video* para hacer un sticker.', m)
+}} catch (e) {
+await conn.reply(m.chat, '⚠︎ Ocurrió un Error: ' + e.message, m)
+await m.react('✖️')
+} finally {
+if (stiker) {
+conn.sendFile(m.chat, stiker, 'sticker.webp', '', m)
+await m.react('✅')
+}}}
 
-    if (/webp|image|video/g.test(mime)) {
-      if (/video/g.test(mime)) if ((q.msg || q).seconds > 8) return m.reply(`🫧 *¡El video no puede durar mas de 8 segundos!*`)
-      
-      let img = await q.download?.()
-      if (!img) return conn.reply(m.chat, `🍪 *_La conversión ha fallado, intenta de nuevo._*`, m)
+handler.command = ['s', 'sticker']
 
-      await m.react('🕓')
-
-      try {
-        stiker = await sticker(img, false, global.packname || 'Bot', name || 'Deylin')
-      } catch (e) {
-        console.error(e)
-      }
-
-      if (!stiker) {
-        let out
-        if (/webp/g.test(mime)) out = await webp2png(img)
-        else if (/image/g.test(mime)) out = await uploadImage(img)
-        else if (/video/g.test(mime)) out = await uploadFile(img)
-        
-        if (typeof out !== 'string') out = await uploadImage(img)
-        stiker = await sticker(false, out, global.packname || 'Bot', name || 'Deylin')
-      }
-    } else if (args[0] && isUrl(args[0])) {
-      stiker = await sticker(false, args[0], global.packname || 'Bot', name || 'Deylin')
-    } else {
-      return conn.reply(m.chat, `📝 *Uso:* Responde a una imagen, video o sticker con *${usedPrefix + command}*`, m)
-    }
-
-  } catch (e) {
-    console.error(e)
-    stiker = false
-  } finally {
-    if (stiker instanceof Buffer) {
-      await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m })
-      await m.react('✅')
-    } else {
-      await m.react('✖️')
-      conn.reply(m.chat, `🍪 *_La conversión ha fallado, el formato no es compatible o el archivo es muy pesado._*`, m)
-    }
-  }
-}
-
-handler.command = ['s', 'sticker', 'stiker']
 export default handler
 
-function isUrl(text) {
-  return text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)(jpe?g|gif|png|webp)/, 'gi'))
+const isUrl = (text) => {
+return text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)(jpe?g|gif|png)/, 'gi'))
 }

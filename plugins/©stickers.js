@@ -15,7 +15,7 @@ let mime = (q.msg || q).mimetype || q.mediaType || ''
 let txt = args.join(' ')
 if (/webp|image|video/g.test(mime) && q.download) {
 if (/video/.test(mime) && (q.msg || q).seconds > 16)
-return conn.reply(m.chat, '✧ El video no puede durar más de *15 segundos*', m)
+return conn.reply(m.chat, '🍪 El video no puede durar más de *15 segundos*', m)
 let buffer = await q.download()
 await m.react('🕓')
 let marca = txt ? txt.split(/[\u2022|]/).map(part => part.trim()) : [texto1, texto2]
@@ -24,7 +24,7 @@ stiker = await sticker(buffer, false, marca[0], marca[1])
 let buffer = await sticker(false, args[0], texto1, texto2)
 stiker = buffer
 } else {
-return conn.reply(m.chat, '❀ Por favor, envía una *imagen* o *video* para hacer un sticker.', m)
+return conn.reply(m.chat, '🫧 Por favor, envía una *imagen* o *video* para hacer un sticker.', m)
 }} catch (e) {
 await conn.reply(m.chat, '⚠︎ Ocurrió un Error: ' + e.message, m)
 await m.react('✖️')

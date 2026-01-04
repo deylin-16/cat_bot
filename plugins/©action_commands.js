@@ -63,7 +63,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         let caption = `
 ⛩️ *ANIME INTERACTION* ⛩️
 
-❒ *Usuario:* @${m.sender.split('@')[0]}
 ❒ *Bot:* ${assistantName}
 ❒ *Versión:* ${_package.version}
 

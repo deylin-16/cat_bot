@@ -27,7 +27,6 @@ const makeImageWithText = async (buffer, text, color) => {
   const h = image.bitmap.height
   const maxWidth = w - 60
   const font = color === 'white' ? await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE) : await Jimp.loadFont(Jimp.FONT_SANS_64_BLACK)
-  
   const lines = []
   const words = text.split(/\s+/)
   let line = ''
@@ -38,15 +37,12 @@ const makeImageWithText = async (buffer, text, color) => {
     } else line = test
   }
   if (line) lines.push(line)
-
   const padding = 20
   const textHeight = lines.length * (Jimp.measureTextHeight(font, 'M', maxWidth) + 20)
   const boxHeight = textHeight + padding * 2
   const boxY = h - boxHeight - 20
-  
   const box = new Jimp(w, boxHeight, color === 'white' ? 0x00000088 : 0xFFFFFF88)
   image.composite(box, 0, boxY)
-  
   let y = boxY + padding
   for (let ln of lines) {
     const textW = Jimp.measureText(font, ln)
@@ -69,7 +65,7 @@ let handler = async (m, { conn, args }) => {
       const res = await fetch(args[0])
       buffer = Buffer.from(await res.arrayBuffer())
     } else {
-      return m.reply('*⚠️ Responde a una imagen, video o gif*')
+      return m.reply('*⚠️ Responde a una imagen o video*')
     }
 
     if (!buffer) return

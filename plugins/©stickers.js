@@ -1,5 +1,4 @@
 import { sticker } from '../lib/sticker.js'
-import { webp2png } from '../lib/webp2mp4.js'
 import Jimp from 'jimp'
 import fetch from 'node-fetch'
 
@@ -19,9 +18,7 @@ const averageBrightness = async (buffer) => {
       }
     }
     return total / count
-  } catch {
-    return 100
-  }
+  } catch { return 100 }
 }
 
 const makeImageWithText = async (buffer, text, color) => {
@@ -35,10 +32,8 @@ const makeImageWithText = async (buffer, text, color) => {
   let line = ''
   for (let word of words) {
     const test = line ? line + ' ' + word : word
-    const width = Jimp.measureText(font, test)
-    if (width > maxWidth && line) {
-      lines.push(line)
-      line = word
+    if (Jimp.measureText(font, test) > maxWidth && line) {
+      lines.push(line); line = word
     } else line = test
   }
   if (line) lines.push(line)
@@ -51,8 +46,7 @@ const makeImageWithText = async (buffer, text, color) => {
   let y = boxY + padding
   for (let ln of lines) {
     const textW = Jimp.measureText(font, ln)
-    const x = Math.floor((w - textW) / 2)
-    image.print(font, x, y, ln)
+    image.print(font, Math.floor((w - textW) / 2), y, ln)
     y += Jimp.measureTextHeight(font, ln, maxWidth) + 20
   }
   return await image.getBufferAsync(Jimp.MIME_PNG)
@@ -64,33 +58,27 @@ let handler = async (m, { conn, args }) => {
     let q = m.quoted ? m.quoted : m
     let mime = (q.msg || q).mimetype || q.mediaType || ''
     let buffer
-    let user = m.pushName || 'Anónimo'
+    let user = m.pushName || 'Usuario'
 
-    if (/sticker/.test(mime) || (m.quoted && /sticker/.test(q.mtype))) {
-      buffer = await q.download()
-    } else if (/(image|video|gif)/.test(mime)) {
+    if (/image|sticker|video|gif/.test(mime) || (m.quoted && /sticker/.test(q.mtype))) {
       buffer = await q.download()
     } else if (args[0] && isUrl(args[0])) {
       const res = await fetch(args[0])
       buffer = Buffer.from(await res.arrayBuffer())
     } else {
-      return m.reply(`🍪 Envía o responde a una *imagen, video o sticker* con el comando:\n\n*.s <texto>*`)
+      return m.reply(`*⚠️ Formato incorrecto*\nResponde a una imagen o video con: *.s <texto>*`)
     }
 
-    if (!buffer) throw 'No se pudo descargar el contenido.'
-
+    if (!buffer) throw 'No pude obtener el archivo.'
     await m.react('🕓')
-    let finalBuffer = buffer
 
-    // Si es un sticker animado o video, a veces es necesario convertir a imagen para Jimp
-    if (txt && !/video|gif/.test(mime) && !q.isAnimated) {
+    let finalBuffer = buffer
+    
+    if (txt && /image/.test(mime) && !/gif|video/.test(mime)) {
        try {
           const brightness = await averageBrightness(buffer)
-          const color = brightness < 128 ? 'white' : 'black'
-          finalBuffer = await makeImageWithText(buffer, txt, color)
-       } catch (e) {
-          console.log('Error procesando texto en imagen:', e)
-       }
+          finalBuffer = await makeImageWithText(buffer, txt, brightness < 128 ? 'white' : 'black')
+       } catch (e) { console.error('Error en texto:', e) }
     }
 
     const stiker = await sticker(finalBuffer, false, `BOT: ${global.name(conn)}`, user)
@@ -99,13 +87,13 @@ let handler = async (m, { conn, args }) => {
         await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m })
         await m.react('✅')
     } else {
-        throw 'Error al generar el sticker.'
+        throw 'La librería de stickers falló.'
     }
 
   } catch (e) {
     console.error(e)
     await m.react('✖️')
-    m.reply('Ocurrió un error: ' + e.message || e)
+    m.reply(e)
   }
 }
 

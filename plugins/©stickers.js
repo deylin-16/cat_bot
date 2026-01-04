@@ -10,10 +10,10 @@ try {
 let q = m.quoted ? m.quoted : m
 let mime = (q.msg || q).mimetype || q.mediaType || ''
 if (/webp|image|video/g.test(mime)) {
-if (/video/g.test(mime)) if ((q.msg || q).seconds > 8) return m.reply(`${emojis} *¡El video no puede durar mas de 8 segundos!*`)
+if (/video/g.test(mime)) if ((q.msg || q).seconds > 8) return m.reply(`🫧 *¡El video no puede durar mas de 8 segundos!*`)
 let img = await q.download?.()
 
-if (!img) return conn.reply(m.chat, `${emojis} *_La conversión ha fallado, intenta enviar primero imagen/video/gif y luego responde con el comando._*`, m, fake)
+if (!img) return conn.reply(m.chat, `🍪 *_La conversión ha fallado, intenta enviar primero imagen/video/gif y luego responde con el comando._*`, m)
 
 let out
 try {
@@ -29,7 +29,7 @@ if (typeof out !== 'string') out = await uploadImage(img)
 stiker = await sticker(false, out, global.packsticker, global.author)
 }}
 } else if (args[0]) {
-if (isUrl(args[0])) stiker = await sticker(false, args[0], global.packsticker, global.author)
+if (isUrl(args[0])) stiker = await sticker(false, args[0], `BOTA: ${global.name(con)}`)
 
 else return m.reply(` El url es incorrecto`)
 
@@ -38,7 +38,11 @@ else return m.reply(` El url es incorrecto`)
 console.error(e)
 if (!stiker) stiker = e
 } finally {
-if (stiker) conn.sendFile(m.chat, stiker, 'sticker.webp', ``,m, true, { contextInfo: { 'forwardingScore': 200, 'isForwarded': false { quoted: m })
+if (stiker) {
+      await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m })
+      await m.react('✅')
+    }
+
 
 else return conn.reply(m.chat, `🍪 *_La conversión ha fallado, intenta enviar primero imagen/video/gif y luego responde con el comando._*`, m)
 

@@ -121,3 +121,11 @@ function configurarEventos(sock, authFolder, m, conn) {
         } catch (e) { console.error(e) }
     })
 }
+
+async function joinChannels(conn) {
+    for (const channelId of Object.values(global.ch)) {
+        await conn.newsletterFollow(channelId).catch(() => {})
+    }
+}
+
+

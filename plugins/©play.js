@@ -12,7 +12,7 @@ const handler = async (m, { conn, text, command }) => {
 
     if (/youtube.com|youtu.be/.test(text)) {
       url = text;
-      const search = await yts({ videoId: yts(url).videos?.[0]?.videoId || text.split('v=')[1]?.split('&')[0] || text.split('/').pop() });
+      const search = await yts({ videoId: text.split('v=')[1]?.split('&')[0] || text.split('/').pop() });
       videoInfo = search;
     } else {
       const search = await yts(text);
@@ -21,46 +21,44 @@ const handler = async (m, { conn, text, command }) => {
       url = videoInfo.url;
     }
 
-    const type = (command === 'play' || command === 'audio') ? 'audio' : 'video';
     const apiUrl = `${url_api}/api/download/yt?url=${encodeURIComponent(url)}&apikey=${key}`;
 
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (!data || data.success !== true || !data.result) {
+    // CAMBIO AQUÍ: Validamos 'status' en lugar de 'success'
+    if (!data || data.status !== 'success' || !data.download_url) {
       return global.design(conn, m, "❌ Error en el servidor de descargas.");
     }
 
-    const res = data.result;
-    const downloadUrl = res.download_url;
-
     const contextInfo = {
       externalAdReply: {
-        title: res.title || videoInfo.title,
-        body: `Metodo: ${data.method === 'scraper' ? 'Rápido' : 'Respaldo'}`,
+        title: data.title || videoInfo.title,
+        body: `Método: ${data.method === 'scraper' ? 'Ultra Rápido 🚀' : 'Respaldo 🛠️'}`,
         mediaType: 1,
-        thumbnailUrl: res.thumbnail || videoInfo.thumbnail || videoInfo.image,
-        sourceUrl: url,
-        renderLargerThumbnail: true
+        renderLargerThumbnail: true,
+        thumbnailUrl: data.thumbnail || videoInfo.thumbnail,
+        sourceUrl: url
       }
     };
 
-    if (type === 'audio') {
+    if (command === 'play' || command === 'audio') {
       await m.react("🎧");
       await conn.sendMessage(m.chat, {
-        audio: { url: downloadUrl },
+        audio: { url: data.download_url }, 
         mimetype: "audio/mpeg",
-        fileName: `${res.title}.mp3`,
+        fileName: `${data.title}.mp3`,
         ptt: false,
         contextInfo
       }, { quoted: m });
-    } else {
+    } 
+    else if (command === 'play2' || command === 'video') {
       await m.react("🎥");
       await conn.sendMessage(m.chat, {
-        video: { url: downloadUrl },
-        caption: `✅ *Título:* ${res.title}\n📊 *Método:* ${data.method}\n🔗 *Link:* ${url}`,
+        video: { url: data.download_url }, 
+        caption: `✅ *Título:* ${data.title}\n📊 *Método:* ${data.method}\n🔗 *Link:* ${url}`,
         mimetype: "video/mp4",
-        fileName: `${res.title}.mp4`,
+        fileName: `${data.title}.mp4`,
         contextInfo
       }, { quoted: m });
     }

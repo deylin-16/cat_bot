@@ -21,6 +21,9 @@ global.sessions = 'sessions'
 global.jadi = 'sessions_sub_assistant';
 global.url_api = 'https://api.dynlayer.xyz'
 global.key = 'dk_ofical_user'
+global.ch = {
+ch1: '120363406846602793@newsletter'
+}
 
 global.getAssistantConfig = (botJid) => {
     const __dirname = path.dirname(fileURLToPath(import.meta.url))

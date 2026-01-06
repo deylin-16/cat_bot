@@ -46,7 +46,7 @@ const handler = async (m, { conn, text, command }) => {
       await conn.sendMessage(
         m.chat,
         {
-          document: { url: dl.result.download },
+          document: { url: data.download_url },
           mimetype: "audio/mpeg",
           fileName: `${dl.result.title}.mp3`,
           contextInfo: {
@@ -67,7 +67,7 @@ const handler = async (m, { conn, text, command }) => {
       await m.react("🎥");
       await conn.sendMessage(m.chat, {
         video: { url: data.download_url }, 
-        caption: `✅ *Título:* ${data.title}\n📊 *Método:* ${data.method}\n🔗 *Link:* ${url}`,
+        caption: `✅ *Título:* ${data.title}\n🔗 *Link:* ${url}`,
         mimetype: "video/mp4",
         fileName: `${data.title}.mp4`,
         contextInfo

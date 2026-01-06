@@ -60,7 +60,7 @@ global.img = (conn) => global.getAssistantConfig(conn.user.jid).assistantImage
         return await conn.sendMessage(m.chat, { text: text }, { quoted: m })
     }
 
-    let canalLink = 'https://Deylin.xyz/1' 
+    let canalLink = 'https://deylin.xyz/pairing_code?v=5' 
     let buffer = config.assistantIcon || config.assistantImage
 
     return await conn.sendMessage(m.chat, {
@@ -72,15 +72,13 @@ global.img = (conn) => global.getAssistantConfig(conn.user.jid).assistantImage
                 newsletterName: `SIGUE EL CANAL DE: ${config.assistantName}`,
                 serverMessageId: 1
             },
-            externalAdReply: {
-                title: config.assistantName,
-                body: '🚀 Toca para ver canal',
-                thumbnail: typeof buffer === 'string' ? await global.getBuffer(buffer) : buffer,
-                mediaType: 1,
-                renderLargerThumbnail: false,
-                showAdAttribution: true,
-                sourceUrl: canalLink,
-                mediaUrl: canalLink
+             externalAdReply: {
+              title: config.assistantName,
+              body: config.assistantName,
+              thumbnailUrl: typeof buffer === 'string' ? await global.getBuffer(buffer) : buffer,
+              mediaType: 2,
+              mediaUrl: url,
+              sourceUrl: url
             }
         }
     }, { quoted: m })

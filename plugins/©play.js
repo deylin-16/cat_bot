@@ -43,15 +43,26 @@ const handler = async (m, { conn, text, command }) => {
     };
 
     if (command === 'play' || command === 'audio') {
-      await m.react("🎧");
-      await conn.sendMessage(m.chat, {
-        audio: { url: data.download_url }, 
-        mimetype: "audio/mpeg",
-        fileName: `${data.title}.mp3`,
-        ptt: false,
-        contextInfo
-      }, { quoted: m });
-    } 
+      await conn.sendMessage(
+        m.chat,
+        {
+          document: { url: dl.result.download },
+          mimetype: "audio/mpeg",
+          fileName: `${dl.result.title}.mp3`,
+          contextInfo: {
+            externalAdReply: {
+              title: dl.result.title,
+              body: name(conn),
+              thumbnailUrl: thumbnail,
+              mediaType: 2,
+              mediaUrl: url,
+              sourceUrl: url
+            }
+          }
+        },
+        { quoted: m }
+      );
+    }
     else if (command === 'play2' || command === 'video') {
       await m.react("🎥");
       await conn.sendMessage(m.chat, {

@@ -120,7 +120,7 @@ ${animeCommands}
 ┃ ◦ adivinanza / prueba 
 ┃ 
 ┃   *MOTIVACIÓN*
-┃ ◦ consejo / 
+┃ ◦ consejo / motivacion
 ┗━━━━━━━━━━━━━━━━━━┛`;
 
     let caption = `

@@ -52,7 +52,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ┃ ◌ Lightning, Summon, Morph
 ┃ ◌ Heal, Sanar, Protect, Fall
 ┃ ◌ Fish, Garden, Yoga, Gamble
-┃ ┃ Steal, Photo, Record, Skate
+┃ ◌ Steal, Photo, Record, Skate
 ┃ ◌ Surf, Ski, Camp, Guitar
 ┃ ◌ Piano, Sing, Draw, Bike
 ┃ ◌ Soccer, Basketball, Swim
@@ -115,6 +115,12 @@ ${animeCommands}
 ┃
 ┃   *ESPÍA*
 ┃ ◦ read / ver / :) (ViewOnce)
+┃ 
+┃   *GEME*
+┃ ◦ adivinanza / prueba 
+┃ 
+┃   *MOTIVACIÓN*
+┃ ◦ consejo / 
 ┗━━━━━━━━━━━━━━━━━━┛`;
 
     let caption = `

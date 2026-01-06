@@ -46,7 +46,7 @@ const handler = async (m, { conn, text, command }) => {
       await conn.sendMessage(
         m.chat,
         {
-          document: { url: data.download_url },
+          audio: { url: data.download_url },
           mimetype: "audio/mpeg",
           fileName: `${data.title}.mp3`,
           contextInfo: {

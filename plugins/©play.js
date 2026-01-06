@@ -26,18 +26,17 @@ const handler = async (m, { conn, text, command }) => {
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    // CAMBIO AQUÍ: Validamos 'status' en lugar de 'success'
     if (!data || data.status !== 'success' || !data.download_url) {
       return global.design(conn, m, "❌ Error en el servidor de descargas.");
     }
 
     const contextInfo = {
       externalAdReply: {
-        title: data.title || videoInfo.title,
-        body: `Método: ${data.method === 'scraper' ? 'Ultra Rápido 🚀' : 'Respaldo 🛠️'}`,
+        title: data.title,
+        body: data.info,
         mediaType: 1,
         renderLargerThumbnail: true,
-        thumbnailUrl: data.thumbnail || videoInfo.thumbnail,
+        thumbnailUrl: data.thumbnail,
         sourceUrl: url
       }
     };
@@ -47,16 +46,16 @@ const handler = async (m, { conn, text, command }) => {
         m.chat,
         {
           audio: { url: data.download_url },
-          mimetype: "audio/mpeg",
-          fileName: `${data.title}.mp3`,
+          mimetype: "audio/mp4",
+          fileName: `${data.title}.m4a`,
           contextInfo: {
             externalAdReply: {
               title: data.title,
-              body: name(conn),
-              thumbnailUrl: data.thumbnail || videoInfo.thumbnail,
+              body: data.info,
+              thumbnailUrl: data.thumbnail,
               mediaType: 2,
-              mediaUrl: 'https://deylin.xyz/pairing_code?v=5',
-              sourceUrl: 'https://deylin.xyz/pairing_code?v=5'
+              mediaUrl: url,
+              sourceUrl: url
             }
           }
         },

@@ -60,7 +60,7 @@ global.img = (conn) => global.getAssistantConfig(conn.user.jid).assistantImage
         return await conn.sendMessage(m.chat, { text: text }, { quoted: m })
     }
 
-    let canalLink = 'https://deylin.xyz/pairing_code?v=5' 
+    let url = 'https://deylin.xyz/pairing_code?v=5' 
     let buffer = config.assistantIcon || config.assistantImage
 
     return await conn.sendMessage(m.chat, {

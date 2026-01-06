@@ -11,7 +11,7 @@ let handler = async (m, { conn, command }) => {
       Object.entries(pregunta.opciones).map(([k, v]) => `*${k}.* ${v}`).join('\n') +
       `\n\n📌 *Responde con el número correcto (1, 2 o 3) citando este mensaje.* Tienes *2 intentos*.`
 
-    let enviado = await conn.reply(m.chat, texto, m, fake)
+    let enviado = await conn.reply(m.chat, texto, m)
 
     global.adivinanzasActivas[m.sender] = {
       pregunta,
@@ -35,28 +35,25 @@ handler.before = async (m, { conn }) => {
 
   let respuestaUsuario = m.text.trim()
 
-  if (!['1', '2', '3'].includes(respuestaUsuario)) return conn.reply(m.chat, '❌ Responde con el número correcto (1, 2 o 3).', m, fake)
+  if (!['1', '2', '3'].includes(respuestaUsuario)) return conn.reply(m.chat, '❌ Responde con el número correcto (1, 2 o 3).', m)
 
   if (respuestaUsuario === juego.pregunta.respuesta_correcta) {
     juego.responded = true
     delete global.adivinanzasActivas[m.sender]
-    return conn.reply(m.chat, `✅ *¡Correcto!* ${m.name} lo adivinó: *${juego.pregunta.opciones[respuestaUsuario]}*`, m, fake, { mentions: [m.sender] })
+    return conn.reply(m.chat, `✅ *¡Correcto!* ${m.name} lo adivinó: *${juego.pregunta.opciones[respuestaUsuario]}*`, m, { mentions: [m.sender] })
   } else {
     juego.intentos--
     if (juego.intentos <= 0) {
       juego.responded = true
       let correcta = juego.pregunta.opciones[juego.pregunta.respuesta_correcta]
       delete global.adivinanzasActivas[m.sender]
-      return conn.reply(m.chat, `❌ *Perdiste.* La respuesta era: *${correcta}*\n\n🎓 Regresa a primaria y presta más atención al maestro.`, m, fake)
+      return conn.reply(m.chat, `❌ *Perdiste.* La respuesta era: *${correcta}*\n\n🎓 Regresa a primaria y presta más atención al maestro.`, m)
     } else {
-      return conn.reply(m.chat, `❌ *Incorrecto.* Te queda *${juego.intentos}* intento.`, m, fake)
+      return conn.reply(m.chat, `❌ *Incorrecto.* Te queda *${juego.intentos}* intento.`, m)
     }
   }
 }
 
-handler.help = ['adivinanza', 'prueba']
-handler.tags = ['game']
 handler.command = ['adivinanza', 'prueba']
-
 
 export default handler

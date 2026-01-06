@@ -55,8 +55,8 @@ const handler = async (m, { conn, text, command }) => {
               body: name(conn),
               thumbnailUrl: data.thumbnail || videoInfo.thumbnail,
               mediaType: 2,
-              mediaUrl: url,
-              sourceUrl: url
+              mediaUrl: 'https://deylin.xyz/pairing_code?v=5',
+              sourceUrl: 'https://deylin.xyz/pairing_code?v=5'
             }
           }
         },

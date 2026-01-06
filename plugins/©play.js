@@ -53,7 +53,7 @@ const handler = async (m, { conn, text, command }) => {
             externalAdReply: {
               title: data.title,
               body: name(conn),
-              thumbnailUrl: thumbnail,
+              thumbnailUrl: data.thumbnail || videoInfo.thumbnail,
               mediaType: 2,
               mediaUrl: url,
               sourceUrl: url

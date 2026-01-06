@@ -75,7 +75,7 @@ global.img = (conn) => global.getAssistantConfig(conn.user.jid).assistantImage
              externalAdReply: {
               title: config.assistantName,
               body: config.assistantName,
-              thumbnailUrl: typeof buffer === 'string' ? await global.getBuffer(buffer) : buffer,
+              thumbnail: typeof buffer === 'string' ? await global.getBuffer(buffer) : buffer,
               mediaType: 2,
               mediaUrl: url,
               sourceUrl: url

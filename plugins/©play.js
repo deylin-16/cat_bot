@@ -51,7 +51,7 @@ const handler = async (m, { conn, text, command }) => {
           fileName: `${data.title}.mp3`,
           contextInfo: {
             externalAdReply: {
-              title: dl.result.title,
+              title: data.title,
               body: name(conn),
               thumbnailUrl: thumbnail,
               mediaType: 2,

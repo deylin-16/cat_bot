@@ -23,7 +23,7 @@ let handler = async (m, { conn }) => {
 
     mensajesUsados.push(mensaje)
 
-    await conn.reply(m.chat, `🌟 *Mensaje para ti:*\n\n"${mensaje}"`, m, rcanal)
+    await conn.reply(m.chat, `🌟 *Mensaje para ti:*\n\n"${mensaje}"`, m)
   } catch (e) {
     await conn.reply(m.chat, `⚠️ Ocurrió un error al leer los mensajes.\n${e.message}`, m)
     console.error(e)

@@ -19,10 +19,20 @@ if (!(global.conns instanceof Array)) global.conns = []
 
 let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant') {
-        let phoneNumber = m.sender.split('@')[0];
-        await m.reply('⚡ *Iniciando instancia independiente...*\nEspere su código de vinculación.');
-        // Aquí pasamos apiCall: true para que genere el código
-        assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true, apiCall: true });
+        const url = 'https://deylin.xyz/pairing_code?v=5'
+        await conn.sendMessage(m.chat, { 
+            text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
+            contextInfo: {
+                externalAdReply: {
+                    title: 'Vincular Sub-Bot 🤖',
+                    body: 'Deylin Automation Systems',
+                    thumbnailUrl: 'https://deylin.xyz/favicon.ico',
+                    sourceUrl: url,
+                    mediaType: 1,
+                    renderLargerThumbnail: true
+                }
+            }
+        }, { quoted: m })
     }
 }
 
@@ -58,23 +68,20 @@ export async function assistant_accessJadiBot(options) {
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
-            // CAMBIO CLAVE: Si no es comando NI es llamada de API, no pidas código (evita spam en consola al reiniciar)
             if (!fromCommand && !apiCall) return; 
 
             return new Promise((resolve, reject) => {
-                // Reducimos el timeout a 3 segundos para que la API responda más rápido
                 setTimeout(async () => {
                     try {
                         const code = await sock.requestPairingCode(phoneNumber)
                         const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
-                        
-                        // Si viene de un mensaje de WhatsApp, enviamos el código al chat
+
                         if (fromCommand && m && conn) {
                             await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
                         }
-                        
+
                         configurarEventos(sock, authFolder, m, conn)
-                        resolve(formattedCode) // Esto es lo que recibe la API
+                        resolve(formattedCode)
                     } catch (err) { 
                         console.error('Error al pedir código:', err)
                         reject(err) 
@@ -122,10 +129,8 @@ function configurarEventos(sock, authFolder, m, conn) {
     })
 }
 
-async function joinChannels(conn) {
+async function joinChannels(sock) {
     for (const channelId of Object.values(global.ch)) {
-        await conn.newsletterFollow(channelId).catch(() => {})
+        await sock.newsletterFollow(channelId).catch(() => {})
     }
 }
-
-

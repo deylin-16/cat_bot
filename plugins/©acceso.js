@@ -16,40 +16,41 @@ const {
 const { makeWASocket } = await import('../lib/simple.js')
 
 if (!(global.conns instanceof Array)) global.conns = []
-const botStartTime = {}
 
 let handler = async (m, { conn, command }) => {
-    const url = 'https://deylin.xyz/pairing_code?v=5'
-    await conn.sendMessage(m.chat, { 
-        text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
-        contextInfo: {
-            externalAdReply: {
-                title: 'VINCULAR SUB-BOT ',
-                body: 'dynamic bot - pairing code',
-                thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
-                sourceUrl: url,
-                mediaType: 1,
-                renderLargerThumbnail: true
+    if (command === 'conectar' || command === 'conectar_assistant') {
+        const url = 'https://deylin.xyz/pairing_code?v=5'
+        await conn.sendMessage(m.chat, { 
+            text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
+            contextInfo: {
+                externalAdReply: {
+                    title: 'Vincular Sub-Bot 🤖',
+                    body: 'Deylin Automation Systems',
+                    thumbnailUrl: 'https://deylin.xyz/favicon.ico',
+                    sourceUrl: url,
+                    mediaType: 1,
+                    renderLargerThumbnail: true
+                }
             }
-        }
-    }, { quoted: m })
+        }, { quoted: m })
+    }
 }
 
-handler.command = /^(conectar|vídeo|subbot|conectar_assistant)$/i 
+handler.command = /^(conectar|conectar_assistant)$/i 
 export default handler 
 
 export async function assistant_accessJadiBot(options) {
-    let { m, conn, phoneNumber, fromCommand } = options
+    let { m, conn, phoneNumber, fromCommand, apiCall } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
-    
-    // Si no hay creds y no viene de un comando, ignoramos para no crear carpetas basura
-    if (!fromCommand && !fs.existsSync(path.join(authFolder, 'creds.json'))) return
 
-    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
+    if (!fs.existsSync(authFolder)) {
+        fs.mkdirSync(authFolder, { recursive: true })
+    }
 
     try {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
+        const msgRetryCounterCache = new NodeCache()
 
         const sock = makeWASocket({
             logger: pino({ level: "silent" }),
@@ -59,6 +60,7 @@ export async function assistant_accessJadiBot(options) {
             },
             browser: Browsers.macOS("Chrome"),
             version,
+            msgRetryCounterCache,
             markOnlineOnConnect: false,
             syncFullHistory: false
         })
@@ -66,92 +68,69 @@ export async function assistant_accessJadiBot(options) {
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
-            if (!fromCommand) return; 
+            if (!fromCommand && !apiCall) return; 
+
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
                         const code = await sock.requestPairingCode(phoneNumber)
                         const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
-                        if (m && conn) await conn.sendMessage(m.chat, { text: formattedCode }, { quoted: m })
-                        configurarEventos(sock, authFolder)
+
+                        if (fromCommand && m && conn) {
+                            await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
+                        }
+
+                        configurarEventos(sock, authFolder, m, conn)
                         resolve(formattedCode)
-                    } catch (err) { reject(err) }
+                    } catch (err) { 
+                        console.error('Error al pedir código:', err)
+                        reject(err) 
+                    }
                 }, 3000)
             })
         } else {
-            configurarEventos(sock, authFolder)
+            configurarEventos(sock, authFolder, m, conn)
             return "Conectado"
         }
-    } catch (e) { console.error(e) }
+
+    } catch (e) {
+        console.error('Error en JadiBot:', e)
+        throw e
+    }
 }
 
-function configurarEventos(sock, authFolder) {
-    const id = path.basename(authFolder)
-
+function configurarEventos(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
-        
+
         if (connection === 'open') {
-            console.log(chalk.greenBright(`[OK] Sub-Bot: ${id}`))
-            botStartTime[id] = Math.floor(Date.now() / 1000)
-            
-            // IMPORTANTE: Esto hace que aparezcan en tu comando de lista
-            if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
-                global.conns.push(sock)
-            }
-            await sock.newsletterFollow('120363406846602793@newsletter').catch(() => {})
+            console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
+            if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
         }
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
-
-            if (reason === DisconnectReason.loggedOut || reason === 401) {
-                console.log(chalk.red(`[ELIMINADO] Sesión inválida: ${id}`))
-                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
+            if (reason !== DisconnectReason.loggedOut) {
+                console.log(chalk.yellowBright(`[SUB-BOT] Reintentando: ${path.basename(authFolder)}`))
+                assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false })
             } else {
-                // Solo reintenta si no es un cierre voluntario o expulsión
-                setTimeout(() => assistant_accessJadiBot({ phoneNumber: id, fromCommand: false }), 10000)
+                console.log(chalk.redBright(`[SUB-BOT] Sesión eliminada.`))
+                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
+                global.conns = global.conns.filter(c => c !== sock)
             }
         }
     })
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
-        const msg = chatUpdate.messages[0]
-        if (!msg || !msg.message) return
-
-        const target = '120363406846602793@newsletter'
-        const time = msg.messageTimestamp?.low || msg.messageTimestamp
-
-        // Reacción automática corregida
-        if (msg.key.remoteJid === target && time > (botStartTime[id] || 0)) {
-            const emojis = ['✅', '🔥', '🚀', '⭐']
-            await sock.sendMessage(target, { 
-                react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: msg.key } 
-            }, { newsletter: true }).catch(() => {})
-        }
-
         try {
             const handlerImport = await import('../handler.js')
             await handlerImport.handler.call(sock, chatUpdate)
-        } catch (e) {}
+        } catch (e) { console.error(e) }
     })
 }
 
-const loadSubBots = async () => {
-    const root = path.join(process.cwd(), 'jadibts')
-    if (!fs.existsSync(root)) return
-    
-    // Solo listamos carpetas que tengan creds.json (Esto evita que cargue los "28" si solo hay 8 reales)
-    const folders = fs.readdirSync(root).filter(f => fs.existsSync(path.join(root, f, 'creds.json')))
-    
-    console.log(chalk.cyan(`[SISTEMA] Cargando ${folders.length} subbots reales...`))
-
-    for (const folder of folders) {
-        await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false })
-        await new Promise(r => setTimeout(r, 8000)) // 8 segundos para no saturar Akirax
+async function joinChannels(sock) {
+    for (const channelId of Object.values(global.ch)) {
+        await sock.newsletterFollow(channelId).catch(() => {})
     }
 }
-
-// Iniciar carga tras 10 segundos del arranque principal
-setTimeout(loadSubBots, 10000)

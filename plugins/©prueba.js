@@ -1,25 +1,75 @@
 import fetch from 'node-fetch'
 
-let handler = async (m, { conn }) => {
-    const imageUrl = "https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767466951467_BNENXDN6p.jpeg"
-    const response = await fetch(imageUrl)
-    const buffer = await response.buffer()
+const handler = async (m, { conn, participants }) => {
+  let chat = global.db.data.chats[m.chat]
+  let emojiIcon = chat?.emojiTag || '⟆⟆'
 
-    const messageStruct = {
-        extendedTextMessage: {
-            text: "https://hola.com// hola jajaja",
-            matchedText: "https://hola.com//",
-            description: "Número 1 en actualidad y tendencias de moda, belleza y estilo de vida. Noticias diarias sobre las estrellas de cine, la música, tendencias de moda, consejos de belleza, recetas de cocina, estilo de vida y la actualidad de las principales casas reales del mundo.",
-            title: "HOLA.com, últimas noticias de famosos, moda, belleza y actualidad",
-            previewType: "NONE",
-            jpegThumbnail: buffer,
-            inviteLinkGroupTypeV2: "DEFAULT"
-        }
+  await conn.sendMessage(m.chat, { react: { text: '🔊', key: m.key } })
+
+  const fixedImage = 'https://files.catbox.moe/oxpead.jpg'
+  const thumb = await (await fetch(fixedImage)).buffer()
+
+  const jids = participants
+    .map(p => p.id.split('@')[0])
+    .filter(id => id !== conn.user.jid.split('@')[0])
+
+  let infoPaises = []
+  try {
+    const response = await fetch('https://deylin.xyz/api/numberinfo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numeros: jids })
+    })
+    infoPaises = await response.json()
+  } catch {
+    infoPaises = jids.map(id => ({ numero: id, bandera: '🔊', pais: 'Desconocido' }))
+  }
+
+  const fkontak = {
+    key: { participants: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'ULTRA-BOT' },
+    message: {
+      locationMessage: {
+        name: 'INVOCACIÓN GENERAL',
+        jpegThumbnail: thumb
+      }
     }
+  }
 
-    await conn.relayMessage(m.chat, messageStruct, { quoted: m })
+  let teks = `*!  MENCION GENERAL  !*\n*PARA ${participants.length} MIEMBROS* 🔊\n\n`
+  let mentions = []
+
+  for (const info of infoPaises) {
+    const jid = `${info.numero}@s.whatsapp.net`
+    mentions.push(jid)
+    teks += `${info.bandera || '🔊'} ${emojiIcon} @${info.numero}\n`
+  }
+
+  await conn.sendMessage(
+    m.chat,
+    {
+      text: teks,
+      mentions,
+      contextInfo: { 
+        mentionedJid: mentions,
+        externalAdReply: {
+          title: 'INVOCACIÓN MASIVA',
+          body: 'Deylin API System',
+          thumbnail: thumb,
+          sourceUrl: 'https://deylin.xyz',
+          mediaType: 1,
+          showAdAttribution: true
+        }
+      }
+    },
+    { quoted: fkontak }
+  )
 }
 
-handler.command = ['prueba']
+handler.help = ['todos']
+handler.tags = ['grupos']
+handler.customPrefix = /^\.?(todos|invocar|invocacion|invocación)$/i
+handler.command = new RegExp()
+handler.group = true
+handler.admin = true
 
 export default handler

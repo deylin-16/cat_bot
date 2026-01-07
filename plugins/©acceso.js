@@ -17,6 +17,9 @@ const { makeWASocket } = await import('../lib/simple.js')
 
 if (!(global.conns instanceof Array)) global.conns = []
 
+// Variable para rastrear el tiempo de inicio de cada subbot
+const startTime = {}
+
 let handler = async (m, { conn, command }) => {
     if (command === 'conectar' || command === 'conectar_assistant' || command === 'subbot') {
         const url = 'https://deylin.xyz/pairing_code?v=5'
@@ -26,7 +29,7 @@ let handler = async (m, { conn, command }) => {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
                     newsletterJid: '120363406846602793@newsletter',
-                    newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
+                    newsletterName: `SIGUE EL CANAL DE: DEYLIN`,
                     serverMessageId: 1
                 },
                 externalAdReply: {
@@ -92,20 +95,24 @@ export async function assistant_accessJadiBot(options) {
 }
 
 function configurarEventos(sock, authFolder, m, conn) {
+    const botId = path.basename(authFolder)
+
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
         if (connection === 'open') {
-            console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
+            console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${botId}`))
+            startTime[botId] = Math.floor(Date.now() / 1000) // Guardamos el momento exacto de conexión
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
             await sock.newsletterFollow('120363406846602793@newsletter').catch(() => {})
         }
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             if (reason !== DisconnectReason.loggedOut) {
-                setTimeout(() => assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false }), 5000)
+                setTimeout(() => assistant_accessJadiBot({ m, conn, phoneNumber: botId, fromCommand: false, apiCall: false }), 7000)
             } else {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
+                delete startTime[botId]
             }
         }
     })
@@ -113,13 +120,15 @@ function configurarEventos(sock, authFolder, m, conn) {
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
             const msg = chatUpdate.messages[0]
-            if (!msg) return
+            if (!msg || !msg.message) return
 
             const remoteJid = msg.key.remoteJid
             const targetNewsletter = '120363406846602793@newsletter'
 
-            if (remoteJid === targetNewsletter || msg.key.participant === targetNewsletter) {
-                console.log(chalk.blueBright(`[DEBUG] Mensaje detectado en canal de: ${path.basename(authFolder)}`))
+            // VALIDACIÓN CLAVE: Solo reaccionar si el mensaje es de después de conectar
+            const msgTimestamp = msg.messageTimestamp
+            if (remoteJid === targetNewsletter && msgTimestamp > (startTime[botId] || 0)) {
+                console.log(chalk.blueBright(`[REACCIÓN] Nuevo mensaje en canal para bot: ${botId}`))
                 const emojis = ['✅', '🔥', '🚀', '⭐', '🤖', '❤️', '👍']
                 await sock.sendMessage(targetNewsletter, { 
                     react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: msg.key } 
@@ -128,9 +137,7 @@ function configurarEventos(sock, authFolder, m, conn) {
 
             const handlerImport = await import('../handler.js')
             await handlerImport.handler.call(sock, chatUpdate)
-        } catch (e) {
-            console.error(chalk.red(`[ERROR REACCION]:`), e)
-        }
+        } catch (e) {}
     })
 }
 
@@ -142,7 +149,7 @@ const loadSubBots = async () => {
         const folderPath = path.join(jadibtsPath, folder)
         if (fs.statSync(folderPath).isDirectory() && fs.existsSync(path.join(folderPath, 'creds.json'))) {
             await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false, apiCall: false })
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            await new Promise(resolve => setTimeout(resolve, 5000)) // Aumentado a 5 seg para estabilidad
         }
     }
 }

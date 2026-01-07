@@ -26,7 +26,7 @@ let handler = async (m, { conn, command }) => {
                 externalAdReply: {
                     title: 'VINCULAR SUB-BOT ',
                     body: 'dynamic bot - pairing code',
-                    thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767825787256_mClbEA0jN.jpeg',
+                    thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
                     sourceUrl: url,
                     mediaType: 1,
                     renderLargerThumbnail: true

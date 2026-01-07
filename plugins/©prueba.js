@@ -15,11 +15,8 @@ const handler = async (m, { conn, participants }) => {
 
   let infoPaises = []
   try {
-    const response = await fetch('https://deylin.xyz/api/numberinfo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numeros: cleanNumbers })
-    })
+    const numerosQuery = cleanNumbers.join(',')
+    const response = await fetch(`https://deylin.xyz/api/numberinfo?numeros=${numerosQuery}`)
     infoPaises = await response.json()
   } catch {
     infoPaises = cleanNumbers.map(num => ({ numero: num, bandera: '🔊' }))
@@ -42,8 +39,8 @@ const handler = async (m, { conn, participants }) => {
     const rawNumber = info.numero
     const jid = `${rawNumber}@s.whatsapp.net`
     mentions.push(jid)
-    
-    const bandera = (info.bandera && info.bandera !== '🔊') ? info.bandera : '🏴'
+
+    const bandera = (info.bandera && info.bandera !== '🏴') ? info.bandera : '🔊'
     teks += `${bandera} ${emojiIcon} @${rawNumber}\n`
   }
 

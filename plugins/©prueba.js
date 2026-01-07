@@ -67,8 +67,7 @@ const handler = async (m, { conn, participants }) => {
 
 handler.help = ['todos']
 handler.tags = ['grupos']
-handler.customPrefix = /^\.?(todos|invocar|invocacion|invocación)$/i
-handler.command = new RegExp()
+handler.command = /^\.?(todos|invocar|invocacion|invocación)$/i
 handler.group = true
 handler.admin = true
 

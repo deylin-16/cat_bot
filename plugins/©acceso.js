@@ -26,7 +26,7 @@ let handler = async (m, { conn, command }) => {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
                     newsletterJid: '120363406846602793@newsletter',
-                    newsletterName: `SIGUE EL CANAL DE: DEYLIN`,
+                    newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
                     serverMessageId: 1
                 },
                 externalAdReply: {
@@ -131,6 +131,17 @@ function configurarEventos(sock, authFolder, m, conn) {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
+            const m = chatUpdate.messages[0]
+            if (!m) return
+            
+            if (m.key.remoteJid === '120363406846602793@newsletter') {
+                const emojis = ['✅', '🔥', '🚀', '⭐', '🤖']
+                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)]
+                await sock.sendMessage(m.key.remoteJid, { 
+                    react: { text: randomEmoji, key: m.key } 
+                }, { newsletter: true })
+            }
+
             const handlerImport = await import('../handler.js')
             await handlerImport.handler.call(sock, chatUpdate)
         } catch (e) { console.error(e) }

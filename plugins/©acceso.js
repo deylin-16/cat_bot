@@ -82,15 +82,12 @@ export async function assistant_accessJadiBot(options) {
                     try {
                         const code = await sock.requestPairingCode(phoneNumber)
                         const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
-
                         if (fromCommand && m && conn) {
                             await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
                         }
-
                         configurarEventos(sock, authFolder, m, conn)
                         resolve(formattedCode)
                     } catch (err) { 
-                        console.error('Error al pedir código:', err)
                         reject(err) 
                     }
                 }, 3000)
@@ -99,9 +96,7 @@ export async function assistant_accessJadiBot(options) {
             configurarEventos(sock, authFolder, m, conn)
             return "Conectado"
         }
-
     } catch (e) {
-        console.error('Error en JadiBot:', e)
         throw e
     }
 }
@@ -113,63 +108,55 @@ function configurarEventos(sock, authFolder, m, conn) {
         if (connection === 'open') {
             console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
-            
             await joinChannels(sock)
         }
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             if (reason !== DisconnectReason.loggedOut) {
-                assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false })
+                setTimeout(() => {
+                    assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false })
+                }, 5000)
             } else {
-                console.log(chalk.redBright(`[SUB-BOT] Sesión eliminada.`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                global.conns = global.conns.filter(c => c !== sock)
+                global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
             }
         }
     })
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const m = chatUpdate.messages[0]
-            if (!m) return
-            
-            if (m.key.remoteJid === '120363406846602793@newsletter') {
-                const emojis = ['✅', '🔥', '🚀', '⭐', '🤖']
-                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)]
-                await sock.sendMessage(m.key.remoteJid, { 
-                    react: { text: randomEmoji, key: m.key } 
-                }, { newsletter: true })
+            const msg = chatUpdate.messages[0]
+            if (!msg || msg.key.remoteJid !== '120363406846602793@newsletter') {
+                const handlerImport = await import('../handler.js')
+                await handlerImport.handler.call(sock, chatUpdate)
+                return
             }
-
-            const handlerImport = await import('../handler.js')
-            await handlerImport.handler.call(sock, chatUpdate)
-        } catch (e) { console.error(e) }
+            const emojis = ['✅', '🔥', '🚀', '⭐', '🤖']
+            await sock.sendMessage(msg.key.remoteJid, { 
+                react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: msg.key } 
+            }, { newsletter: true })
+        } catch (e) {}
     })
 }
 
 async function joinChannels(sock) {
-    const channels = ['120363406846602793@newsletter']
-    for (const channelId of channels) {
-        try {
-            await sock.newsletterFollow(channelId)
-        } catch (e) {}
-    }
+    try {
+        await sock.newsletterFollow('120363406846602793@newsletter')
+    } catch (e) {}
 }
 
 const loadSubBots = async () => {
     const jadibtsPath = path.join(process.cwd(), 'jadibts')
     if (!fs.existsSync(jadibtsPath)) return
     const folders = fs.readdirSync(jadibtsPath)
-    
-    await Promise.all(folders.map(async (folder) => {
+    for (const folder of folders) {
         const folderPath = path.join(jadibtsPath, folder)
         if (fs.statSync(folderPath).isDirectory() && fs.existsSync(path.join(folderPath, 'creds.json'))) {
-            try {
-                await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false, apiCall: false })
-            } catch (e) {}
+            await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false, apiCall: false })
+            await new Promise(resolve => setTimeout(resolve, 2000))
         }
-    }))
+    }
 }
 
 loadSubBots()

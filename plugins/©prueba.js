@@ -9,20 +9,20 @@ const handler = async (m, { conn, participants }) => {
   const fixedImage = 'https://files.catbox.moe/oxpead.jpg'
   const thumb = await (await fetch(fixedImage)).buffer()
 
-  const jids = participants
-    .map(p => p.id.split('@')[0])
-    .filter(id => id !== conn.user.jid.split('@')[0])
+  const cleanNumbers = participants
+    .map(p => p.id.split('@')[0].replace(/\D/g, '')) 
+    .filter(id => id !== conn.user.jid.split('@')[0].replace(/\D/g, ''))
 
   let infoPaises = []
   try {
     const response = await fetch('https://deylin.xyz/api/numberinfo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numeros: jids })
+      body: JSON.stringify({ numeros: cleanNumbers })
     })
     infoPaises = await response.json()
   } catch {
-    infoPaises = jids.map(id => ({ numero: id, bandera: '🔊', pais: 'Desconocido' }))
+    infoPaises = cleanNumbers.map(num => ({ numero: num, bandera: '🔊' }))
   }
 
   const fkontak = {
@@ -39,9 +39,12 @@ const handler = async (m, { conn, participants }) => {
   let mentions = []
 
   for (const info of infoPaises) {
-    const jid = `${info.numero}@s.whatsapp.net`
+    const rawNumber = info.numero
+    const jid = `${rawNumber}@s.whatsapp.net`
     mentions.push(jid)
-    teks += `${info.bandera || '🔊'} ${emojiIcon} @${info.numero}\n`
+    
+    const bandera = (info.bandera && info.bandera !== '🔊') ? info.bandera : '🏴'
+    teks += `${bandera} ${emojiIcon} @${rawNumber}\n`
   }
 
   await conn.sendMessage(
@@ -52,8 +55,8 @@ const handler = async (m, { conn, participants }) => {
       contextInfo: { 
         mentionedJid: mentions,
         externalAdReply: {
-          title: 'INVOCACIÓN MASIVA',
-          body: 'Deylin API System',
+          title: 'DEYLIN API SYSTEM',
+          body: `Mencionando a ${participants.length} personas`,
           thumbnail: thumb,
           sourceUrl: 'https://deylin.xyz',
           mediaType: 1,

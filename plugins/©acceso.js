@@ -18,17 +18,17 @@ const { makeWASocket } = await import('../lib/simple.js')
 if (!(global.conns instanceof Array)) global.conns = []
 
 let handler = async (m, { conn, command }) => {
-    if (command === 'conectar' || command === 'conectar_assistant') {
+    if (command === 'conectar' || command === 'conectar_assistant' || command === 'subbot') {
         const url = 'https://deylin.xyz/pairing_code?v=5'
         await conn.sendMessage(m.chat, { 
             text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
             contextInfo: {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                newsletterJid: '120363406846602793@newsletter',
-                newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
-                serverMessageId: 1
-            },
+                    newsletterJid: '120363406846602793@newsletter',
+                    newsletterName: `SIGUE EL CANAL DE: DEYLIN`,
+                    serverMessageId: 1
+                },
                 externalAdReply: {
                     title: 'VINCULAR SUB-BOT ',
                     body: 'dynamic bot - pairing code',
@@ -113,12 +113,13 @@ function configurarEventos(sock, authFolder, m, conn) {
         if (connection === 'open') {
             console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
+            
+            await joinChannels(sock)
         }
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             if (reason !== DisconnectReason.loggedOut) {
-                console.log(chalk.yellowBright(`[SUB-BOT] Reintentando: ${path.basename(authFolder)}`))
                 assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false })
             } else {
                 console.log(chalk.redBright(`[SUB-BOT] Sesión eliminada.`))
@@ -137,7 +138,27 @@ function configurarEventos(sock, authFolder, m, conn) {
 }
 
 async function joinChannels(sock) {
-    for (const channelId of Object.values(global.ch)) {
-        await sock.newsletterFollow(channelId).catch(() => {})
+    const channels = ['120363406846602793@newsletter']
+    for (const channelId of channels) {
+        try {
+            await sock.newsletterFollow(channelId)
+        } catch (e) {}
     }
 }
+
+const loadSubBots = async () => {
+    const jadibtsPath = path.join(process.cwd(), 'jadibts')
+    if (!fs.existsSync(jadibtsPath)) return
+    const folders = fs.readdirSync(jadibtsPath)
+    
+    await Promise.all(folders.map(async (folder) => {
+        const folderPath = path.join(jadibtsPath, folder)
+        if (fs.statSync(folderPath).isDirectory() && fs.existsSync(path.join(folderPath, 'creds.json'))) {
+            try {
+                await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false, apiCall: false })
+            } catch (e) {}
+        }
+    }))
+}
+
+loadSubBots()

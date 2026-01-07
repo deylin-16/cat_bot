@@ -23,6 +23,12 @@ let handler = async (m, { conn, command }) => {
         await conn.sendMessage(m.chat, { 
             text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
             contextInfo: {
+                isForwarded: true,
+                forwardedNewsletterMessageInfo: {
+                newsletterJid: '120363406846602793@newsletter',
+                newsletterName: `SIGUE EL CANAL DE: ${config.assistantName}`,
+                serverMessageId: 1
+            },
                 externalAdReply: {
                     title: 'VINCULAR SUB-BOT ',
                     body: 'dynamic bot - pairing code',

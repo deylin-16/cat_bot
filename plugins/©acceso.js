@@ -49,10 +49,7 @@ export default handler
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand, apiCall } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
-
-    if (!fs.existsSync(authFolder)) {
-        fs.mkdirSync(authFolder, { recursive: true })
-    }
+    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
 
     try {
         const { version } = await fetchLatestBaileysVersion()
@@ -76,47 +73,36 @@ export async function assistant_accessJadiBot(options) {
 
         if (!sock.authState.creds.registered) {
             if (!fromCommand && !apiCall) return; 
-
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
                         const code = await sock.requestPairingCode(phoneNumber)
                         const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code
-                        if (fromCommand && m && conn) {
-                            await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
-                        }
+                        if (fromCommand && m && conn) await conn.sendMessage(m.chat, { text: `${formattedCode}` }, { quoted: m })
                         configurarEventos(sock, authFolder, m, conn)
                         resolve(formattedCode)
-                    } catch (err) { 
-                        reject(err) 
-                    }
+                    } catch (err) { reject(err) }
                 }, 3000)
             })
         } else {
             configurarEventos(sock, authFolder, m, conn)
             return "Conectado"
         }
-    } catch (e) {
-        throw e
-    }
+    } catch (e) { throw e }
 }
 
 function configurarEventos(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
-
         if (connection === 'open') {
             console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
-            await joinChannels(sock)
+            await sock.newsletterFollow('120363406846602793@newsletter').catch(() => {})
         }
-
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             if (reason !== DisconnectReason.loggedOut) {
-                setTimeout(() => {
-                    assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false })
-                }, 5000)
+                setTimeout(() => assistant_accessJadiBot({ m, conn, phoneNumber: path.basename(authFolder), fromCommand: false, apiCall: false }), 5000)
             } else {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
@@ -127,23 +113,25 @@ function configurarEventos(sock, authFolder, m, conn) {
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
             const msg = chatUpdate.messages[0]
-            if (!msg || msg.key.remoteJid !== '120363406846602793@newsletter') {
-                const handlerImport = await import('../handler.js')
-                await handlerImport.handler.call(sock, chatUpdate)
-                return
-            }
-            const emojis = ['✅', '🔥', '🚀', '⭐', '🤖']
-            await sock.sendMessage(msg.key.remoteJid, { 
-                react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: msg.key } 
-            }, { newsletter: true })
-        } catch (e) {}
-    })
-}
+            if (!msg) return
 
-async function joinChannels(sock) {
-    try {
-        await sock.newsletterFollow('120363406846602793@newsletter')
-    } catch (e) {}
+            const remoteJid = msg.key.remoteJid
+            const targetNewsletter = '120363406846602793@newsletter'
+
+            if (remoteJid === targetNewsletter || msg.key.participant === targetNewsletter) {
+                console.log(chalk.blueBright(`[DEBUG] Mensaje detectado en canal de: ${path.basename(authFolder)}`))
+                const emojis = ['✅', '🔥', '🚀', '⭐', '🤖', '❤️', '👍']
+                await sock.sendMessage(targetNewsletter, { 
+                    react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: msg.key } 
+                }, { newsletter: true })
+            }
+
+            const handlerImport = await import('../handler.js')
+            await handlerImport.handler.call(sock, chatUpdate)
+        } catch (e) {
+            console.error(chalk.red(`[ERROR REACCION]:`), e)
+        }
+    })
 }
 
 const loadSubBots = async () => {

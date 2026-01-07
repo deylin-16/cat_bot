@@ -26,7 +26,7 @@ let handler = async (m, { conn, command }) => {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
                 newsletterJid: '120363406846602793@newsletter',
-                newsletterName: `SIGUE EL CANAL DE: ${config.assistantName}`,
+                newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
                 serverMessageId: 1
             },
                 externalAdReply: {

@@ -26,7 +26,7 @@ async function nextQ(conn, m) {
     let txt = `*PREGUNTA ${t.pos + 1}/3*\n\n`
     txt += `*${q.pregunta}*\n\n`
     txt += q.opciones.map((v, i) => `${i + 1}. ${v}`).join('\n')
-    txt += `\n\n_Solo @${t.sender.split('@')[0]} puede responder citando este mensaje._`
+    txt += `\n\n_TRIVIA =>  @${t.sender.split('@')[0]}_`
 
     let sent = await conn.reply(m.chat, txt, m, { mentions: [t.sender] })
     t.msgId = sent.key.id 
@@ -77,10 +77,22 @@ handler.before = async function (m) {
         finalTxt += `+${xpGanado} XP\n`
         finalTxt += `+${coinsGanados} ₿ Bitcoins`
 
-        await this.sendMessage(m.chat, { 
-            text: finalTxt, 
+                await conn.sendMessage(m.chat, {
+            text: finalTxt,
+            contextInfo: {
+                mentionedJid: [t.sender], 
+                externalAdReply: {
+                    title: name(conn),
+                    thumbnail: img(conn),
+                    mediaType: 1,
+                    mediaUrl: url,
+                    sourceUrl: url,
+                    renderLargerThumbnail: true
+                }
+            },
             mentions: [t.sender] 
         }, { quoted: m })
+
 
         delete this.trivia[m.chat]
     }

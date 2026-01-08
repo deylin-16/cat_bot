@@ -66,7 +66,7 @@ export async function handler(chatUpdate) {
     let user; 
     try {
         m.exp = 0;
-        m.coin = false;
+        m.bitcoins = 0;
 
         const senderJid = m.sender;
         const chatJid = m.chat;
@@ -83,15 +83,13 @@ export async function handler(chatUpdate) {
             primaryBot: ''
         };
 
-
-
         if (typeof global.db.data.users[senderJid] !== 'object') global.db.data.users[senderJid] = {};
         user = global.db.data.users[senderJid];
         const chat = global.db.data.chats[chatJid];
 
         if (user) {
             if (!('exp' in user) || !isNumber(user.exp)) user.exp = 0;
-            if (!('coin' in user) || !isNumber(user.coin)) user.coin = 0;
+            if (!('bitcoins' in user) || !isNumber(user.bitcoins)) user.bitcoins = 0;
             if (!('muto' in user)) user.muto = false; 
         }
 
@@ -129,7 +127,7 @@ export async function handler(chatUpdate) {
             isRAdmin = isAdmin = isBotAdmin = false;
         }
 
-                const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
+        const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
         const prefixRegex = /^[.#\/]/;
 
         for (const name in global.plugins) {
@@ -185,7 +183,6 @@ export async function handler(chatUpdate) {
 
             m.plugin = name;
 
-
             if (chat?.isBanned && !isROwner) return;
             if (chat?.modoadmin && !isOwner && !isROwner && m.isGroup && !isAdmin) return;
 
@@ -228,7 +225,7 @@ export async function handler(chatUpdate) {
         if (m && user) {
             if (user.muto) await conn.sendMessage(m.chat, { delete: m.key });
             user.exp += m.exp || 0;
-            user.coin -= m.coin ? m.coin * 1 : 0;
+            user.bitcoins += m.bitcoins || 0;
             if (m.plugin) {
                 global.db.data.stats[m.plugin] ||= { total: 0, success: 0, last: 0, lastSuccess: 0 };
                 const stat = global.db.data.stats[m.plugin];

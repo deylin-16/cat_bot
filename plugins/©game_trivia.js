@@ -72,14 +72,14 @@ handler.before = async function (m) {
                     title: name(conn),
                     thumbnailUrl: img(conn),
                     mediaType: 1,
-                    mediaUrl: ,
-                    sourceUrl: ,
+                    mediaUrl: url,
+                    sourceUrl: url,
                     renderLargerThumbnail: true
                 }
             }
         }, { quoted: m })
 
-            await m.reply(finalTxt)
+            //await m.reply(finalTxt)
             delete this.trivia[m.chat]
         }
     }

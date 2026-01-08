@@ -25,6 +25,18 @@ switch (type) {
       break;
 
 
+    case 'modoadmin':
+    case 'soloadmin':
+      if (m.isGroup) {
+        if (!(isAdmin || isOwner)) {
+          global.dfail('admin', m, conn);
+          throw false;
+        }
+      }
+      isEnable = chat.modoadmin = !chat.modoadmin;
+      break;
+
+
   
     case 'welcome':
     case 'bv':
@@ -46,6 +58,6 @@ switch (type) {
 };
 
 handler.command = [
-  '@welcome', 'bv', '@bienvenida', 'autor', 'res'
+  '@welcome', 'bv', 'soloadmin', 'modoadmin', '@bienvenida', 'autor', 'res'
 ]
 export default handler

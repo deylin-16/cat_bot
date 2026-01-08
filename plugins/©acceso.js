@@ -43,7 +43,7 @@ let handler = async (m, { conn, command }) => {
     }
 }
 
-handler.command = /^(conectar|conectar_assistant)$/i 
+handler.command = /^(conectar|code|subbot)$/i 
 export default handler 
 
 export async function assistant_accessJadiBot(options) {

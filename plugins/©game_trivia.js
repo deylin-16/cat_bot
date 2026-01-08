@@ -4,7 +4,7 @@ let handler = async (m, { conn, command }) => {
     conn.trivia = conn.trivia ? conn.trivia : {}
     if (conn.trivia[m.chat]) return m.reply('Trivia activa.')
 
-    let db = JSON.parse(fs.readFileSync('./src/data/trivia.json'))
+    let db = JSON.parse(fs.readFileSync('./db/trivia.json'))
     let list = db.sort(() => 0.5 - Math.random()).slice(0, 3)
     
     conn.trivia[m.chat] = {

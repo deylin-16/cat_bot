@@ -28,25 +28,29 @@ const handler = async (m, { conn, text, command }) => {
       return global.design(conn, m, "❌ Error en el servidor de descargas.");
     }
 
+    const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg");
+    const thumb3 = Buffer.from(await res3.arrayBuffer());
+    const fkontak = {
+      key: { fromMe: false, participant: "0@s.whatsapp.net" },
+      message: {
+        documentMessage: {
+          title: `「 ${title} 」`,
+          fileName: name(conn),
+          jpegThumbnail: thumb3
+        }
+      }
+    }
+
+
     if (type === 'mp3') {
       await conn.sendMessage(
         m.chat,
         {
           audio: { url: data.download_url },
           mimetype: "audio/mp4",
-          fileName: `${data.title}.mp3`,
-          contextInfo: {
-            externalAdReply: {
-              title: data.title,
-              body: data.info,
-              thumbnailUrl: data.thumbnail,
-              mediaType: 2,
-              mediaUrl: url,
-              sourceUrl: url
-            }
-          }
+          fileName: `${data.title}.mp3`
         },
-        { quoted: m }
+        { quoted: fkontak }
       );
     } else {
       await m.react("🎥");

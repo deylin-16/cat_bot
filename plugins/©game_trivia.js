@@ -70,7 +70,7 @@ handler.before = async function (m) {
               contextInfo: {
                 externalAdReply: {
                     title: name(conn),
-                    thumbnailUrl: img(conn),
+                    thumbnail: img(conn),
                     mediaType: 1,
                     mediaUrl: url,
                     sourceUrl: url,

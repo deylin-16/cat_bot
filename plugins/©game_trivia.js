@@ -86,7 +86,7 @@ handler.before = async function (m) {
                 externalAdReply: {
                     title: name(conn),
                     body: 'Resultados de la Trivia',
-                    thumbnailUrl: img(conn),
+                    thumbnail: img(conn),
                     mediaType: 1,
                     sourceUrl: url,
                     renderLargerThumbnail: true

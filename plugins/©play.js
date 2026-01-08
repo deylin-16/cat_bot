@@ -48,8 +48,19 @@ const handler = async (m, { conn, text, command }) => {
         {
           audio: { url: data.download_url },
           mimetype: "audio/mp4",
-          fileName: `${data.title}.mp3`
-        },
+          fileName: `${data.title}.mp3`,
+          ptt: true,
+        contextInfo: {
+            externalAdReply: {
+              title: data.title,
+              body: data.info,
+              mediaType: 1,
+              renderLargerThumbnail: true,
+              thumbnailUrl: data.thumbnail,
+              sourceUrl: url
+            }
+          }
+        }, 
         { quoted: fkontak }
       );
     } else {

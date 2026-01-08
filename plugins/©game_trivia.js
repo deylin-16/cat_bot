@@ -4,11 +4,11 @@ let handler = async (m, { conn }) => {
     conn.trivia = conn.trivia ? conn.trivia : {}
     if (conn.trivia[m.chat]) return m.reply('Ya hay una trivia en curso en este chat.')
 
-    
     let db = JSON.parse(fs.readFileSync('./db/trivia.json'))
     let list = db.sort(() => 0.5 - Math.random()).slice(0, 3)
 
     conn.trivia[m.chat] = {
+        sender: m.sender, 
         pos: 0,
         list,
         score: 0,
@@ -26,19 +26,19 @@ async function nextQ(conn, m) {
     let txt = `*PREGUNTA ${t.pos + 1}/3*\n\n`
     txt += `*${q.pregunta}*\n\n`
     txt += q.opciones.map((v, i) => `${i + 1}. ${v}`).join('\n')
-    txt += `\n\n_Responde a este mensaje con el número o el texto._`
+    txt += `\n\n_Solo @${t.sender.split('@')[0]} puede responder citando este mensaje._`
 
-    let sent = await conn.reply(m.chat, txt, m)
+    let sent = await conn.reply(m.chat, txt, m, { mentions: [t.sender] })
     t.msgId = sent.key.id 
 }
 
 handler.before = async function (m) {
-    
     if (!this.trivia || !this.trivia[m.chat] || m.fromMe || !m.text) return
 
     let t = this.trivia[m.chat]
-    
-    
+
+    if (m.sender !== t.sender) return 
+
     const isQuoted = m.quoted && m.quoted.id === t.msgId
     if (!isQuoted) return 
 
@@ -66,18 +66,22 @@ handler.before = async function (m) {
     } else {
         let randomXp = Math.floor(Math.random() * 100) + 1
         let randomCoins = Math.floor(Math.random() * 100) + 1
-        
+
         let xpGanado = t.score > 0 ? randomXp * t.score : 0
         let coinsGanados = t.score > 0 ? randomCoins * t.score : 0
 
         let finalTxt = `*TRIVIA FINALIZADA*\n\n`
+        finalTxt += `*Participante:* @${t.sender.split('@')[0]}\n`
         finalTxt += `*Aciertos:* ${t.score}/3\n`
         finalTxt += `*Recompensa Total:*\n`
         finalTxt += `+${xpGanado} XP\n`
         finalTxt += `+${coinsGanados} ₿ Bitcoins`
 
-        await this.sendMessage(m.chat, { text: finalTxt }, { quoted: m })
-        
+        await this.sendMessage(m.chat, { 
+            text: finalTxt, 
+            mentions: [t.sender] 
+        }, { quoted: m })
+
         delete this.trivia[m.chat]
     }
 }

@@ -2,54 +2,38 @@ import baileys from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, text }) => {
     let link = text.trim()
-    if (!link || !link.includes('whatsapp.com/channel/')) {
-        return m.reply('⚠️ Proporciona un enlace válido de un mensaje del canal para inspeccionarlo.')
-    }
+    if (!link.includes('whatsapp.com/channel/')) return m.reply('⚠️ Pega el enlace del canal.')
 
-    // Extraemos el JID (si viene en el link) y el ID del mensaje
-    let parts = link.split('/')
-    let serverId = parts.pop().split('?')[0] // El número (ej: 133)
-    let channelJid = '120363406846602793@newsletter' 
+    let serverId = link.split('/').pop().split('?')[0]
+    let channelJid = '120363406846602793@newsletter'
 
     try {
-        m.reply(`🕵️ Investigando mensaje #${serverId} en el canal...`)
+        m.reply(`📡 Consultando directamente al servidor de WA por el ID: ${serverId}...`)
 
-        // Intentamos obtener los metadatos del mensaje directamente del servidor
-        // Nota: Esto solo funciona si el bot tiene el canal sincronizado
-        let msgInfo = await conn.getAggregateVotesInNewsletterMessage(channelJid, serverId)
-        
-        let report = `🔍 *INSPECCIÓN DE ENLACE DIRECTO*\n\n`
-        report += `📌 *Server ID:* \`${serverId}\`\n`
-        report += `📡 *Canal JID:* \`${channelJid}\`\n`
-        
-        if (msgInfo) {
-            report += `✅ *Mensaje encontrado en el servidor.*\n`
-            report += `📊 *Data:* ${JSON.stringify(msgInfo)}\n`
-        } else {
-            report += `❌ *El servidor no devolvió data extendida.* Intentando con estructura de llave...\n`
-        }
-
-        await m.reply(report)
-
-        // Prueba técnica: Intentar reaccionar con el bot principal para testear el ID
-        await conn.sendMessage(channelJid, {
-            react: {
-                text: '🔍',
-                key: {
-                    remoteJid: channelJid,
-                    fromMe: false,
-                    id: serverId,
+        // Consultamos al servidor por el mensaje específico
+        const result = await conn.query({
+            tag: 'newsletter',
+            attrs: { jid: channelJid, type: 'get' },
+            content: [
+                {
+                    tag: 'message',
+                    attrs: { server_id: serverId }
                 }
-            }
-        }, { newsletter: true })
+            ]
+        })
+
+        await m.reply(`✅ **Respuesta del Servidor:**\n\n\`\`\`${JSON.stringify(result, null, 2)}\`\`\``)
 
     } catch (e) {
-        await m.reply(`❌ Error en la investigación profunda:\n${e.message}`)
-        console.error(e)
+        // Si aquí sale "item-not-found", es que el ID del enlace no sirve para reaccionar
+        await m.reply(`❌ Error de Servidor: ${e.message}`)
+        
+        if (e.message.includes('not-authorized')) {
+            await m.reply('💡 El bot no está autorizado. Los subbots DEBEN seguir el canal primero.')
+        }
     }
 }
 
-handler.command = /^(inspect|inspec)$/i
+handler.command = /^(inspec2|debug2)$/i
 handler.owner = true
-
 export default handler

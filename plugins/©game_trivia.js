@@ -67,7 +67,18 @@ handler.before = async function (m) {
 
             await conn.sendMessage(m.chat, {
               text: finalTxt,
-              contextinfo
+              contextInfo: {
+                externalAdReply: {
+                    title: name(conn),
+                    thumbnailUrl: img(conn),
+                    mediaType: 1,
+                    mediaUrl: ,
+                    sourceUrl: ,
+                    renderLargerThumbnail: true
+                }
+            }
+        }, { quoted: m })
+
             await m.reply(finalTxt)
             delete this.trivia[m.chat]
         }

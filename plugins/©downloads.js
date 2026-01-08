@@ -116,7 +116,7 @@ var handler = async (m, { conn, args }) => {
 };
 
 
-handler.command = ['descargar', 'dl', 'descarga'];
+handler.command = ['descargar', 'dl', 'descarga', 'fb', 'ig', 'tt', 'tiktok', 'facebook', 'instagram'];
 handler.register = true;
 handler.group = true;
 

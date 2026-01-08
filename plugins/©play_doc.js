@@ -165,7 +165,7 @@ const handler = async (m, { conn, text, command }) => {
       message: {
         documentMessage: {
           title: "𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔𝗡𝗗𝗢",
-          fileName: global.botname || "Bot",
+          fileName: global.name(conn) || "Bot",
           jpegThumbnail: thumb3
         }
       }
@@ -178,7 +178,7 @@ const handler = async (m, { conn, text, command }) => {
       message: {
         documentMessage: {
           title: `「 ${title} 」`,
-          fileName: botname,
+          fileName: name(conn),
           jpegThumbnail: thumb3
         }
       }

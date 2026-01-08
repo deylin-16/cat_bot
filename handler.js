@@ -74,6 +74,7 @@ export async function handler(chatUpdate) {
         global.db.data.chats[chatJid] ||= {
             isBanned: false,
             sAutoresponder: '',
+            modoadmin: false,
             welcome: true,
             autoresponder: false,
             antiLink: true,

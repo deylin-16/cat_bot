@@ -1,42 +1,40 @@
 import baileys from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    if (!text) return m.reply(`*${usedPrefix + command}* enlace emoji`)
+    // 1. Validar que se envíe un emoji
+    if (!text) return m.reply(`⚠️ Responde a un mensaje del canal y escribe:\n*${usedPrefix + command}* 🔥`)
 
-    let [link, emoji] = text.split(' ')
-    if (!link || !emoji) return m.reply(`⚠️ Ejemplo:\n*${usedPrefix + command}* https://whatsapp.com/channel/xxx/123 👍`)
+    // 2. Obtener el mensaje al que estás respondiendo (Quoted)
+    let q = m.quoted ? m.quoted : m
+    let mime = (q.msg || q).mtype || ''
+    
+    // 3. Determinar el JID del canal
+    // Si estás respondiendo a un mensaje reenviado del canal, intentamos sacar el JID
+    let channelJid = '120363406846602793@newsletter' 
 
-    // Limpieza del ID del mensaje
-    let msgId = link.split('/').pop().split('?')[0]
-    let channelJid = '120363406846602793@newsletter'
-
-    // Filtrar subbots que estén realmente activos
+    // 4. Filtrar bots activos
     let bots = global.conns.filter(c => c.user && c.ws?.socket && c.ws.socket.readyState === 1)
 
-    if (bots.length === 0) return m.reply('❌ No hay sub-bots conectados en este momento.')
+    if (bots.length === 0) return m.reply('❌ No hay sub-bots conectados.')
 
-    m.reply(`🚀 Intentando con *${bots.length}* bots. Si no reaccionan, asegúrate de que el bot siga al canal.`)
+    await m.reply(`🚀 Reaccionando con *${bots.length}* bots al mensaje seleccionado...`)
 
     let successCount = 0
     for (let [index, sock] of bots.entries()) {
         try {
-            await new Promise(resolve => setTimeout(resolve, index * 800)) 
+            await new Promise(resolve => setTimeout(resolve, index * 500)) 
 
-            // Intentamos enviar la reacción con una estructura de "Key" más completa
             await sock.sendMessage(channelJid, {
                 react: {
-                    text: emoji,
+                    text: text.trim(),
                     key: {
                         remoteJid: channelJid,
-                        fromMe: false, 
-                        id: msgId,
-                        // Añadimos el participant para newsletters (opcional pero ayuda)
-                        participant: channelJid 
+                        fromMe: false,
+                        // Aquí usamos el ID real del mensaje que sacamos del quoted
+                        id: m.quoted ? m.quoted.id : m.key.id,
                     }
                 }
-            }, { 
-                newsletter: true 
-            })
+            }, { newsletter: true })
             
             successCount++
         } catch (e) {
@@ -44,7 +42,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
     }
 
-    return m.reply(`✅ **Proceso completado**\n\n✨ Reacciones enviadas: ${successCount}\n📌 Si no aparecen, prueba a publicar un mensaje NUEVO en el canal y usa el enlace de ese mensaje nuevo.`)
+    return m.reply(`✅ **Resultado**\n\n✨ Reacciones: ${successCount}\n🤖 Bots: ${bots.length}`)
 }
 
 handler.help = ['reac']

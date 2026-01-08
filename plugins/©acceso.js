@@ -113,6 +113,7 @@ function configurarEventos(sock, authFolder, m, conn) {
         if (connection === 'open') {
             console.log(chalk.greenBright(`[SUB-BOT] Conectado: ${path.basename(authFolder)}`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
+            await joinChannels(sock)
         }
 
         if (connection === 'close') {
@@ -137,7 +138,12 @@ function configurarEventos(sock, authFolder, m, conn) {
 }
 
 async function joinChannels(sock) {
-    for (const channelId of Object.values(global.ch)) {
-        await sock.newsletterFollow(channelId).catch(() => {})
+    const channels = Object.values(global.ch || {})
+    for (const channelId of channels) {
+        try {
+            if (channelId.endsWith('@newsletter')) {
+                await sock.newsletterFollow(channelId)
+            }
+        } catch (e) {}
     }
 }

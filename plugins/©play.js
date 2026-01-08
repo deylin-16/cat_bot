@@ -34,7 +34,7 @@ const handler = async (m, { conn, text, command }) => {
       key: { fromMe: false, participant: "0@s.whatsapp.net" },
       message: {
         documentMessage: {
-          title: `「 ${title} 」`,
+          title: `「 ${data.title} 」`,
           fileName: name(conn),
           jpegThumbnail: thumb3
         }

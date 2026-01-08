@@ -36,6 +36,7 @@ handler.before = async function (m) {
     if (!this.trivia || !this.trivia[m.chat] || m.fromMe || !m.text) return
 
     let t = this.trivia[m.chat]
+    let conn = this 
 
     if (m.sender !== t.sender) return 
 
@@ -62,7 +63,7 @@ handler.before = async function (m) {
     t.pos++
 
     if (t.pos < 3) {
-        return nextQ(this, m)
+        return nextQ(conn, m)
     } else {
         let randomXp = Math.floor(Math.random() * 100) + 1
         let randomCoins = Math.floor(Math.random() * 100) + 1
@@ -77,22 +78,21 @@ handler.before = async function (m) {
         finalTxt += `+${xpGanado} XP\n`
         finalTxt += `+${coinsGanados} ₿ Bitcoins`
 
-                await conn.sendMessage(m.chat, {
+        
+        await conn.sendMessage(m.chat, {
             text: finalTxt,
             contextInfo: {
                 mentionedJid: [t.sender], 
                 externalAdReply: {
                     title: name(conn),
-                    thumbnail: img(conn),
+                    body: 'Resultados de la Trivia',
+                    thumbnailUrl: img(conn),
                     mediaType: 1,
-                    mediaUrl: url,
                     sourceUrl: url,
                     renderLargerThumbnail: true
                 }
-            },
-            mentions: [t.sender] 
+            }
         }, { quoted: m })
-
 
         delete this.trivia[m.chat]
     }

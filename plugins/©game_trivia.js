@@ -2,7 +2,7 @@ import fs from 'fs'
 
 let handler = async (m, { conn }) => {
     conn.trivia = conn.trivia ? conn.trivia : {}
-    if (conn.trivia[m.chat]) return m.reply('Trivia activa.')
+    if (conn.trivia[m.chat]) return
 
     let db = JSON.parse(fs.readFileSync('./db/trivia.json'))
     let list = db.sort(() => 0.5 - Math.random()).slice(0, 3)
@@ -21,10 +21,11 @@ async function nextQ(conn, m) {
     if (!conn.trivia || !conn.trivia[m.chat]) return
     let t = conn.trivia[m.chat]
     let q = t.list[t.pos]
-    let txt = `*TRIVIA ${t.pos + 1}/3*\n\n`
+    
+    let txt = `*PREGUNTA ${t.pos + 1}/3*\n\n`
     txt += `*${q.pregunta}*\n\n`
     txt += q.opciones.map((v, i) => `${i + 1}. ${v}`).join('\n')
-    txt += `\n\n_Responde con el número o el texto_`
+    
     t.msg = await conn.reply(m.chat, txt, m)
 }
 
@@ -41,25 +42,31 @@ handler.before = async function (m) {
     let isNumber = !isNaN(m.text) && choices[parseInt(m.text) - 1] === correct
     let isText = answer === correct
 
-    if (isNumber || isText) {
-        t.score++
+    if (isNumber || isText) t.score++
+
+    if (m.quoted && m.quoted.id === t.msg.id || isNumber || isText) {
         t.pos++
-        m.exp = 150
-        m.bitcoins = 100
-        await m.reply('✅ ¡Correcto!\n+150 XP\n+100 ₿ Bitcoins')
         
-        if (t.pos < 3) return nextQ(this, m)
-        
-        let bonus = t.score === 3 ? 500 : 0
-        m.bitcoins += bonus
-        await m.reply(`*Fin de la Trivia*\nPuntos: ${t.score}/3\n${bonus > 0 ? `🎁 ¡Bono por racha perfecta!: +${bonus} ₿` : ''}`)
-        delete this.trivia[m.chat]
-    } else if (t.msg && m.quoted && m.quoted.id === t.msg.id) {
-        t.pos++
-        await m.reply(`❌ Incorrecto. Era: *${cur.respuesta}*`)
-        if (t.pos < 3) return nextQ(this, m)
-        await m.reply(`*Fin de la Trivia*\nPuntos: ${t.score}/3`)
-        delete this.trivia[m.chat]
+        if (t.pos < 3) {
+            return nextQ(this, m)
+        } else {
+            let randomXp = Math.floor(Math.random() * 100) + 1
+            let randomCoins = Math.floor(Math.random() * 100) + 1
+            
+            if (t.score > 0) {
+                m.exp = randomXp * t.score
+                m.bitcoins = randomCoins * t.score
+            }
+
+            let finalTxt = `*TRIVIA FINALIZADA*\n\n`
+            finalTxt += `*Aciertos:* ${t.score}/3\n`
+            finalTxt += `*Recompensa Total:*\n`
+            finalTxt += `+${m.exp || 0} XP\n`
+            finalTxt += `+${m.bitcoins || 0} ₿ Bitcoins`
+            
+            await m.reply(finalTxt)
+            delete this.trivia[m.chat]
+        }
     }
 }
 

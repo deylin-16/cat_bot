@@ -1,53 +1,38 @@
-import baileys from '@whiskeysockets/baileys'
+let handler = async (m, { conn }) => {
+    // 1. Verificar si estás respondiendo a algo
+    if (!m.quoted) return m.reply('⚠️ Responde a un mensaje del canal con este comando para inspeccionarlo.')
 
-let handler = async (m, { conn, text, usedPrefix, command }) => {
-    // 1. Validar que se envíe un emoji
-    if (!text) return m.reply(`⚠️ Responde a un mensaje del canal y escribe:\n*${usedPrefix + command}* 🔥`)
-
-    // 2. Obtener el mensaje al que estás respondiendo (Quoted)
-    let q = m.quoted ? m.quoted : m
-    let mime = (q.msg || q).mtype || ''
-    
-    // 3. Determinar el JID del canal
-    // Si estás respondiendo a un mensaje reenviado del canal, intentamos sacar el JID
-    let channelJid = '120363406846602793@newsletter' 
-
-    // 4. Filtrar bots activos
-    let bots = global.conns.filter(c => c.user && c.ws?.socket && c.ws.socket.readyState === 1)
-
-    if (bots.length === 0) return m.reply('❌ No hay sub-bots conectados.')
-
-    await m.reply(`🚀 Reaccionando con *${bots.length}* bots al mensaje seleccionado...`)
-
-    let successCount = 0
-    for (let [index, sock] of bots.entries()) {
-        try {
-            await new Promise(resolve => setTimeout(resolve, index * 500)) 
-
-            await sock.sendMessage(channelJid, {
-                react: {
-                    text: text.trim(),
-                    key: {
-                        remoteJid: channelJid,
-                        fromMe: false,
-                        // Aquí usamos el ID real del mensaje que sacamos del quoted
-                        id: m.quoted ? m.quoted.id : m.key.id,
-                    }
-                }
-            }, { newsletter: true })
-            
-            successCount++
-        } catch (e) {
-            console.error(`[ERROR] Bot ${sock.user?.id}:`, e.message)
+    try {
+        // 2. Extraer la data cruda del mensaje citado
+        const quotedData = m.quoted
+        
+        // 3. Construir un reporte detallado
+        let report = `🔍 *INSPECCIÓN TÉCNICA DE MENSAJE*\n\n`
+        report += `📌 *ID (key.id):* \`${quotedData.id}\`\n`
+        report += `📡 *RemoteJID:* \`${quotedData.chat}\`\n`
+        report += `👤 *Participant:* \`${quotedData.participant || 'No definido'}\`\n`
+        report += `⏱️ *Timestamp:* \`${quotedData.msgTimestamp || 'N/A'}\`\n`
+        report += `📝 *Tipo:* \`${quotedData.mtype}\`\n\n`
+        
+        // 4. Ver si tiene el ID del enlace (serverMessageId)
+        if (quotedData.message?.newsletterAdminMesage) {
+             report += `🆔 *Server ID:* \`${quotedData.message.newsletterAdminMesage.serverMessageId}\`\n`
         }
-    }
 
-    return m.reply(`✅ **Resultado**\n\n✨ Reacciones: ${successCount}\n🤖 Bots: ${bots.length}`)
+        report += `\n*Data JSON Completa:*`
+        
+        // Enviamos el texto y luego el JSON en un mensaje aparte porque puede ser largo
+        await m.reply(report)
+        await conn.sendMessage(m.chat, { text: JSON.stringify(quotedData, null, 2) }, { quoted: m })
+
+    } catch (e) {
+        await m.reply(`❌ Error en la inspección: ${e.message}`)
+    }
 }
 
-handler.help = ['reac']
-handler.tags = ['owner']
-handler.command = /^(reac|reaccionar)$/i
-handler.owner = true 
+handler.help = ['inspect']
+handler.tags = ['tools']
+handler.command = /^(inspect|inspeccionar|debug)$/i
+handler.owner = true
 
 export default handler

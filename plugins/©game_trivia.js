@@ -64,6 +64,10 @@ handler.before = async function (m) {
             finalTxt += `+${m.exp || 0} XP\n`
             finalTxt += `+${m.bitcoins || 0} ₿ Bitcoins`
             
+
+            await conn.sendMessage(m.chat, {
+              text: finalTxt,
+              contextinfo
             await m.reply(finalTxt)
             delete this.trivia[m.chat]
         }

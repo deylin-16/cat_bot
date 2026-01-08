@@ -228,12 +228,22 @@ const handler = async (m, { conn, text, command }) => {
 await conn.sendMessage(
   m.chat,
   {
-    video: { url: dl.result.download }, 
+    document: { url: dl.result.download }, 
     fileName: `${dl.result.title}.mp4`,
     mimetype: "video/mp4",
-    caption: `🎬 ${dl.result.title}`
-  },
-  { quoted: fkontak }
+    caption: `🎬 ${dl.result.title}`,
+         contextInfo: {
+            externalAdReply: {
+              title: dl.result.title,
+              body: dl.result.author,
+              thumbnailUrl: thumbnail,
+              mediaType: 2,
+              mediaUrl: url,
+              sourceUrl: url
+            }
+          }
+        },
+        { quoted: fkontak }
 );
     }
   } catch (error) {

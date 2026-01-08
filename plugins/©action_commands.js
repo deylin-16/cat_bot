@@ -94,8 +94,11 @@ ${animeCommands}
 ┃ ◦ kick / elimina
 ┃ ◦ ntodos / tagall
 ┃
-┃   *EXTRACCIÓN / DOWNLOAD*
+┃   *DESCARGAS*
 ┃ ◦ descarga (FB, TikTok, IG)
+┃ ◦ fb (Link de Facebook)
+┃ ◦ ig (link de instagram)
+┃ ◦ tt (link de Tiktok)
 ┃
 ┃   *BÚSQUEDA*
 ┃ ◦ pin (Pinterest)

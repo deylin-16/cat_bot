@@ -2,8 +2,9 @@ import fs from 'fs'
 
 let handler = async (m, { conn }) => {
     conn.trivia = conn.trivia ? conn.trivia : {}
-    if (conn.trivia[m.chat]) return
+    if (conn.trivia[m.chat]) return m.reply('Ya hay una trivia en curso en este chat.')
 
+    
     let db = JSON.parse(fs.readFileSync('./db/trivia.json'))
     let list = db.sort(() => 0.5 - Math.random()).slice(0, 3)
 
@@ -11,7 +12,7 @@ let handler = async (m, { conn }) => {
         pos: 0,
         list,
         score: 0,
-        msg: null
+        msgId: null 
     }
 
     await nextQ(conn, m)
@@ -21,19 +22,28 @@ async function nextQ(conn, m) {
     if (!conn.trivia || !conn.trivia[m.chat]) return
     let t = conn.trivia[m.chat]
     let q = t.list[t.pos]
-    
+
     let txt = `*PREGUNTA ${t.pos + 1}/3*\n\n`
     txt += `*${q.pregunta}*\n\n`
     txt += q.opciones.map((v, i) => `${i + 1}. ${v}`).join('\n')
-    
-    t.msg = await conn.reply(m.chat, txt, m)
+    txt += `\n\n_Responde a este mensaje con el número o el texto._`
+
+    let sent = await conn.reply(m.chat, txt, m)
+    t.msgId = sent.key.id 
 }
 
 handler.before = async function (m) {
-    if (!this.trivia || !this.trivia[m.chat] || !m.text) return
+    
+    if (!this.trivia || !this.trivia[m.chat] || m.fromMe || !m.text) return
 
     let t = this.trivia[m.chat]
+    
+    
+    const isQuoted = m.quoted && m.quoted.id === t.msgId
+    if (!isQuoted) return 
+
     let cur = t.list[t.pos]
+    if (!cur || !cur.opciones) return
 
     let choices = cur.opciones.map(v => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     let answer = m.text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -42,46 +52,33 @@ handler.before = async function (m) {
     let isNumber = !isNaN(m.text) && choices[parseInt(m.text) - 1] === correct
     let isText = answer === correct
 
-    if (isNumber || isText) t.score++
+    if (isNumber || isText) {
+        t.score++
+        await m.react('✅')
+    } else {
+        await m.react('❌')
+    }
 
-    if (m.quoted && m.quoted.id === t.msg.id || isNumber || isText) {
-        t.pos++
+    t.pos++
+
+    if (t.pos < 3) {
+        return nextQ(this, m)
+    } else {
+        let randomXp = Math.floor(Math.random() * 100) + 1
+        let randomCoins = Math.floor(Math.random() * 100) + 1
         
-        if (t.pos < 3) {
-            return nextQ(this, m)
-        } else {
-            let randomXp = Math.floor(Math.random() * 100) + 1
-            let randomCoins = Math.floor(Math.random() * 100) + 1
-            
-            if (t.score > 0) {
-                m.exp = randomXp * t.score
-                m.bitcoins = randomCoins * t.score
-            }
+        let xpGanado = t.score > 0 ? randomXp * t.score : 0
+        let coinsGanados = t.score > 0 ? randomCoins * t.score : 0
 
-            let finalTxt = `*TRIVIA FINALIZADA*\n\n`
-            finalTxt += `*Aciertos:* ${t.score}/3\n`
-            finalTxt += `*Recompensa Total:*\n`
-            finalTxt += `+${m.exp || 0} XP\n`
-            finalTxt += `+${m.bitcoins || 0} ₿ Bitcoins`
-            
+        let finalTxt = `*TRIVIA FINALIZADA*\n\n`
+        finalTxt += `*Aciertos:* ${t.score}/3\n`
+        finalTxt += `*Recompensa Total:*\n`
+        finalTxt += `+${xpGanado} XP\n`
+        finalTxt += `+${coinsGanados} ₿ Bitcoins`
 
-            await conn.sendMessage(m.chat, {
-              text: finalTxt,
-              contextInfo: {
-                externalAdReply: {
-                    title: name(conn),
-                    thumbnail: img(conn),
-                    mediaType: 1,
-                    mediaUrl: url,
-                    sourceUrl: url,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: m })
-
-            //await m.reply(finalTxt)
-            delete this.trivia[m.chat]
-        }
+        await this.sendMessage(m.chat, { text: finalTxt }, { quoted: m })
+        
+        delete this.trivia[m.chat]
     }
 }
 

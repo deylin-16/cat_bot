@@ -184,33 +184,6 @@ const handler = async (m, { conn, text, command }) => {
       }
     }
 
-    const infoMessage = `★ ${global.botname || 'Bot'} ★
-
-  ┏☾ *Título:* 「 ${title} 」
-┏┛ *Canal:* ${author?.name || 'Desconocido'}
-┃✎ *Vistas:* ${vistas}
-┃✎ *Duración:* ${timestamp}
-┃✎ *Publicado:* ${ago}
-┃
-┗⌼ ᴅᴇsᴄᴀʀɢᴀɴᴅᴏ...`;
-
-    await conn.sendMessage(
-      m.chat,
-      {
-        image: { url: thumbnail },
-        caption: infoMessage,
-        contextInfo: {
-          isForwarded: true,
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: channelRD.id,
-            newsletterName: channelRD.name,
-            serverMessageId: -1
-          }
-        }
-      },
-      { quoted: fkontak2 }
-    );
-
     if (["playdoc"].includes(command)) {
       await m.react("🎧");
       const dl = await savetube.download(url, "audio");

@@ -61,7 +61,7 @@ const handler = async (m, { conn, text, command }) => {
             }
           }
         }, 
-        { quoted: fkontak }
+        { quoted: m }
       );
     } else {
       await m.react("🎥");

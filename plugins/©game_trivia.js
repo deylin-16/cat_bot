@@ -18,6 +18,7 @@ let handler = async (m, { conn, command }) => {
 }
 
 async function nextQ(conn, m) {
+    if (!conn.trivia || !conn.trivia[m.chat]) return
     let t = conn.trivia[m.chat]
     let q = t.list[t.pos]
     let txt = `*TRIVIA ${t.pos + 1}/3*\n\n`
@@ -27,10 +28,11 @@ async function nextQ(conn, m) {
 }
 
 handler.before = async function (m) {
-    let t = this.trivia[m.chat]
-    if (!t || !m.text) return
+    if (!this.trivia || !this.trivia[m.chat] || !m.text) return
     
+    let t = this.trivia[m.chat]
     let cur = t.list[t.pos]
+    
     if (m.text.toLowerCase() === cur.respuesta.toLowerCase()) {
         t.score++
         t.pos++
@@ -38,7 +40,7 @@ handler.before = async function (m) {
         if (t.pos < 3) return nextQ(this, m)
         await m.reply(`*Fin*\nPuntos: ${t.score}/3`)
         delete this.trivia[m.chat]
-    } else if (m.quoted && m.quoted.id === t.msg.id) {
+    } else if (t.msg && m.quoted && m.quoted.id === t.msg.id) {
         t.pos++
         await m.reply(`❌ No. Era: ${cur.respuesta}`)
         if (t.pos < 3) return nextQ(this, m)

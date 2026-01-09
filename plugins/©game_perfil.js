@@ -40,5 +40,5 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     }, { quoted: m })
 }
 
-handler.command = /^(perfil|profile|me|my)$/i
+handler.command = /^(perfil|profile)$/i
 export default handler

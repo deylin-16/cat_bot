@@ -30,7 +30,6 @@ handler.before = async (m, { conn }) => {
   let juego = global.adivinanzasActivas[m.sender]
   if (!juego || juego.responded) return
 
-
   if (!m.quoted || m.quoted.id !== juego.msgId) return
 
   let respuestaUsuario = m.text.trim()
@@ -39,15 +38,32 @@ handler.before = async (m, { conn }) => {
 
   if (respuestaUsuario === juego.pregunta.respuesta_correcta) {
     juego.responded = true
+    
+    let expGanada = Math.floor(Math.random() * 50) + 20
+    let coinsGanados = Math.floor(Math.random() * 10) + 5
+    
+    m.exp = (m.exp || 0) + expGanada
+    m.bitcoins = (m.bitcoins || 0) + coinsGanados
+
+    let winTxt = `✅ *¡Correcto!* ${m.name} lo adivinó: *${juego.pregunta.opciones[respuestaUsuario]}*\n\n`
+    winTxt += `*Recompensa:*\n`
+    winTxt += `+${expGanada} XP\n`
+    winTxt += `+${coinsGanados} ₿ Bitcoins`
+
     delete global.adivinanzasActivas[m.sender]
-    return conn.reply(m.chat, `✅ *¡Correcto!* ${m.name} lo adivinó: *${juego.pregunta.opciones[respuestaUsuario]}*`, m, { mentions: [m.sender] })
+    return conn.reply(m.chat, winTxt, m, { mentions: [m.sender] })
   } else {
     juego.intentos--
     if (juego.intentos <= 0) {
       juego.responded = true
       let correcta = juego.pregunta.opciones[juego.pregunta.respuesta_correcta]
+      
+      let failTxt = `❌ *Perdiste.* La respuesta era: *${correcta}*\n\n`
+      failTxt += `*Recompensa:* 0 XP / 0 ₿ Bitcoins\n\n`
+      failTxt += `🎓 Regresa a primaria y presta más atención al maestro.`
+      
       delete global.adivinanzasActivas[m.sender]
-      return conn.reply(m.chat, `❌ *Perdiste.* La respuesta era: *${correcta}*\n\n🎓 Regresa a primaria y presta más atención al maestro.`, m)
+      return conn.reply(m.chat, failTxt, m)
     } else {
       return conn.reply(m.chat, `❌ *Incorrecto.* Te queda *${juego.intentos}* intento.`, m)
     }

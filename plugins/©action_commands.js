@@ -67,11 +67,45 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ❒ *Versión:* ${_package.version}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ *Sugerencias y errores en: deylin.xyz/feedback*
+❒ *Menús:* \`menu/menu2 ∆/menu3\`
 
 
 ${animeCommands}
 
 > *Nota:* Comandos directos sin prefijo.`.trim()
+
+        try {
+            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
+            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
+        } catch (e) {
+            await conn.reply(m.chat, caption, m)
+        }
+        return
+    }
+
+
+    if (/menu3|gane|juegos/i.test(command)) {
+        let gameCommands = `
+┏━⊜ *JUEGOS = GAME* ⊜━┓
+┃ °• adivinanza / prueba 
+┃ °• trivia 
+┃ °• wordhard
+┃ 
+┗━━━━━━━━━━━━━━━┛`;
+
+        let caption = `
+🎮 *MENÚ DE JUEGOS* 🍪
+
+❒ *Bot:* ${assistantName}
+❒ *Versión:* ${_package.version}
+❒ *Hazte subbot desde: deylin.xyz/pairing_code*
+❒ *Sugerencias y errores en: deylin.xyz/feedback*
+❒ *Menús:* \`menu/menu2/menu3 ∆\`
+
+
+${gameCommands}
+
+> *Nota:* Seguimos desarrollando mas.`.trim()
 
         try {
             let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
@@ -119,9 +153,6 @@ ${animeCommands}
 ┃   *ESPÍA*
 ┃ ◦ read / ver / :) (ViewOnce)
 ┃ 
-┃   *GEME*
-┃ ◦ adivinanza / prueba 
-┃ 
 ┃   *MOTIVACIÓN*
 ┃ ◦ consejo / motivacion
 ┗━━━━━━━━━━━━━━━━━━┛`;
@@ -134,6 +165,7 @@ ${animeCommands}
 ❒ *Activo:* ${msToDate(process.uptime() * 1000)}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ *Sugerencias y errores en: deylin.xyz/feedback*
+❒ *Menús:* \`menu ∆/menu2/menu3\`
 
 ${customCommands}
 
@@ -147,7 +179,7 @@ ${customCommands}
     }
 }
 
-handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime']
+handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime', 'menu3', 'game', 'juegos']
 
 export default handler
 

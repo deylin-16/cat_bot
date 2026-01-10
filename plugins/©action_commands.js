@@ -84,7 +84,7 @@ ${animeCommands}
     }
 
 
-    if (/menu3|gane|juegos/i.test(command)) {
+    if (/menu3|game|juegos/i.test(command)) {
         let gameCommands = `
 ┏━⊜ *JUEGOS = GAME* ⊜━┓
 ┃ °• adivinanza / prueba 

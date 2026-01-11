@@ -19,7 +19,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ┃ ◌ Kill, Matar, Disparar
 ┃ ◌ Pat, Acariciar, Mimar
 ┃ ◌ Dance, Bailar, Twerk
-┃ ◌ Kick, Patada, Boxeo
+┃ ◌ Kick2, Patada, Boxeo
 ┃ ◌ Laugh, Reir, Llorar_risa
 ┃ ◌ Sad, Triste, Cry, Sneeze
 ┃ ◌ Angry, Enojado, Gritar

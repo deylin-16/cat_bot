@@ -95,6 +95,7 @@ ${animeCommands}
 ┃ °• join  (Unirse)
 ┃ °• start (Iniciar)
 ┃ °• stop  (Detener)
+┃ °• leave (salir)
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `

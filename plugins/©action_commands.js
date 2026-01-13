@@ -90,7 +90,11 @@ ${animeCommands}
 ┃ °• adivinanza / prueba 
 ┃ °• trivia 
 ┃ °• wordhard
-┃ 
+┃
+┣━━►VERDAD-RETO◄━━━▷
+┃ °• join  (Unirse)
+┃ °• start (Iniciar)
+┃ °• stop  (Detener)
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `

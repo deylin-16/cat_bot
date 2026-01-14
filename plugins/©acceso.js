@@ -126,7 +126,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         const botNumber = path.basename(authFolder)
 
         if (connection === 'open') {
-            console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│ 🟢 +${botNumber} CONECTADO exitosamente.\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
+            console.log(chalk.bold.cyanBright(`\n۝⸺⸺⸺⸺∭ SUB-BOT •\n🍪 +${botNumber} CONECTADO exitosamente.`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
                 global.conns.push(sock)
             }
@@ -136,12 +136,12 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             
-            // Si la razón indica que la sesión ya no sirve (Logged Out, Bad Session, Forbidden, etc.)
+            
             const sessionDead = [
                 DisconnectReason.loggedOut, 
-                401, // Unauthorized
-                403, // Forbidden
-                405, // Method Not Allowed (a veces devuelto en sesiones corruptas)
+                401, 
+                403, 
+                405, 
                 DisconnectReason.badSession
             ].includes(reason)
 
@@ -150,7 +150,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
             } else {
-                // Solo reintenta si es un error de red o timeout
+                
                 console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión temporal para: +${botNumber} (Razón: ${reason})`))
                 assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
             }

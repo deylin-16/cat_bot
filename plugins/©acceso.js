@@ -96,15 +96,12 @@ export async function assistant_accessJadiBot(options) {
                     try {
                         let code = await sock.requestPairingCode(phoneNumber)
                         code = code?.match(/.{1,4}/g)?.join("-") || code
-
                         if (fromCommand && m && conn) {
                             await conn.sendMessage(m.chat, { text: code }, { quoted: m })
                         }
-
                         setupSubBotEvents(sock, authFolder, m, conn)
                         resolve(code)
                     } catch (err) {
-                        console.error(err)
                         reject(err)
                     }
                 }, 3000)
@@ -115,7 +112,6 @@ export async function assistant_accessJadiBot(options) {
         }
 
     } catch (e) {
-        console.error(e)
         throw e
     }
 }
@@ -126,7 +122,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         const botNumber = path.basename(authFolder)
 
         if (connection === 'open') {
-            console.log(chalk.bold.cyanBright(`\n۝⸺⸺⸺⸺∭ SUB-BOT •\n🍪 +${botNumber} CONECTADO exitosamente.`))
+            console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│ 🟢 +${botNumber} CONECTADO.\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
                 global.conns.push(sock)
             }
@@ -135,41 +131,27 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            
-            
-            const sessionDead = [
-                DisconnectReason.loggedOut, 
-                401, 
-                403, 
-                405, 
-                DisconnectReason.badSession
-            ].includes(reason)
-
-            if (sessionDead) {
-                console.log(chalk.redBright(`[SISTEMA] Sesión MUERTA o ELIMINADA para: +${botNumber}. Borrando archivos de forma permanente.`))
+            if ([DisconnectReason.loggedOut, 401, 403, 405, DisconnectReason.badSession].includes(reason)) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
             } else {
-                
-                console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión temporal para: +${botNumber} (Razón: ${reason})`))
                 assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
             }
         }
     })
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
-        try {
-            const { subBotHandler } = await import('../sub-handler.js?update=' + Date.now()).catch(() => ({}));
-            if (subBotHandler) {
-                await subBotHandler.call(sock, chatUpdate)
-            } else {
-                const { handler } = await import('../handler.js')
-                await handler.call(sock, chatUpdate)
+        // Ejecución asíncrona inmediata para no bloquear el socket
+        setImmediate(async () => {
+            try {
+                const { subBotHandler } = await import('../sub-handler.js?update=' + Date.now()).catch(() => ({}));
+                const handlerToUse = subBotHandler || (await import('../handler.js')).handler;
+                await handlerToUse.call(sock, chatUpdate);
+            } catch (e) {
+                console.error(e)
             }
-        } catch (e) {
-            console.error(e)
-        }
-    })
+        });
+    });
 }
 
 async function joinChannels(sock) {

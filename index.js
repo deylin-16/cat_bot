@@ -143,7 +143,7 @@ global.reloadHandler = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
 
-  // MODIFICACIÓN AQUÍ: setImmediate para evitar bloqueo por procesos largos
+  
   conn.handler = async (chatUpdate) => {
     setImmediate(async () => {
         try {
@@ -190,12 +190,12 @@ async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (existsSync(jadibtsPath)) {
         const folders = readdirSync(jadibtsPath);
-        // MODIFICACIÓN AQUÍ: No usamos Promise.all para que cada inicio sea independiente y rápido
+        
         folders.forEach(async (folder) => {
             if (statSync(join(jadibtsPath, folder)).isDirectory()) {
                 try {
                     const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-                    // Lanzar sin esperar respuesta
+                    
                     assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
                 } catch (e) {}
             }

@@ -158,13 +158,8 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         setImmediate(async () => {
             try {
-                const { subBotHandler } = await import('../sub-handler.js?update=' + Date.now()).catch(() => ({}));
-                if (subBotHandler) {
-                    await subBotHandler.call(sock, chatUpdate)
-                } else {
-                    const { handler } = await import('../handler.js')
-                    await handler.call(sock, chatUpdate)
-                }
+                const { handler } = await import('../handler.js?update=' + Date.now())
+                await handler.call(sock, chatUpdate)
             } catch (e) {
                 console.error(e)
             }

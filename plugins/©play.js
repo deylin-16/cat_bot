@@ -3,13 +3,9 @@ import yts from "yt-search";
 
 const handler = async (m, { conn, text, command }) => {
   if (!text?.trim()) return global.design(conn, m, `✨ *Uso correcto:*\n\n*${command}* nombre de la canción o link`);
-
   await m.react("🔎");
-
   try {
     let url;
-    let videoId;
-
     if (/youtube.com|youtu.be/.test(text)) {
       url = text;
     } else {
@@ -18,63 +14,56 @@ const handler = async (m, { conn, text, command }) => {
       url = search.videos[0].url;
     }
 
-    const type = (command === 'play' || command === 'audio') ? 'mp3' : 'mp4';
-    const apiUrl = `https://api.dynlayer.xyz/api/download/${type}?url=${encodeURIComponent(url)}&apikey=dk_ofical_user`;
+    const isAudio = /play$|audio$/i.test(command);
+    const type = isAudio ? 'ytmp3' : 'ytmp4';
+    const apiUrl = `https://api-nexy.ultraplus.click/api/dl/${type}?url=${encodeURIComponent(url)}`;
 
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (!data || data.status !== 'success' || !data.download_url) {
-      return global.design(conn, m, "❌ Error en el servidor de descargas.");
+    if (!data || data.status !== 200 || !data.result?.download) {
+      return global.design(conn, m, "❌ Error en el servidor de NEXY API.");
     }
 
+    const { title, download, thumbnail, duration, channel } = data.result;
+    const bodyText = `🎬 *Canal:* ${channel}\n⏳ *Duración:* ${duration}`;
 
-    if (type === 'mp3') {
-      await conn.sendMessage(
-        m.chat,
-        {
-          audio: { url: data.download_url },
-          mimetype: "audio/mp4",
-          fileName: `${data.title}.mp3`,
+    if (isAudio) {
+      await conn.sendMessage(m.chat, {
+        audio: { url: download },
+        mimetype: "audio/mp4",
+        fileName: `${title}.mp3`,
         contextInfo: {
-            externalAdReply: {
-              title: data.title,
-              body: data.info,
-              mediaType: 1,
-              renderLargerThumbnail: true,
-              thumbnailUrl: data.thumbnail,
-              sourceUrl: url
-            }
+          externalAdReply: {
+            title: title,
+            body: bodyText,
+            mediaType: 1,
+            renderLargerThumbnail: true,
+            thumbnailUrl: thumbnail,
+            sourceUrl: url
           }
-        }, 
-        { quoted: m }
-      );
+        }
+      }, { quoted: m });
     } else {
       await m.react("🎥");
-      await conn.sendMessage(
-        m.chat, 
-        {
-          video: { url: data.download_url }, 
-          caption: `✅ *Título:* ${data.title}\n🔗 *Link:* ${url}`,
-          mimetype: "video/mp4",
-          fileName: `${data.title}.mp4`,
-          contextInfo: {
-            externalAdReply: {
-              title: data.title,
-              body: data.info,
-              mediaType: 1,
-              renderLargerThumbnail: true,
-              thumbnailUrl: data.thumbnail,
-              sourceUrl: url
-            }
+      await conn.sendMessage(m.chat, {
+        video: { url: download },
+        caption: `✅ *Título:* ${title}\n🔗 *Link:* ${url}\n${bodyText}`,
+        mimetype: "video/mp4",
+        fileName: `${title}.mp4`,
+        contextInfo: {
+          externalAdReply: {
+            title: title,
+            body: bodyText,
+            mediaType: 1,
+            renderLargerThumbnail: true,
+            thumbnailUrl: thumbnail,
+            sourceUrl: url
           }
-        }, 
-        { quoted: m }
-      );
+        }
+      }, { quoted: m });
     }
-
     await m.react("✅");
-
   } catch (error) {
     console.error(error);
     await m.react("❌");

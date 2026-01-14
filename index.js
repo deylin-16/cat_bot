@@ -142,16 +142,16 @@ global.reloadHandler = async function(restatConn) {
     conn.ev.removeAllListeners();
     global.conn = makeWASocket(connectionOptions);
   }
-  
+
   conn.handler = async (chatUpdate) => {
     try {
       await handler.handler.call(global.conn, chatUpdate);
     } catch (e) { console.error(e); }
   };
-  
+
   conn.connectionUpdate = connectionUpdate.bind(global.conn);
   conn.credsUpdate = saveCreds.bind(global.conn, true);
-  
+
   conn.ev.on('messages.upsert', conn.handler);
   conn.ev.on('connection.update', conn.connectionUpdate);
   conn.ev.on('creds.update', conn.credsUpdate);
@@ -187,15 +187,14 @@ async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (existsSync(jadibtsPath)) {
         const folders = readdirSync(jadibtsPath);
-        for (const folder of folders) {
+        await Promise.all(folders.map(async (folder) => {
             if (statSync(join(jadibtsPath, folder)).isDirectory()) {
                 try {
                     const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
                     assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-                    await new Promise(resolve => setTimeout(resolve, 5000));
                 } catch (e) {}
             }
-        }
+        }));
     }
 }
 autostartSubBots();
@@ -212,29 +211,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Dentro de index.js en la ruta de la API
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
     if (!number) return res.status(400).send({ error: "Número requerido" });
-    
     try {
         const num = number.replace(/\D/g, '');
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-        
         const code = await assistant_accessJadiBot({ 
             m: null, 
             conn: global.conn, 
             phoneNumber: num, 
             fromCommand: false,
-            apiCall: true // <--- ESTO ACTIVARÁ LA GENERACIÓN DEL CÓDIGO
+            apiCall: true
         }); 
-
         res.status(200).send({ code });
     } catch (e) {
         res.status(500).send({ error: e.message });
     }
 });
-
 
 app.listen(PORT, () => {
     console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));

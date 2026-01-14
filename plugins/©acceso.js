@@ -23,11 +23,9 @@ const __dirname = path.dirname(__filename)
 if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()
 
-// Función para obtener el nombre del bot de forma segura
 const name = (conn) => global.botname || conn.user?.name || 'Bot'
 
 let handler = async (m, { conn, command }) => {
-    // Respuesta cuando el usuario intenta usar el comando por WhatsApp
     const url = 'https://deylin.xyz/pairing_code?v=5'
     await conn.sendMessage(m.chat, { 
         text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
@@ -57,12 +55,10 @@ handler.command = /^(qr|code|subbot)$/i
 
 export default handler 
 
-
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand, apiCall } = options
-    
-    
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
+    
     if (!fs.existsSync(authFolder)) {
         fs.mkdirSync(authFolder, { recursive: true })
     }
@@ -87,12 +83,9 @@ export async function assistant_accessJadiBot(options) {
         }
 
         let sock = makeWASocket(connectionOptions)
-        
-        
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
-            
             if (!fromCommand && !apiCall) return
 
             return new Promise((resolve, reject) => {
@@ -100,58 +93,52 @@ export async function assistant_accessJadiBot(options) {
                     try {
                         let code = await sock.requestPairingCode(phoneNumber)
                         code = code?.match(/.{1,4}/g)?.join("-") || code
-                        
-                        
+
                         if (fromCommand && m && conn) {
                             await conn.sendMessage(m.chat, { text: code }, { quoted: m })
                         }
-                        
+
                         setupSubBotEvents(sock, authFolder, m, conn)
                         resolve(code)
                     } catch (err) {
-                        console.error('Error al generar pairing code:', err)
+                        console.error(err)
                         reject(err)
                     }
                 }, 3000)
             })
         } else {
-            
             setupSubBotEvents(sock, authFolder, m, conn)
             return "Conectado"
         }
 
     } catch (e) {
-        console.error('Error en assistant_accessJadiBot:', e)
+        console.error(e)
         throw e
     }
 }
 
 function setupSubBotEvents(sock, authFolder, m, conn) {
-    
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
         const botNumber = path.basename(authFolder)
 
         if (connection === 'open') {
             console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│ 🟢 +${botNumber} CONECTADO exitosamente.\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
-            
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
                 global.conns.push(sock)
             }
-            
             await joinChannels(sock)
         }
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            
-            if (reason !== DisconnectReason.loggedOut) {
-                console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión para: +${botNumber}`))
-                assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
-            } else {
-                console.log(chalk.redBright(`[SISTEMA] Sesión cerrada para: +${botNumber}. Borrando datos...`))
+            if (reason === DisconnectReason.loggedOut || reason === 401) {
+                console.log(chalk.redBright(`[SISTEMA] Sesión inválida para: +${botNumber}. Eliminando archivos...`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c !== sock)
+            } else {
+                console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión para: +${botNumber}`))
+                assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
             }
         }
     })
@@ -162,12 +149,11 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
             if (subBotHandler) {
                 await subBotHandler.call(sock, chatUpdate)
             } else {
-                
                 const { handler } = await import('../handler.js')
                 await handler.call(sock, chatUpdate)
             }
         } catch (e) {
-            console.error('Error en handler de subbot:', e)
+            console.error(e)
         }
     })
 }

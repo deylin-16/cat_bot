@@ -159,16 +159,6 @@ const handler = async (m, { conn, text, command }) => {
 
 
 
-    const fkontak = {
-      key: { fromMe: false, participant: "0@s.whatsapp.net" },
-      message: {
-        documentMessage: {
-          title: `「 ${title} 」`,
-          fileName: name(conn),
-          jpegThumbnail: thumb3
-        }
-      }
-    }
 
     if (["playdoc"].includes(command)) {
       await m.react("🎧");

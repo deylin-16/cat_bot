@@ -13,27 +13,17 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let q = m.quoted ? m.quoted : m
     let mime = (q.msg || q).mimetype || q.mediaType || ''
     if (!/video|audio/.test(mime)) {
-      return conn.reply(
-        m.chat,
-        `${emoji} Etiqueta un *audio* o *video corto* con *${usedPrefix + command}* para identificar la música.`,
-        m,
-        rcanal
-      )
+      return global.design(conn, m, `🍪 Etiqueta un *audio* o *video corto* con *${command}* para identificar la música.`)
     }
 
     let buffer = await q.download()
     if (!buffer) {
-      return conn.reply(m.chat, '❌ No pude descargar el archivo.', m, rcanal)
+      return global.design(conn, m, '❌ No pude descargar el archivo.')
     }
 
     let duration = q.seconds || 0
     if (duration > 40) {
-      return conn.reply(
-        m.chat,
-        `⚠️ El archivo solo puede durar *40 segundos máximo*. El que enviaste dura *${duration}s*.`,
-        m,
-        rcanal
-      )
+      return global.design(conn, m, `⚠️ El archivo solo puede durar *40 segundos máximo*. El que enviaste dura *${duration}s*.`)
     }
 
     const res = await fetch('https://files.catbox.moe/64ots5.png')
@@ -64,11 +54,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let { status, metadata } = result
 
     if (status.code !== 0) {
-      return conn.reply(m.chat, `❌ ${status.msg}`, m, rcanal)
+      return global.design(conn, m, `❌ ${status.msg}`)
     }
 
     if (!metadata || !metadata.music || metadata.music.length === 0) {
-      return conn.reply(m.chat, '❌ No se pudo identificar la música.', m, rcanal)
+      return global.design(conn, m, '❌ No se pudo identificar la música.')
     }
 
     let music = metadata.music[0]
@@ -114,7 +104,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     }
   } catch (err) {
     console.error(err)
-    conn.reply(m.chat, `❌ Error al procesar la música: ${err.message}`, m, rcanal)
+    global.design(conn, m,  `❌ Error al procesar la música: ${err.message}`)
   }
 }
 

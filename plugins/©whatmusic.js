@@ -26,7 +26,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       return global.design(conn, m, `⚠️ El archivo solo puede durar *40 segundos máximo*. El que enviaste dura *${duration}s*.`)
     }
 
-    const res = await fetch('https://files.catbox.moe/64ots5.png')
+    const res = await fetch('https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1768371970918_R3378XlQy.jpeg')
     const thumb2 = Buffer.from(await res.arrayBuffer())
 
     const fkontak = {

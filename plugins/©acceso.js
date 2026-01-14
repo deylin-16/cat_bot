@@ -86,7 +86,10 @@ export async function assistant_accessJadiBot(options) {
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
-            if (!fromCommand && !apiCall) return
+            if (!fromCommand && !apiCall) {
+                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
+                return
+            }
 
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
@@ -132,12 +135,23 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            if (reason === DisconnectReason.loggedOut || reason === 401) {
-                console.log(chalk.redBright(`[SISTEMA] Sesión inválida para: +${botNumber}. Eliminando archivos...`))
+            
+            // Si la razón indica que la sesión ya no sirve (Logged Out, Bad Session, Forbidden, etc.)
+            const sessionDead = [
+                DisconnectReason.loggedOut, 
+                401, // Unauthorized
+                403, // Forbidden
+                405, // Method Not Allowed (a veces devuelto en sesiones corruptas)
+                DisconnectReason.badSession
+            ].includes(reason)
+
+            if (sessionDead) {
+                console.log(chalk.redBright(`[SISTEMA] Sesión MUERTA o ELIMINADA para: +${botNumber}. Borrando archivos de forma permanente.`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                global.conns = global.conns.filter(c => c !== sock)
+                global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
             } else {
-                console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión para: +${botNumber}`))
+                // Solo reintenta si es un error de red o timeout
+                console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión temporal para: +${botNumber} (Razón: ${reason})`))
                 assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
             }
         }

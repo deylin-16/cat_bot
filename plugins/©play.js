@@ -28,19 +28,6 @@ const handler = async (m, { conn, text, command }) => {
       return global.design(conn, m, "❌ Error en el servidor de descargas.");
     }
 
-    const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg");
-    const thumb3 = Buffer.from(await res3.arrayBuffer());
-    const fkontak = {
-      key: { fromMe: false, participant: "0@s.whatsapp.net" },
-      message: {
-        documentMessage: {
-          title: `「 ${data.title} 」`,
-          fileName: name(conn),
-          jpegThumbnail: thumb3
-        }
-      }
-    }
-
 
     if (type === 'mp3') {
       await conn.sendMessage(

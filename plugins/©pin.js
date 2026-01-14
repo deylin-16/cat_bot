@@ -88,7 +88,7 @@ let handler = async (m, { conn, text }) => {
   if (!text) return global.design(conn, m, `🍪 Ingresa un texto para iniciar la búsqueda...`);
 
   try {
-    const res2 = await fetch('https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1768371966898_tr9T8K7gI.jpeg');
+    const res2 = await fetch('https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1768372124872_Wl9aOex7E.jpeg');
     const thumb2 = Buffer.from(await res2.arrayBuffer());
 
     const userJid = m.sender;

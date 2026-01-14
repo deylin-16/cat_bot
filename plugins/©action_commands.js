@@ -66,7 +66,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ❒ *Bot:* ${assistantName}
 ❒ *Versión:* ${_package.version}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
-❒ *Sugerencias y errores en: deylin.xyz/feedback*
+❒
 ❒ *Menús:* \`menu/menu2 ∆/menu3\`
 
 
@@ -104,7 +104,7 @@ ${animeCommands}
 ❒ *Bot:* ${assistantName}
 ❒ *Versión:* ${_package.version}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
-❒ *Sugerencias y errores en: deylin.xyz/feedback*
+❒ 
 ❒ *Menús:* \`menu/menu2/menu3 ∆\`
 
 
@@ -169,7 +169,7 @@ ${gameCommands}
 ❒ *Versión:* ${_package.version}
 ❒ *Activo:* ${msToDate(process.uptime() * 1000)}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
-❒ *Sugerencias y errores en: deylin.xyz/feedback*
+❒ 
 ❒ *Menús:* \`menu ∆/menu2/menu3\`
 
 ${customCommands}

@@ -60,7 +60,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     if (!metadata || !metadata.music || metadata.music.length === 0) {
       return global.design(conn, m, '❌ No se pudo identificar la música.')
     }
-
+      await m.react('🕓')
     let music = metadata.music[0]
     let { title, artists, album, genres, release_date } = music
 
@@ -88,6 +88,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       const thumbRes = await fetch(thumbnail)
       const thumbBuffer = Buffer.from(await thumbRes.arrayBuffer())
 
+      await m.react('✅')
       await conn.sendMessage(
         m.chat,
         { image: thumbBuffer, caption: txt },

@@ -15,18 +15,18 @@ const handler = async (m, { conn, text, command }) => {
     }
 
     const isAudio = /play$|audio$/i.test(command);
-    const type = isAudio ? 'ytmp3' : 'ytmp4';
-    const apiUrl = `https://api-nexy.ultraplus.click/api/dl/${type}?url=${encodeURIComponent(url)}`;
+    const type = isAudio ? 'mp3' : 'mp4';
+    const apiUrl = `https://api.deylin.xyz/api/download/yt?url=${encodeURIComponent(url)}&type=${type}&apikey=dk_ofical_user`;
 
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (!data || data.status !== 200 || !data.result?.download) {
-      return global.design(conn, m, "❌ Error en el servidor de NEXY API.");
+    if (!data || !data.success || !data.result?.download) {
+      return global.design(conn, m, `❌ Error: ${data.error || "No se pudo obtener el enlace de descarga."}`);
     }
 
     const { title, download, thumbnail, duration, channel } = data.result;
-    const bodyText = `🎬 *Canal:* ${channel}\n⏳ *Duración:* ${duration}`;
+    const bodyText = `🎬 *Canal:* ${channel || 'Desconocido'}\n⏳ *Duración:* ${duration || '00:00'}`;
 
     if (isAudio) {
       await conn.sendMessage(m.chat, {

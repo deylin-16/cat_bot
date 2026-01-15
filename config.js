@@ -20,7 +20,7 @@ global.moment = moment
 global.sessions = 'sessions'
 global.url = 'https://deylin.xyz/pairing_code'
 global.jadi = 'sessions_sub_assistant';
-global.url_api = 'https://api.dynlayer.xyz'
+global.url_api = 'https://api.deylin.xyz'
 global.key = 'dk_ofical_user'
 global.ch = {
 ch1: '120363406846602793@newsletter'

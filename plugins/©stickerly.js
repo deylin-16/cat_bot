@@ -8,54 +8,40 @@ let handler = async (m, { conn, text, command }) => {
     const searchRes = await fetch(`https://delirius-apiofc.vercel.app/search/stickerly?query=${encodeURIComponent(text)}`)
     const searchJson = await searchRes.json()
 
-    if (!searchJson.status || !searchJson.data?.length) return m.reply('❌ No se encontraron stickers.')
+    if (!searchJson.status || !Array.isArray(searchJson.data) || searchJson.data.length === 0) {
+      return m.reply('❌ No se encontraron stickers.')
+    }
 
     const pick = searchJson.data[Math.floor(Math.random() * searchJson.data.length)]
+    const packName = pick.name || 'Sin nombre'
+    const authorName = pick.author || 'Desconocido'
+
+    m.reply(`🎉 Pack encontrado: *${packName}* de *${authorName}*\n📦 Enviando 5 stickers...`)
+
     const downloadRes = await fetch(`https://delirius-apiofc.vercel.app/download/stickerly?url=${encodeURIComponent(pick.url)}`)
     const downloadJson = await downloadRes.json()
 
-    if (!downloadJson.status || !downloadJson.data) return m.reply('⚠️ Error al obtener el pack.')
+    if (!downloadJson.status || !downloadJson.data || !Array.isArray(downloadJson.data.stickers)) {
+      return m.reply('⚠️ No se pudieron descargar stickers.')
+    }
 
-    const { stickers, name, author } = downloadJson.data
-    const firstStickerUrl = stickers[0]
+    const stickersToSend = downloadJson.data.stickers.slice(0, 5)
 
-    const response = await fetch(firstStickerUrl)
-    const buffer = await response.buffer()
-
-    const sticker = new Sticker(buffer, {
-      pack: name,
-      author: author,
-      type: 'full'
-    })
-    const finalBuffer = await sticker.toBuffer()
-
-    const upload = await conn.waUploadToServer(finalBuffer, 'sticker')
-
-    await conn.relayMessage(m.chat, {
-      stickerPackMessage: {
-        stickerPackId: `com.snowcorp.stickerly.android.stickercontentprovider${Math.random().toString(36).substring(7)}`,
-        name: name || 'Pack',
-        publisher: author || 'Bot',
-        stickers: stickers.slice(0, 5).map(() => ({
-          fileSha256: upload.fileSha256,
-          fileEncSha256: upload.fileEncSha256,
-          mediaKey: upload.mediaKey,
-          directPath: upload.directPath,
-          fileLength: upload.fileLength,
-          mimetype: 'image/webp'
-        })),
-        stickerPackOrigin: 'THIRD_PARTY',
-        thumbnailDirectPath: upload.directPath,
-        thumbnailSha256: upload.fileSha256,
-        thumbnailEncSha256: upload.fileEncSha256,
-        thumbnailHeight: 252,
-        thumbnailWidth: 252
-      }
-    }, { quoted: m })
+    for (let i = 0; i < stickersToSend.length; i++) {
+      const sticker = new Sticker(stickersToSend[i], {
+        pack: packName,
+        author: authorName,
+        type: 'full',
+        categories: ['🔥'],
+        id: `delirius-${i}`
+      })
+      const buffer = await sticker.toBuffer()
+      await conn.sendMessage(m.chat, { sticker: buffer }, { quoted: m })
+    }
 
   } catch (e) {
     console.error(e)
-    m.reply('⚠️ Error: Asegúrate de que wa-sticker-formatter esté instalado y actualizado.')
+    m.reply('⚠️ Error al procesar los stickers.')
   }
 }
 

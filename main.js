@@ -8,7 +8,7 @@ import readline from 'readline';
 import { Low, JSONFile } from 'lowdb';
 import lodash from 'lodash';
 import { createClient } from '@supabase/supabase-js';
-import store from './lib/store.js';
+import './lib/simple.js'; // Asegura que las protoTypes se carguen
 
 const supabase = createClient("https://kzuvndqicwcclhayyttc.supabase.co", "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M");
 global.db = new Low(new JSONFile('database.json'));
@@ -19,7 +19,7 @@ export async function startBot() {
     
     await loadDatabase();
 
-    global.conn = makeWASocket({
+    const connectionOptions = {
         logger: pino({ level: 'silent' }),
         browser: Browsers.macOS("Chrome"),
         auth: {
@@ -30,27 +30,18 @@ export async function startBot() {
         printQRInTerminal: false,
         markOnlineOnConnect: true,
         generateHighQualityLinkPreview: true,
-        getMessage: async (key) => {
-            let jid = jidNormalizedUser(key.remoteJid);
-            let msg = await store.loadMessage(jid, key.id);
-            return msg?.message || "";
-        },
         msgRetryCounterCache: new NodeCache(),
         keepAliveIntervalMs: 30000
-    });
+    };
+
+    global.conn = makeWASocket(connectionOptions);
 
     if (!existsSync('./sessions/creds.json')) {
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        const question = (t) => new Promise((r) => rl.question(t, r));
-        let num = global.botNumber || await question(chalk.blueBright('\nNúmero:\n> '));
-        let addNumber = num.replace(/\D/g, '');
-        
-        setTimeout(async () => {
-            let code = await global.conn.requestPairingCode(addNumber);
-            code = code?.match(/.{1,4}/g)?.join("-") || code;
-            console.log(chalk.magentaBright(`\nCODE: ${code}\n`));
-            rl.close();
-        }, 3000);
+        const num = global.botNumber || await new Promise(r => rl.question(chalk.blueBright('\n[ INPUT ] Número del Bot Principal:\n> '), r));
+        const code = await global.conn.requestPairingCode(num.replace(/\D/g, ''));
+        console.log(chalk.magentaBright(`\nCÓDIGO PRINCIPAL: ${code?.match(/.{1,4}/g)?.join("-")}\n`));
+        rl.close();
     }
 
     global.conn.ev.on('creds.update', saveCreds);
@@ -58,22 +49,24 @@ export async function startBot() {
     global.conn.ev.on('connection.update', async (u) => {
         const { connection } = u;
         if (connection === 'open') {
-            console.log(chalk.greenBright('>>> ONLINE'));
+            console.log(chalk.greenBright('>>> BOT PRINCIPAL ONLINE'));
             await autostartSubBots();
         }
         if (connection === 'close') startBot();
     });
 
-    const handler = await import(`./handler.js?update=${Date.now()}`);
-    global.conn.ev.on('messages.upsert', m => {
+    global.conn.ev.on('messages.upsert', async (chatUpdate) => {
         if (!global.db.data) return;
-        setImmediate(() => handler.handler.call(global.conn, m));
+        try {
+            const handler = await import(`./handler.js?update=${Date.now()}`);
+            await handler.handler.call(global.conn, chatUpdate);
+        } catch (e) { console.error(e); }
     });
 
     setInterval(async () => {
         if (global.db.data) {
             await global.db.write();
-            await supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() });
+            await supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() }).then(); 
         }
     }, 2 * 60 * 1000);
 }
@@ -94,8 +87,11 @@ async function autostartSubBots() {
     try {
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
         const folders = readdirSync(path).filter(f => statSync(join(path, f)).isDirectory());
-        for (const folder of folders) {
+        console.log(chalk.yellow(`[SISTEMA] Cargando ${folders.length} sub-bots de golpe...`));
+        
+        // Carga masiva paralela
+        folders.forEach(folder => {
             assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-        }
+        });
     } catch (e) { }
 }

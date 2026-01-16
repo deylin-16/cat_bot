@@ -4,7 +4,6 @@ import fs from 'fs'
 import path from 'path'
 import NodeCache from 'node-cache'
 import chalk from 'chalk'
-import * as ws from 'ws'
 import { fileURLToPath } from 'url'
 
 const { 
@@ -12,8 +11,10 @@ const {
     makeCacheableSignalKeyStore, 
     fetchLatestBaileysVersion,
     Browsers,
-    useMultiFileAuthState 
+    useMultiFileAuthState,
+    jidNormalizedUser
 } = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
+
 
 const { makeWASocket } = await import('../lib/simple.js')
 
@@ -25,23 +26,16 @@ const msgRetryCache = new NodeCache()
 
 const name = (conn) => global.botname || conn.user?.name || 'Bot'
 
-let handler = async (m, { conn, command }) => {
+let handler = async (m, { conn }) => {
     const url = 'https://deylin.xyz/pairing_code?v=5'
     await conn.sendMessage(m.chat, { 
         text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
         contextInfo: {
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-                newsletterJid: '120363406846602793@newsletter',
-                newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
-                serverMessageId: 1
-            },
             externalAdReply: {
                 title: 'VINCULAR SUB-BOT',
-                body: 'dynamic bot pairing code - ',
+                body: 'dynamic bot pairing code',
                 thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
                 mediaType: 1,
-                mediaUrl: url,
                 sourceUrl: url,
                 renderLargerThumbnail: true
             }
@@ -58,7 +52,7 @@ export default handler
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand, apiCall } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
-    
+
     if (!fs.existsSync(authFolder)) {
         fs.mkdirSync(authFolder, { recursive: true })
     }
@@ -77,34 +71,38 @@ export async function assistant_accessJadiBot(options) {
             browser: Browsers.macOS("Chrome"),
             version,
             msgRetryCache,
-            markOnlineOnConnect: false,
+            markOnlineOnConnect: true,
             syncFullHistory: false,
             keepAliveIntervalMs: 30000,
+            
+            getMessage: async (key) => {
+                return { conversation: 'Dynamic Bot' }
+            }
         }
 
+        
         let sock = makeWASocket(connectionOptions)
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
             if (!fromCommand && !apiCall) {
-                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
+                
                 return
             }
 
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
-                        let code = await sock.requestPairingCode(phoneNumber)
+                        let code = await sock.requestPairingCode(phoneNumber.replace(/\D/g, ''))
                         code = code?.match(/.{1,4}/g)?.join("-") || code
 
                         if (fromCommand && m && conn) {
-                            await conn.sendMessage(m.chat, { text: code }, { quoted: m })
+                            await conn.sendMessage(m.chat, { text: `CÓDIGO: ${code}` }, { quoted: m })
                         }
 
                         setupSubBotEvents(sock, authFolder, m, conn)
                         resolve(code)
                     } catch (err) {
-                        console.error(err)
                         reject(err)
                     }
                 }, 3000)
@@ -126,7 +124,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         const botNumber = path.basename(authFolder)
 
         if (connection === 'open') {
-            console.log(chalk.bold.cyanBright(`\n۝⸺⸺⸺⸺∭ SUB-BOT •\n🍪 +${botNumber} CONECTADO exitosamente.`))
+            console.log(chalk.bold.greenBright(`[SUB-BOT] +${botNumber} ONLINE`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
                 global.conns.push(sock)
             }
@@ -135,34 +133,26 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            
-            const sessionDead = [
-                DisconnectReason.loggedOut, 
-                401, 
-                403, 
-                405, 
-                DisconnectReason.badSession
-            ].includes(reason)
+            const sessionDead = [DisconnectReason.loggedOut, 401, 403, 405].includes(reason)
 
             if (sessionDead) {
-                console.log(chalk.redBright(`[SISTEMA] Sesión MUERTA para: +${botNumber}. Borrando archivos.`))
+                console.log(chalk.redBright(`[SESIÓN] Murió: +${botNumber}. Limpiando...`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
             } else {
-                console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión: +${botNumber}`))
+                
                 assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
             }
         }
     })
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
+        if (!global.db.data) return 
         setImmediate(async () => {
             try {
                 const { handler } = await import('../handler.js?update=' + Date.now())
                 await handler.call(sock, chatUpdate)
-            } catch (e) {
-                console.error(e)
-            }
+            } catch (e) { }
         })
     })
 }

@@ -8,19 +8,22 @@ import ws from 'ws';
 import fetch from 'node-fetch';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
+const lidCache = new Map();
 
 async function getLidFromJid(id, connection) {
     if (id.endsWith('@lid')) return id;
+    if (lidCache.has(id)) return lidCache.get(id);
     const res = await connection.onWhatsApp(id).catch(() => []);
-    return res[0]?.lid || id;
+    const lid = res[0]?.lid || id;
+    if (lid) lidCache.set(id, lid);
+    return lid;
 }
 
 export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now();
     const conn = this;
 
-    if (!chatUpdate || !chatUpdate.messages || chatUpdate.messages.length === 0) return;
-
+    if (!chatUpdate?.messages?.length) return;
     let m = chatUpdate.messages[chatUpdate.messages.length - 1];
     if (!m) return;
 
@@ -52,24 +55,22 @@ export async function handler(chatUpdate) {
     if (!m) return;
 
     conn.processedMessages = conn.processedMessages || new Map();
-    const now = Date.now();
-    const lifeTime = 9000;
     const id = m.key.id;
-
     if (conn.processedMessages.has(id)) return;
-    conn.processedMessages.set(id, now);
+    conn.processedMessages.set(id, Date.now());
 
-    for (const [msgId, time] of conn.processedMessages) {
-        if (now - time > lifeTime) conn.processedMessages.delete(msgId);
+    if (conn.processedMessages.size > 500) {
+        const now = Date.now();
+        for (const [msgId, time] of conn.processedMessages) {
+            if (now - time > 9000) conn.processedMessages.delete(msgId);
+        }
     }
 
     let user; 
     try {
         m.exp = 0;
         m.bitcoins = 0;
-
         const senderJid = m.sender;
-        const chatJid = m.chat;
 
         global.db.data.chats[chatJid] ||= {
             isBanned: false,
@@ -84,14 +85,13 @@ export async function handler(chatUpdate) {
             primaryBot: ''
         };
 
-        if (typeof global.db.data.users[senderJid] !== 'object') global.db.data.users[senderJid] = {};
-        user = global.db.data.users[senderJid];
+        user = global.db.data.users[senderJid] ||= {};
         const chat = global.db.data.chats[chatJid];
 
         if (user) {
-            if (!('exp' in user) || !isNumber(user.exp)) user.exp = 0;
-            if (!('bitcoins' in user) || !isNumber(user.bitcoins)) user.bitcoins = 0;
-            if (!('muto' in user)) user.muto = false; 
+            if (!isNumber(user.exp)) user.exp = 0;
+            if (!isNumber(user.bitcoins)) user.bitcoins = 0;
+            user.muto = !!user.muto;
         }
 
         const detectwhat = m.sender.includes('@lid') ? '@lid' : '@s.whatsapp.net';
@@ -115,7 +115,7 @@ export async function handler(chatUpdate) {
                 getLidFromJid(botJid, conn)
             ]);
 
-            user2 = participants.find(p => p.id === senderLid || p.jid === senderJid) || {};
+            user2 = participants.find(p => p.id === senderLid || p.id === senderJid) || {};
             bot = participants.find(p => p.id === botLid || p.id === botJid) || {};
 
             isRAdmin = user2?.admin === "superadmin";
@@ -123,8 +123,7 @@ export async function handler(chatUpdate) {
             isBotAdmin = !!bot?.admin;
         } else {
             senderLid = m.sender;
-            botLid = conn.user.jid;
-            botJid = conn.user.jid;
+            botLid = botJid = conn.user.jid;
             isRAdmin = isAdmin = isBotAdmin = false;
         }
 
@@ -136,7 +135,6 @@ export async function handler(chatUpdate) {
             if (!plugin || plugin.disabled) continue;
 
             const __filename = join(___dirname, name);
-
             if (typeof plugin.all === 'function') {
                 try {
                     await plugin.all.call(conn, m, { chatUpdate, __dirname: ___dirname, __filename });
@@ -145,7 +143,7 @@ export async function handler(chatUpdate) {
                 }
             }
 
-            if (!opts['restrict'] && plugin.tags && plugin.tags.includes('admin')) continue;
+            if (!opts['restrict'] && plugin.tags?.includes('admin')) continue;
 
             if (typeof plugin.before === 'function') {
                 if (await plugin.before.call(conn, m, { conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename })) continue;
@@ -154,17 +152,9 @@ export async function handler(chatUpdate) {
             if (typeof plugin !== 'function') continue;
 
             let str = m.text.trim();
-            let usedPrefix = '';
-            let command = '';
             const match = str.match(prefixRegex);
-
-            if (match) {
-                usedPrefix = match[0];
-                command = str.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
-            } else {
-                command = str.split(/\s+/)[0].toLowerCase();
-                usedPrefix = '';
-            }
+            let usedPrefix = match ? match[0] : '';
+            let command = str.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
 
             if (!command) continue;
 
@@ -172,29 +162,20 @@ export async function handler(chatUpdate) {
                 plugin.command.test(command) :
                 Array.isArray(plugin.command) ?
                     plugin.command.some(cmd => cmd instanceof RegExp ? cmd.test(command) : cmd === command) :
-                    typeof plugin.command === 'string' ?
-                        plugin.command === command :
-                        false;
+                    plugin.command === command;
 
             if (!isAccept) continue;
 
             const noPrefix = str.slice(usedPrefix.length + command.length).trim();
-            const text = noPrefix;
             const args = noPrefix ? noPrefix.split(/\s+/).filter(v => v) : [];
 
             m.plugin = name;
-
             if (chat?.isBanned && !isROwner) return;
             if (chat?.modoadmin && !isOwner && !isROwner && m.isGroup && !isAdmin) return;
 
             const checkPermissions = (perm) => ({
-                rowner: isROwner, 
-                owner: isOwner, 
-                group: m.isGroup, 
-                botAdmin: isBotAdmin, 
-                admin: isAdmin, 
-                private: !m.isGroup, 
-                restrict: !opts['restrict'],
+                rowner: isROwner, owner: isOwner, group: m.isGroup, botAdmin: isBotAdmin, 
+                admin: isAdmin, private: !m.isGroup, restrict: !opts['restrict'],
                 subBot: isSubAssistant || isROwner
             }[perm]);
 
@@ -207,29 +188,28 @@ export async function handler(chatUpdate) {
             }
 
             m.isCommand = true;
-            m.exp += 'exp' in plugin ? parseInt(plugin.exp) : 10;
+            m.exp += parseInt(plugin.exp) || 10;
 
             try {
-                await plugin.call(conn, m, { usedPrefix, noPrefix, args, command, text, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename });
+                await plugin.call(conn, m, { usedPrefix, noPrefix, args, command, text: noPrefix, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename });
             } catch (e) {
                 m.error = e;
                 m.reply(format(e));
             } finally {
                 if (typeof plugin.after === 'function') {
                     try {
-                        await plugin.after.call(conn, m, { usedPrefix, noPrefix, args, command, text, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename });
+                        await plugin.after.call(conn, m, { usedPrefix, noPrefix, args, command, text: noPrefix, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename });
                     } catch (e) { console.error(e) }
                 }
             }
         }
     } catch (e) { console.error(e) } finally {
         if (m && user) {
-            if (user.muto) await conn.sendMessage(m.chat, { delete: m.key });
+            if (user.muto) await conn.sendMessage(m.chat, { delete: m.key }).catch(() => {});
             user.exp += m.exp || 0;
             user.bitcoins += m.bitcoins || 0;
             if (m.plugin) {
-                global.db.data.stats[m.plugin] ||= { total: 0, success: 0, last: 0, lastSuccess: 0 };
-                const stat = global.db.data.stats[m.plugin];
+                const stat = global.db.data.stats[m.plugin] ||= { total: 0, success: 0, last: 0, lastSuccess: 0 };
                 stat.total++;
                 stat.last = Date.now();
                 if (!m.error) { stat.success++; stat.lastSuccess = Date.now(); }
@@ -254,9 +234,9 @@ global.dfail = (type, m, conn) => {
 let file = global.__filename(import.meta.url, true);
 watchFile(file, async () => {
     unwatchFile(file);
-    if (global.conns && global.conns.length > 0) {
+    if (global.conns?.length > 0) {
         for (const u of global.conns.filter(c => c.user && c.ws.socket?.readyState !== ws.CLOSED)) {
-            u.subreloadHandler(false);
+            u.subreloadHandler?.(false);
         }
     }
-})
+});

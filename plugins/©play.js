@@ -34,22 +34,22 @@ const handler = async (m, { conn, text, command }) => {
     }
 
     if (!cachedFileId) {
-      const { data } = await supabase
-        .from('media_index')
-        .select('file_id')
-        .eq('id_video_yt', videoId)
-        .eq('media_type', mediaType)
-        .single();
-      if (data) cachedFileId = data.file_id;
+      try {
+        const { data } = await supabase
+          .from('media_index')
+          .select('file_id')
+          .eq('id_video_yt', videoId)
+          .eq('media_type', mediaType)
+          .maybeSingle();
+        if (data) cachedFileId = data.file_id;
+      } catch { }
     }
 
     if (cachedFileId) {
       await m.react("⚡"); 
       try {
         return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cachedFileId } } }, { quoted: m });
-      } catch {
-        console.log("Re-descargando...");
-      }
+      } catch { }
     }
 
     const type = isAudio ? 'mp3' : 'mp4';

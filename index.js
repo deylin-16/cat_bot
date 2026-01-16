@@ -11,7 +11,6 @@ import express from 'express';
 import cors from 'cors';
 import { useMultiFileAuthState } from '@whiskeysockets/baileys';
 
-// DEFINICIONES GLOBALES PRIMERO PARA EVITAR TYPEERROR
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
 };
@@ -22,7 +21,6 @@ global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
 
-// IMPORTACIONES DE LIBRERÍA PROPIA
 import { loadDatabase, saveDatabase } from './lib/database.js';
 import { getSocket, setupPairing } from './lib/auth.js';
 
@@ -30,26 +28,27 @@ const { state, saveCreds } = await useMultiFileAuthState('sessions');
 const msgRetry = new NodeCache();
 const devCache = new NodeCache();
 
-// INICIO SECUENCIAL SEGURO
 await loadDatabase();
 global.conn = await getSocket(state, msgRetry, devCache);
 await setupPairing(global.conn);
 
 async function init() {
-    let handler = await import('./handler.js');
+    let handler = await import(`./handler.js?update=${Date.now()}`);
     global.conn.ev.on('messages.upsert', async (m) => {
-        if (!global.db.data) return; // Protección contra datos undefined
+        if (!global.db.data) return;
         setImmediate(async () => {
-            try { await handler.handler.call(global.conn, m); } catch (e) { console.error(e); }
+            try { await handler.handler.call(global.conn, m); } catch (e) { }
         });
     });
     global.conn.ev.on('creds.update', saveCreds);
     global.conn.ev.on('connection.update', (u) => {
-        if (u.connection === 'open') console.log(chalk.green('>>> BOT PRINCIPAL CONECTADO'));
-        if (u.connection === 'close') console.log(chalk.red('CONEXIÓN CERRADA, REINTENTANDO...'));
+        const { connection, lastDisconnect } = u;
+        if (connection === 'open') console.log(chalk.greenBright('>>> BOT PRINCIPAL ONLINE'));
+        if (connection === 'close') process.exit();
     });
 }
 
 init();
 setInterval(saveDatabase, 2 * 60 * 1000);
-express().use(cors()).use(express.json()).listen(process.env.PORT || 3000);
+const app = express().use(cors()).use(express.json());
+app.listen(process.env.PORT || 3000, () => console.log(chalk.cyanBright(`SERVIDOR API ACTIVO`)));

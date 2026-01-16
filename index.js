@@ -132,34 +132,22 @@ setInterval(async () => {
       supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() })
     ]).catch(() => {});
   }
-}, 60 * 1000);
-
-async function autostartSubBots() {
-    const jadibtsPath = join(process.cwd(), 'jadibts');
-    if (!existsSync(jadibtsPath)) return;
-    try {
-        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-        const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
-        for (const folder of folders) {
-            await new Promise(r => setTimeout(r, 2000));
-            assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-        }
-    } catch (e) { }
-}
+}, 2 * 60 * 1000);
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
   if (connection === 'open') {
-      console.log(chalk.bgGreen(' ONLINE '));
-      global.loadDatabase().then(() => {
-          autostartSubBots();
-      });
+    console.log(chalk.bgGreen(' ONLINE '));
+    await global.loadDatabase();
+    await autostartSubBots();
   }
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
 }
+
+process.on('uncaughtException', () => {});
 
 global.reloadHandler = async function(restatConn) {
   let handler = await import(`./handler.js?update=${Date.now()}`);
@@ -204,13 +192,28 @@ async function readRecursive(folder) {
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
   if (/\.js$/.test(filename)) {
-    const dir = global.__filename(join(pluginFolder, filename), true);
-    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+    try {
+        const dir = global.__filename(join(pluginFolder, filename), true);
+        const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
+        global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+    } catch (e) { }
   }
 });
 
 await global.reloadHandler();
+
+async function autostartSubBots() {
+    const jadibtsPath = join(process.cwd(), 'jadibts');
+    if (!existsSync(jadibtsPath)) return;
+    try {
+        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+        const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
+        for (const folder of folders) {
+            await new Promise(r => setTimeout(r, 2000));
+            assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
+        }
+    } catch (e) { }
+}
 
 const app = express().use(cors()).use(express.json());
 

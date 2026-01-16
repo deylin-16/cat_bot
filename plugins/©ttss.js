@@ -3,8 +3,7 @@ import axios from 'axios';
 let handler = async (m, { conn, text }) => {
   const rwait = '🕒';
   const done = '✅';
-  const url_api = 'https://api.dynlayer.xyz'; 
-
+  
   if (!text) return global.design(conn, m, `Por favor, ingresa lo que deseas buscar.`);
 
   try {

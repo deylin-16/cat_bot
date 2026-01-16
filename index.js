@@ -3,16 +3,15 @@ import './config.js';
 import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
-import path, { join } from 'path';
+import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
 import NodeCache from 'node-cache';
 import express from 'express';
 import cors from 'cors';
 import { useMultiFileAuthState } from '@whiskeysockets/baileys';
-import { loadDatabase, saveDatabase } from './lib/database.js';
-import { getSocket, setupPairing } from './lib/auth.js';
 
+// DEFINICIONES GLOBALES PRIMERO PARA EVITAR TYPEERROR
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
 };
@@ -23,10 +22,15 @@ global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
 
+// IMPORTACIONES DE LIBRERÍA PROPIA
+import { loadDatabase, saveDatabase } from './lib/database.js';
+import { getSocket, setupPairing } from './lib/auth.js';
+
 const { state, saveCreds } = await useMultiFileAuthState('sessions');
 const msgRetry = new NodeCache();
 const devCache = new NodeCache();
 
+// INICIO SECUENCIAL SEGURO
 await loadDatabase();
 global.conn = await getSocket(state, msgRetry, devCache);
 await setupPairing(global.conn);
@@ -34,14 +38,15 @@ await setupPairing(global.conn);
 async function init() {
     let handler = await import('./handler.js');
     global.conn.ev.on('messages.upsert', async (m) => {
+        if (!global.db.data) return; // Protección contra datos undefined
         setImmediate(async () => {
-            try { await handler.handler.call(global.conn, m); } catch (e) {}
+            try { await handler.handler.call(global.conn, m); } catch (e) { console.error(e); }
         });
     });
     global.conn.ev.on('creds.update', saveCreds);
-    global.conn.ev.on('connection.update', async (u) => {
+    global.conn.ev.on('connection.update', (u) => {
         if (u.connection === 'open') console.log(chalk.green('>>> BOT PRINCIPAL CONECTADO'));
-        if (u.connection === 'close') process.exit();
+        if (u.connection === 'close') console.log(chalk.red('CONEXIÓN CERRADA, REINTENTANDO...'));
     });
 }
 

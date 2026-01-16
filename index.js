@@ -18,10 +18,10 @@ global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
 
+import { startBot } from './main.js';
+
 const PORT = process.env.PORT || 3000;
 const app = express().use(cors()).use(express.json());
-
-import { startBot } from './main.js';
 
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
@@ -34,6 +34,6 @@ app.get('/api/get-pairing-code', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(chalk.cyanBright(`[SERVER] Puerto activo: ${PORT}`));
+    console.log(chalk.cyanBright(`PORT: ${PORT}`));
     startBot();
 });

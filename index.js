@@ -1,4 +1,4 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
+Process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
 import './config.js';
 import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -25,12 +25,19 @@ const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
+
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 global.design = async (conn, m, text) => {
     return await conn.sendMessage(m.chat, { text: text }, { quoted: m });
 };
+
+let { say } = cfonts;
+console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
+console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM OPTIMIZED...      │'));
+console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
+say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
 
 protoType();
 serialize();
@@ -45,9 +52,11 @@ global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
 
+global.timestamp = { start: new Date };
 const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
+
 global.db = new Low(new JSONFile('database.json'));
 global.DATABASE = global.db;
 
@@ -103,12 +112,15 @@ global.conn = makeWASocket(connectionOptions);
 if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
-    let phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número:\n> `));
+    let phoneNumber = global.botNumber;
+    if (!phoneNumber) {
+        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número del Bot:\n> `));
+    }
     let addNumber = phoneNumber.replace(/\D/g, '');
     setTimeout(async () => {
         let codeBot = await conn.requestPairingCode(addNumber);
         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-        console.log(chalk.magentaBright(`\nCODE: ${codeBot}\n`));
+        console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
     }, 3000);
 }
 
@@ -156,13 +168,18 @@ global.reloadHandler = async function(restatConn) {
     conn.ev.removeAllListeners();
     global.conn = makeWASocket(connectionOptions);
   }
+
   conn.handler = async (chatUpdate) => {
     setImmediate(async () => {
-        try { await handler.handler.call(global.conn, chatUpdate); } catch (e) { }
+        try {
+            await handler.handler.call(global.conn, chatUpdate);
+        } catch (e) { }
     });
   };
+
   conn.connectionUpdate = connectionUpdate.bind(global.conn);
   conn.credsUpdate = saveCreds.bind(global.conn, true);
+
   conn.ev.on('messages.upsert', conn.handler);
   conn.ev.on('connection.update', conn.connectionUpdate);
   conn.ev.on('creds.update', conn.credsUpdate);
@@ -185,12 +202,21 @@ async function readRecursive(folder) {
 }
 
 await readRecursive(pluginFolder);
+watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
+  if (/\.js$/.test(filename)) {
+    const dir = global.__filename(join(pluginFolder, filename), true);
+    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
+    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+  }
+});
+
 await global.reloadHandler();
 
 const app = express().use(cors()).use(express.json());
+
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
-    if (!number) return res.status(400).send({ error: "No number" });
+    if (!number) return res.status(400).send({ error: "Número requerido" });
     try {
         const num = number.replace(/\D/g, '');
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
@@ -198,4 +224,5 @@ app.get('/api/get-pairing-code', async (req, res) => {
         res.status(200).send({ code });
     } catch (e) { res.status(500).send({ error: e.message }); }
 });
+
 app.listen(PORT, () => console.log(chalk.greenBright(`PORT: ${PORT}`)));

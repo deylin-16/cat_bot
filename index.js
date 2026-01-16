@@ -17,123 +17,83 @@ import NodeCache from 'node-cache';
 import readline from 'readline';
 import express from 'express';
 import cors from 'cors';
-import cfonts from 'cfonts';
+import { createClient } from '@supabase/supabase-js';
+
+const SB_URL = "https://kzuvndqicwcclhayyttc.supabase.co"; 
+const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
+const supabase = createClient(SB_URL, SB_KEY);
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
-
 const { chain } = lodash;
-const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
-
-let { say } = cfonts;
-console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
-console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM INITATING...      │'));
-console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
-say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
-say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
+const PORT = process.env.PORT || 3000;
 
 protoType();
 serialize();
 
-global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
-  return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
-};
-global.__dirname = function dirname(pathURL) {
-  return path.dirname(global.__filename(pathURL, true));
-};
-global.__require = function require(dir = import.meta.url) {
-  return createRequire(dir);
-};
-
-global.timestamp = { start: new Date };
+global.__filename = (pathURL = import.meta.url, rmPrefix = platform !== 'win32') => rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
+global.__dirname = (pathURL) => path.dirname(global.__filename(pathURL, true));
 const __dirname = global.__dirname(import.meta.url);
-global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
-global.prefix = new RegExp('^[#!./]');
 
+global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.db = new Low(new JSONFile('database.json'));
-global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
-  if (global.db.READ) {
-    return new Promise((resolve) => setInterval(async function() {
-      if (!global.db.READ) {
-        clearInterval(this);
-        resolve(global.db.data == null ? global.loadDatabase() : global.db.data);
-      }
-    }, 1 * 1000));
-  }
   if (global.db.data !== null) return;
-  global.db.READ = true;
-  await global.db.read().catch(console.error);
-  global.db.READ = null;
-  global.db.data = {
-    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {},
-    ...(global.db.data || {}),
-  };
+  const { data: cloudData } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').single();
+  if (cloudData) {
+    global.db.data = cloudData.content;
+  } else {
+    await global.db.read().catch(() => {});
+    global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}, ...(global.db.data || {}) };
+  }
   global.db.chain = chain(global.db.data);
 };
 await loadDatabase();
 
-const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
-const msgRetryCounterCache = new NodeCache();
-const userDevicesCache = new NodeCache();
+const { state, saveCreds } = await useMultiFileAuthState('sessions');
+const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
+const userDevicesCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
 const { version } = await fetchLatestBaileysVersion();
-
-const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ=", "U2Vzc2lvbiBlcnJvcg==", "RXJyb3I6IEJhZCBNQUM=", "RGVjcnlwdGVkIG1lc3NhZ2U="];
-['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
 
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
-  printQRInTerminal: false,
   browser: Browsers.macOS("Chrome"),
   auth: {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
   },
+  printQRInTerminal: false,
   markOnlineOnConnect: false,
-  generateHighQualityLinkPreview: true,
   syncFullHistory: false,
-  getMessage: async (key) => {
-    try {
-      let jid = jidNormalizedUser(key.remoteJid);
-      let msg = await store.loadMessage(jid, key.id);
-      return msg?.message || "";
-    } catch { return ""; }
-  },
+  getMessage: async (key) => (await store.loadMessage(jidNormalizedUser(key.remoteJid), key.id))?.message || "",
   msgRetryCounterCache,
   userDevicesCache,
   version,
-  keepAliveIntervalMs: 30000,
+  connectTimeoutMs: 60000,
+  keepAliveIntervalMs: 10000,
 };
 
 global.conn = makeWASocket(connectionOptions);
 
-if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
-    let phoneNumber = global.botNumber;
-    if (!phoneNumber) {
-        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número del Bot:\n> `));
-    }
-    let addNumber = phoneNumber.replace(/\D/g, '');
-    setTimeout(async () => {
-        let codeBot = await conn.requestPairingCode(addNumber);
-        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-        console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
-    }, 3000);
+if (!existsSync('./sessions/creds.json')) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  let phoneNumber = global.botNumber || await new Promise(res => rl.question(chalk.blue('\nNúmero:\n> '), res));
+  let addNumber = phoneNumber.replace(/\D/g, '');
+  setTimeout(async () => {
+    let code = await conn.requestPairingCode(addNumber);
+    console.log(chalk.magenta(`\nCÓDIGO: ${code?.match(/.{1,4}/g)?.join("-") || code}\n`));
+    rl.close();
+  }, 3000);
 }
 
-conn.isInit = false;
-if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
-
-async function connectionUpdate(update) {
-  const { connection, lastDisconnect, isNewLogin } = update;
-  if (isNewLogin) conn.isInit = true;
-  if (connection === 'close') {
-    if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
+setInterval(async () => {
+  if (global.db.data) {
+    await Promise.allSettled([
+      global.db.write(),
+      supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() })
+    ]);
   }
-}
-
-process.on('uncaughtException', console.error);
+}, 5 * 60 * 1000);
 
 global.reloadHandler = async function(restatConn) {
   let handler = await import(`./handler.js?update=${Date.now()}`);
@@ -143,32 +103,27 @@ global.reloadHandler = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
 
-  
-  conn.handler = async (chatUpdate) => {
+  conn.handler = (chatUpdate) => {
     setImmediate(async () => {
-        try {
-            await handler.handler.call(global.conn, chatUpdate);
-        } catch (e) { console.error(e); }
+      try { await handler.handler.call(global.conn, chatUpdate); } catch (e) { }
     });
   };
 
-  conn.connectionUpdate = connectionUpdate.bind(global.conn);
-  conn.credsUpdate = saveCreds.bind(global.conn, true);
-
   conn.ev.on('messages.upsert', conn.handler);
-  conn.ev.on('connection.update', conn.connectionUpdate);
-  conn.ev.on('creds.update', conn.credsUpdate);
-  return true;
+  conn.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect } = update;
+    if (connection === 'close' && new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) global.reloadHandler(true);
+  });
+  conn.ev.on('creds.update', saveCreds);
 };
 
 const pluginFolder = join(__dirname, './plugins');
-const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
 async function readRecursive(folder) {
   for (const filename of readdirSync(folder)) {
     const file = join(folder, filename);
     if (statSync(file).isDirectory()) await readRecursive(file);
-    else if (pluginFilter(filename)) {
+    else if (/\.js$/.test(filename)) {
       const module = await import(global.__filename(file));
       global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
     }
@@ -176,65 +131,30 @@ async function readRecursive(folder) {
 }
 
 await readRecursive(pluginFolder);
-watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
-  if (pluginFilter(filename)) {
-    const dir = global.__filename(join(pluginFolder, filename), true);
-    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
-  }
-});
-
 await global.reloadHandler();
 
 async function autostartSubBots() {
-    const jadibtsPath = join(process.cwd(), 'jadibts');
-    if (existsSync(jadibtsPath)) {
-        const folders = readdirSync(jadibtsPath);
-        
-        folders.forEach(async (folder) => {
-            if (statSync(join(jadibtsPath, folder)).isDirectory()) {
-                try {
-                    const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-                    
-                    assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-                } catch (e) {}
-            }
-        });
-    }
+  const jadibtsPath = join(process.cwd(), 'jadibts');
+  if (!existsSync(jadibtsPath)) return;
+  const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+  const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
+  for (const folder of folders) {
+    await new Promise(r => setTimeout(r, 2000));
+    assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
+  }
 }
 autostartSubBots();
 
-function redefineConsoleMethod(methodName, filterStrings) {
-  const original = console[methodName];
-  console[methodName] = function() {
-    if (typeof arguments[0] === 'string' && filterStrings.some(s => arguments[0].includes(atob(s)))) arguments[0] = "";
-    original.apply(console, arguments);
-  };
-}
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
+const app = express().use(cors()).use(express.json());
 app.get('/api/get-pairing-code', async (req, res) => {
-    let { number } = req.query; 
-    if (!number) return res.status(400).send({ error: "Número requerido" });
-    try {
-        const num = number.replace(/\D/g, '');
-        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-        const code = await assistant_accessJadiBot({ 
-            m: null, 
-            conn: global.conn, 
-            phoneNumber: num, 
-            fromCommand: false,
-            apiCall: true
-        }); 
-        res.status(200).send({ code });
-    } catch (e) {
-        res.status(500).send({ error: e.message });
-    }
+  let { number } = req.query;
+  if (!number) return res.status(400).json({ error: "Requerido" });
+  try {
+    const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+    const code = await assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: number.replace(/\D/g, ''), fromCommand: false, apiCall: true });
+    res.json({ code });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.listen(PORT);
 
-app.listen(PORT, () => {
-    console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
-});
+process.on('uncaughtException', () => {});

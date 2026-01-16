@@ -26,10 +26,14 @@ const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
 const redis = createRedis({
+    url: 'redis://default:AZ6vAAIncDI0NmM4N2VjNTZmZWU0MDkyODI1NDI5NTU5MTY4NGFlMnAyNDA2MjM@positive-quail-40623.upstash.io:6379',
     socket: {
         reconnectStrategy: (retries) => {
-            if (retries > 3) return false;
-            return 500;
+            if (retries > 5) {
+                global.redisDisabled = true;
+                return false;
+            }
+            return 1000;
         }
     }
 });
@@ -43,7 +47,7 @@ const app = express().use(cors()).use(express.json());
 
 let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
-console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM OPTIMIZED...      │'));
+console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM DEYLIN TECH     │'));
 console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
 say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
 

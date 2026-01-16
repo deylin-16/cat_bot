@@ -58,16 +58,20 @@ global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
   if (global.db.data !== null) return;
-  const { data: cloud } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').single();
-  if (cloud) {
-    global.db.data = cloud.content;
-  } else {
+  try {
+    const { data: cloud } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').maybeSingle();
+    if (cloud) {
+      global.db.data = cloud.content;
+    } else {
+      await global.db.read().catch(() => {});
+      global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}, ...(global.db.data || {}) };
+    }
+  } catch (e) {
     await global.db.read().catch(() => {});
     global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}, ...(global.db.data || {}) };
   }
   global.db.chain = chain(global.db.data);
 };
-await loadDatabase();
 
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
@@ -82,7 +86,7 @@ const connectionOptions = {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
   },
-  markOnlineOnConnect: false,
+  markOnlineOnConnect: true,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
   getMessage: async (key) => {
@@ -95,7 +99,7 @@ const connectionOptions = {
   msgRetryCounterCache,
   userDevicesCache,
   version,
-  keepAliveIntervalMs: 15000,
+  keepAliveIntervalMs: 20000,
   maxMsgRetryCount: 3
 };
 
@@ -122,13 +126,19 @@ setInterval(async () => {
     await Promise.allSettled([
       global.db.write(),
       supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() })
-    ]);
+    ]).catch(() => {});
   }
 }, 2 * 60 * 1000);
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
+  if (connection === 'open') {
+    console.log(chalk.greenBright('>>> SISTEMA ONLINE'));
+    global.loadDatabase().then(() => {
+        autostartSubBots();
+    });
+  }
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
@@ -168,8 +178,10 @@ async function readRecursive(folder) {
     const file = join(folder, filename);
     if (statSync(file).isDirectory()) await readRecursive(file);
     else if (/\.js$/.test(filename)) {
-      const module = await import(global.__filename(file));
-      global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+      try {
+        const module = await import(global.__filename(file));
+        global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+      } catch (e) { }
     }
   }
 }
@@ -177,9 +189,11 @@ async function readRecursive(folder) {
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
   if (/\.js$/.test(filename)) {
-    const dir = global.__filename(join(pluginFolder, filename), true);
-    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+    try {
+        const dir = global.__filename(join(pluginFolder, filename), true);
+        const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
+        global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+    } catch (e) { }
   }
 });
 
@@ -188,15 +202,15 @@ await global.reloadHandler();
 async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (!existsSync(jadibtsPath)) return;
-    const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-    const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
-
-    for (const folder of folders) {
-        await new Promise(r => setTimeout(r, 1500));
-        assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-    }
+    try {
+        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+        const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
+        for (const folder of folders) {
+            await new Promise(r => setTimeout(r, 2000));
+            assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
+        }
+    } catch (e) { }
 }
-autostartSubBots();
 
 const app = express().use(cors()).use(express.json());
 

@@ -23,6 +23,7 @@ global.__require = function require(dir = import.meta.url) {
 
 import { loadDatabase, saveDatabase } from './lib/database.js';
 import { getSocket, setupPairing } from './lib/auth.js';
+import { startOptimization, cleanSessions } from './lib/optimizer.js';
 
 const { state, saveCreds } = await useMultiFileAuthState('sessions');
 const msgRetry = new NodeCache();
@@ -42,13 +43,13 @@ async function init() {
     });
     global.conn.ev.on('creds.update', saveCreds);
     global.conn.ev.on('connection.update', (u) => {
-        const { connection, lastDisconnect } = u;
-        if (connection === 'open') console.log(chalk.greenBright('>>> BOT PRINCIPAL ONLINE'));
-        if (connection === 'close') process.exit();
+        if (u.connection === 'open') console.log(chalk.greenBright('>>> SISTEMA ONLINE'));
+        if (u.connection === 'close') process.exit();
     });
 }
 
 init();
+startOptimization(global.conn);
+cleanSessions();
 setInterval(saveDatabase, 2 * 60 * 1000);
-const app = express().use(cors()).use(express.json());
-app.listen(process.env.PORT || 3000, () => console.log(chalk.cyanBright(`SERVIDOR API ACTIVO`)));
+express().use(cors()).use(express.json()).listen(process.env.PORT || 3000);

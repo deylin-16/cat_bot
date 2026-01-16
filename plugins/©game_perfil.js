@@ -16,7 +16,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     }
 
     let txt = `*👤 PERFIL DE USUARIO*\n\n`
-    txt += `*Nombre:* ${name}\n`
+    txt += `*Nombre:* ${m.}\n`
     txt += `*Nivel:* ${level}\n`
     txt += `*Rango:* ${user.role || 'Novato'}\n\n`
     txt += `*📊 PROGRESO*\n`

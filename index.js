@@ -4,12 +4,9 @@ import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import path from 'path';
-import fs from 'fs';
 import chalk from 'chalk';
-import NodeCache from 'node-cache';
 import express from 'express';
 import cors from 'cors';
-import { useMultiFileAuthState } from '@whiskeysockets/baileys';
 
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
@@ -21,35 +18,22 @@ global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
 };
 
-import { loadDatabase, saveDatabase } from './lib/database.js';
-import { getSocket, setupPairing } from './lib/auth.js';
-import { startOptimization, cleanSessions } from './lib/optimizer.js';
+const PORT = process.env.PORT || 3000;
+const app = express().use(cors()).use(express.json());
 
-const { state, saveCreds } = await useMultiFileAuthState('sessions');
-const msgRetry = new NodeCache();
-const devCache = new NodeCache();
+import { startBot } from './main.js';
 
-await loadDatabase();
-global.conn = await getSocket(state, msgRetry, devCache);
-await setupPairing(global.conn);
+app.get('/api/get-pairing-code', async (req, res) => {
+    let { number } = req.query; 
+    if (!number) return res.status(400).send({ error: "Número requerido" });
+    try {
+        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+        const code = await assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: number.replace(/\D/g, ''), fromCommand: false, apiCall: true }); 
+        res.status(200).send({ code });
+    } catch (e) { res.status(500).send({ error: e.message }); }
+});
 
-async function init() {
-    let handler = await import(`./handler.js?update=${Date.now()}`);
-    global.conn.ev.on('messages.upsert', async (m) => {
-        if (!global.db.data) return;
-        setImmediate(async () => {
-            try { await handler.handler.call(global.conn, m); } catch (e) { }
-        });
-    });
-    global.conn.ev.on('creds.update', saveCreds);
-    global.conn.ev.on('connection.update', (u) => {
-        if (u.connection === 'open') console.log(chalk.greenBright('>>> SISTEMA ONLINE'));
-        if (u.connection === 'close') process.exit();
-    });
-}
-
-init();
-startOptimization(global.conn);
-cleanSessions();
-setInterval(saveDatabase, 2 * 60 * 1000);
-express().use(cors()).use(express.json()).listen(process.env.PORT || 3000);
+app.listen(PORT, () => {
+    console.log(chalk.cyanBright(`[SERVER] Puerto activo: ${PORT}`));
+    startBot();
+});

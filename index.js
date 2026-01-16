@@ -19,31 +19,19 @@ import express from 'express';
 import cors from 'cors';
 import cfonts from 'cfonts';
 import { createClient } from '@supabase/supabase-js';
-import { createClient as createRedis } from 'redis';
 
 const SB_URL = "https://kzuvndqicwcclhayyttc.supabase.co"; 
 const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
-const redis = createRedis({
-    url: 'redis://default:AZ6vAAIncDI0NmM4N2VjNTZmZWU0MDkyODI1NDI5NTU5MTY4NGFlMnAyNDA2MjM@positive-quail-40623.upstash.io:6379',
-    socket: {
-        reconnectStrategy: (retries) => {
-            if (retries > 5) {
-                global.redisDisabled = true;
-                return false;
-            }
-            return 1000;
-        }
-    }
-});
-redis.on('error', () => { global.redisDisabled = true; });
-if (!redis.isOpen) redis.connect().catch(() => { global.redisDisabled = true; });
-
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
+
+global.design = async (conn, m, text) => {
+    return await conn.sendMessage(m.chat, { text: text }, { quoted: m });
+};
 
 let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
@@ -74,7 +62,7 @@ global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
   if (global.db.data !== null) return;
-  const { data: cloud } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').single();
+  const { data: cloud } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').maybeSingle();
   if (cloud) {
     global.db.data = cloud.content;
   } else {
@@ -83,12 +71,14 @@ global.loadDatabase = async function loadDatabase() {
   }
   global.db.chain = chain(global.db.data);
 };
-await loadDatabase();
 
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
 const userDevicesCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
 const { version } = await fetchLatestBaileysVersion();
+
+const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ=", "U2Vzc2lvbiBlcnJvcg==", "RXJyb3I6IEJhZCBNQUM=", "RGVjcnlwdGVkIG1lc3NhZ2U="];
+['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
 
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
@@ -111,8 +101,7 @@ const connectionOptions = {
   msgRetryCounterCache,
   userDevicesCache,
   version,
-  keepAliveIntervalMs: 15000,
-  maxMsgRetryCount: 3
+  keepAliveIntervalMs: 30000,
 };
 
 global.conn = makeWASocket(connectionOptions);
@@ -138,13 +127,18 @@ setInterval(async () => {
     await Promise.allSettled([
       global.db.write(),
       supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() })
-    ]);
+    ]).catch(() => {});
   }
-}, 2 * 60 * 1000);
+}, 30 * 1000);
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
+  if (connection === 'open') {
+      console.log(chalk.bgGreen(' ONLINE '));
+      await global.loadDatabase();
+      await autostartSubBots();
+  }
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
@@ -159,18 +153,13 @@ global.reloadHandler = async function(restatConn) {
     conn.ev.removeAllListeners();
     global.conn = makeWASocket(connectionOptions);
   }
-
   conn.handler = async (chatUpdate) => {
     setImmediate(async () => {
-        try {
-            await handler.handler.call(global.conn, chatUpdate);
-        } catch (e) { }
+        try { await handler.handler.call(global.conn, chatUpdate); } catch (e) { }
     });
   };
-
   conn.connectionUpdate = connectionUpdate.bind(global.conn);
   conn.credsUpdate = saveCreds.bind(global.conn, true);
-
   conn.ev.on('messages.upsert', conn.handler);
   conn.ev.on('connection.update', conn.connectionUpdate);
   conn.ev.on('creds.update', conn.credsUpdate);
@@ -184,8 +173,10 @@ async function readRecursive(folder) {
     const file = join(folder, filename);
     if (statSync(file).isDirectory()) await readRecursive(file);
     else if (/\.js$/.test(filename)) {
-      const module = await import(global.__filename(file));
-      global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+      try {
+        const module = await import(global.__filename(file));
+        global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+      } catch (e) { }
     }
   }
 }
@@ -206,16 +197,21 @@ async function autostartSubBots() {
     if (!existsSync(jadibtsPath)) return;
     const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
     const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
-
     for (const folder of folders) {
         await new Promise(r => setTimeout(r, 1500));
         assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
     }
 }
-autostartSubBots();
+
+function redefineConsoleMethod(methodName, filterStrings) {
+  const original = console[methodName];
+  console[methodName] = function() {
+    if (typeof arguments[0] === 'string' && filterStrings.some(s => arguments[0].includes(atob(s)))) arguments[0] = "";
+    original.apply(console, arguments);
+  };
+}
 
 const app = express().use(cors()).use(express.json());
-
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
     if (!number) return res.status(400).send({ error: "Número requerido" });
@@ -226,5 +222,4 @@ app.get('/api/get-pairing-code', async (req, res) => {
         res.status(200).send({ code });
     } catch (e) { res.status(500).send({ error: e.message }); }
 });
-
 app.listen(PORT, () => console.log(chalk.greenBright(`PORT: ${PORT}`)));

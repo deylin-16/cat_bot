@@ -19,13 +19,24 @@ import express from 'express';
 import cors from 'cors';
 import cfonts from 'cfonts';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createRedis } from 'redis';
 
 const SB_URL = "https://kzuvndqicwcclhayyttc.supabase.co"; 
 const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
-const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
+const redis = createRedis({
+    socket: {
+        reconnectStrategy: (retries) => {
+            if (retries > 3) return false;
+            return 500;
+        }
+    }
+});
+redis.on('error', () => { global.redisDisabled = true; });
+if (!redis.isOpen) redis.connect().catch(() => { global.redisDisabled = true; });
 
+const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 const app = express().use(cors()).use(express.json());
@@ -59,8 +70,7 @@ global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
   if (global.db.data !== null) return;
-  // Timeout para Supabase para evitar bloqueo infinito
-  const { data: cloud, error } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').single().timeout(5000).catch(() => ({data: null}));
+  const { data: cloud } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').single().timeout(5000).catch(() => ({data: null}));
   if (cloud) {
     global.db.data = cloud.content;
   } else {
@@ -102,9 +112,8 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
-// Servidor Express iniciado de inmediato
 if (!app.listening) {
-    app.listen(PORT, () => console.log(chalk.greenBright(`SERVIDOR INICIADO EN PORT: ${PORT}`)));
+    app.listen(PORT, () => console.log(chalk.greenBright(`PORT: ${PORT}`)));
 }
 
 if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
@@ -112,13 +121,13 @@ if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
     const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
     let phoneNumber = global.botNumber;
     if (!phoneNumber) {
-        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número del Bot:\n> `));
+        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número:\n> `));
     }
     let addNumber = phoneNumber.replace(/\D/g, '');
     setTimeout(async () => {
         let codeBot = await conn.requestPairingCode(addNumber);
         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-        console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
+        console.log(chalk.magentaBright(`\nCODE: ${codeBot}\n`));
     }, 3000);
 }
 
@@ -132,7 +141,6 @@ setInterval(async () => {
   }
 }, 2 * 60 * 1000);
 
-// Función para arrancar subbots sin bloquear
 async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (!existsSync(jadibtsPath)) return;
@@ -143,14 +151,14 @@ async function autostartSubBots() {
             await new Promise(r => setTimeout(r, 2000));
             assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
         }
-    } catch (e) { console.error("Error en autostart:", e); }
+    } catch (e) { }
 }
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
   if (connection === 'open') {
-      console.log(chalk.bgGreen(' CONECTADO CORRECTAMENTE '));
+      console.log(chalk.bgGreen(' ONLINE '));
       await global.loadDatabase();
       await autostartSubBots();
   }
@@ -159,7 +167,7 @@ async function connectionUpdate(update) {
   }
 }
 
-process.on('uncaughtException', (err) => { console.error('Error no capturado:', err); });
+process.on('uncaughtException', () => {});
 
 global.reloadHandler = async function(restatConn) {
   let handler = await import(`./handler.js?update=${Date.now()}`);
@@ -168,18 +176,13 @@ global.reloadHandler = async function(restatConn) {
     conn.ev.removeAllListeners();
     global.conn = makeWASocket(connectionOptions);
   }
-
   conn.handler = async (chatUpdate) => {
     setImmediate(async () => {
-        try {
-            await handler.handler.call(global.conn, chatUpdate);
-        } catch (e) { }
+        try { await handler.handler.call(global.conn, chatUpdate); } catch (e) { }
     });
   };
-
   conn.connectionUpdate = connectionUpdate.bind(global.conn);
   conn.credsUpdate = saveCreds.bind(global.conn, true);
-
   conn.ev.on('messages.upsert', conn.handler);
   conn.ev.on('connection.update', conn.connectionUpdate);
   conn.ev.on('creds.update', conn.credsUpdate);
@@ -196,12 +199,11 @@ async function readRecursive(folder) {
       try {
         const module = await import(global.__filename(file));
         global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
-      } catch (e) { console.error(`Error cargando plugin ${filename}:`, e); }
+      } catch (e) { }
     }
   }
 }
 
-// Iniciar carga de plugins y handler
 readRecursive(pluginFolder).then(() => {
     watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
         if (/\.js$/.test(filename)) {
@@ -216,7 +218,7 @@ await global.reloadHandler();
 
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
-    if (!number) return res.status(400).send({ error: "Número requerido" });
+    if (!number) return res.status(400).send({ error: "No number" });
     try {
         const num = number.replace(/\D/g, '');
         const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');

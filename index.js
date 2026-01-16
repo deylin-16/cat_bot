@@ -28,6 +28,7 @@ const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, make
 
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
+const app = express().use(cors()).use(express.json());
 
 let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
@@ -58,7 +59,8 @@ global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
   if (global.db.data !== null) return;
-  const { data: cloud } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').single();
+  // Timeout para Supabase para evitar bloqueo infinito
+  const { data: cloud, error } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').single().timeout(5000).catch(() => ({data: null}));
   if (cloud) {
     global.db.data = cloud.content;
   } else {
@@ -67,7 +69,6 @@ global.loadDatabase = async function loadDatabase() {
   }
   global.db.chain = chain(global.db.data);
 };
-await loadDatabase();
 
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
@@ -101,6 +102,11 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
+// Servidor Express iniciado de inmediato
+if (!app.listening) {
+    app.listen(PORT, () => console.log(chalk.greenBright(`SERVIDOR INICIADO EN PORT: ${PORT}`)));
+}
+
 if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
@@ -122,19 +128,38 @@ setInterval(async () => {
     await Promise.allSettled([
       global.db.write(),
       supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() })
-    ]);
+    ]).catch(() => {});
   }
 }, 2 * 60 * 1000);
+
+// Función para arrancar subbots sin bloquear
+async function autostartSubBots() {
+    const jadibtsPath = join(process.cwd(), 'jadibts');
+    if (!existsSync(jadibtsPath)) return;
+    try {
+        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+        const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
+        for (const folder of folders) {
+            await new Promise(r => setTimeout(r, 2000));
+            assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
+        }
+    } catch (e) { console.error("Error en autostart:", e); }
+}
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
+  if (connection === 'open') {
+      console.log(chalk.bgGreen(' CONECTADO CORRECTAMENTE '));
+      await global.loadDatabase();
+      await autostartSubBots();
+  }
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
 }
 
-process.on('uncaughtException', () => {});
+process.on('uncaughtException', (err) => { console.error('Error no capturado:', err); });
 
 global.reloadHandler = async function(restatConn) {
   let handler = await import(`./handler.js?update=${Date.now()}`);
@@ -168,37 +193,26 @@ async function readRecursive(folder) {
     const file = join(folder, filename);
     if (statSync(file).isDirectory()) await readRecursive(file);
     else if (/\.js$/.test(filename)) {
-      const module = await import(global.__filename(file));
-      global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+      try {
+        const module = await import(global.__filename(file));
+        global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+      } catch (e) { console.error(`Error cargando plugin ${filename}:`, e); }
     }
   }
 }
 
-await readRecursive(pluginFolder);
-watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
-  if (/\.js$/.test(filename)) {
-    const dir = global.__filename(join(pluginFolder, filename), true);
-    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
-  }
+// Iniciar carga de plugins y handler
+readRecursive(pluginFolder).then(() => {
+    watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
+        if (/\.js$/.test(filename)) {
+          const dir = global.__filename(join(pluginFolder, filename), true);
+          const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
+          global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+        }
+    });
 });
 
 await global.reloadHandler();
-
-async function autostartSubBots() {
-    const jadibtsPath = join(process.cwd(), 'jadibts');
-    if (!existsSync(jadibtsPath)) return;
-    const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-    const folders = readdirSync(jadibtsPath).filter(f => statSync(join(jadibtsPath, f)).isDirectory());
-
-    for (const folder of folders) {
-        await new Promise(r => setTimeout(r, 1500));
-        assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-    }
-}
-autostartSubBots();
-
-const app = express().use(cors()).use(express.json());
 
 app.get('/api/get-pairing-code', async (req, res) => {
     let { number } = req.query; 
@@ -210,5 +224,3 @@ app.get('/api/get-pairing-code', async (req, res) => {
         res.status(200).send({ code });
     } catch (e) { res.status(500).send({ error: e.message }); }
 });
-
-app.listen(PORT, () => console.log(chalk.greenBright(`PORT: ${PORT}`)));

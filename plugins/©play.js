@@ -1,19 +1,14 @@
 import fetch from "node-fetch";
 import yts from "yt-search";
 import { createClient } from '@supabase/supabase-js';
-import { createClient as createRedis } from 'redis';
 
 const SB_URL = "https://kzuvndqicwcclhayyttc.supabase.co"; 
 const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
-const redis = createRedis();
-redis.on('error', (err) => console.log('Redis Client Error', err));
-if (!redis.isOpen) await redis.connect();
-
 const handler = async (m, { conn, text, command }) => {
   if (!text?.trim()) return global.design(conn, m, `✨ *Uso correcto:*\n\n*${command}* nombre de la canción o link`);
-  
+
   await m.react("🔎");
   try {
     let url, videoId;
@@ -30,11 +25,14 @@ const handler = async (m, { conn, text, command }) => {
     const isAudio = /play$|audio$/i.test(command);
     const mediaType = isAudio ? 'audio' : 'video';
     const cacheKey = `yt:${mediaType}:${videoId}`;
+    let cachedFileId = null;
 
-    
-    let cachedFileId = await redis.get(cacheKey);
+    if (global.redis && !global.redisDisabled) {
+        try {
+            cachedFileId = await global.redis.get(cacheKey);
+        } catch { }
+    }
 
-    
     if (!cachedFileId) {
       const { data } = await supabase
         .from('media_index')
@@ -49,13 +47,11 @@ const handler = async (m, { conn, text, command }) => {
       await m.react("⚡"); 
       try {
         return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cachedFileId } } }, { quoted: m });
-      } catch (e) {
-       
-        console.log("Cache vencido o fallido, procediendo a descarga.");
+      } catch {
+        console.log("Re-descargando...");
       }
     }
 
-    
     const type = isAudio ? 'mp3' : 'mp4';
     const apiUrl = `https://api.deylin.xyz/api/download/yt?url=${encodeURIComponent(url)}&type=${type}&apikey=dk_ofical_user`;
 
@@ -63,7 +59,7 @@ const handler = async (m, { conn, text, command }) => {
     const data = await response.json();
 
     if (!data || !data.success || !data.result?.download) {
-      return global.design(conn, m, `❌ Error: ${data.error || "No se pudo obtener el enlace."}`);
+      return global.design(conn, m, `❌ Error: ${data.error || "Falla en API"}`);
     }
 
     const { title, download, thumbnail, duration, channel } = data.result;
@@ -106,22 +102,20 @@ const handler = async (m, { conn, text, command }) => {
       }, { quoted: m });
     }
 
-    
     if (sentMsg?.key?.id) {
       const newFileId = sentMsg.key.id;
-      
-      await redis.set(cacheKey, newFileId, { EX: 86400 });
-      
+      if (global.redis && !global.redisDisabled) {
+          await global.redis.set(cacheKey, newFileId, { EX: 86400 }).catch(() => {});
+      }
       await supabase.from('media_index').upsert({ 
         id_video_yt: videoId, 
         file_id: newFileId, 
         media_type: mediaType 
-      });
+      }).catch(() => {});
     }
 
     await m.react("✅");
   } catch (error) {
-    console.error(error);
     await m.react("❌");
     global.design(conn, m, `⚠️ Error: ${error.message}`);
   }

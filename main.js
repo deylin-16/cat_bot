@@ -18,7 +18,6 @@ export async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sessions');
     const { version } = await fetchLatestBaileysVersion();
     
-    // 1. Cargamos la base de datos ANTES de cualquier otra cosa
     await loadDatabase();
 
     global.conn = makeSimpleSocket({
@@ -53,17 +52,14 @@ export async function startBot() {
         if (u.connection === 'close') startBot();
     });
 
-    // 2. Blindaje crítico contra el error 'includes'
     global.conn.ev.on('messages.upsert', async (m) => {
-        // Si la base de datos no tiene datos, ignoramos el mensaje para evitar el crash
-        if (!global.db || !global.db.data || Object.keys(global.db.data).length === 0) return;
+        // Blindaje: Si no hay base de datos o el mensaje no tiene texto, ignorar
+        if (!global.db?.data?.settings || !m.messages[0]) return;
         
         try {
             const handler = await import(`./handler.js?update=${Date.now()}`);
             setImmediate(() => handler.handler.call(global.conn, m));
-        } catch (e) {
-            console.error('Error en handler:', e);
-        }
+        } catch (e) { }
     });
 
     setInterval(async () => {
@@ -76,20 +72,15 @@ export async function startBot() {
 
 async function loadDatabase() {
     try {
-        console.log(chalk.yellow('[DB] Sincronizando con Supabase...'));
         const { data } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').maybeSingle();
-        
         if (data?.content) {
             global.db.data = data.content;
-            console.log(chalk.green('[DB] Datos cargados desde la nube.'));
         } else {
             await global.db.read();
-            global.db.data = global.db.data || { users: {}, chats: {}, settings: {} };
-            console.log(chalk.blue('[DB] Iniciando con base de datos local/nueva.'));
+            global.db.data = global.db.data || { users: {}, chats: {}, settings: { [global.conn?.user?.jid]: { prefix: ['/'] } } };
         }
         global.db.chain = lodash.chain(global.db.data);
     } catch (e) {
-        console.error('Error cargando DB:', e);
         global.db.data = { users: {}, chats: {}, settings: {} };
     }
 }
@@ -97,14 +88,11 @@ async function loadDatabase() {
 async function autostartSubBots() {
     const path = join(process.cwd(), 'jadibts');
     if (!existsSync(path)) return;
-    try {
-        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-        const folders = readdirSync(path).filter(f => statSync(join(path, f)).isDirectory());
-        
-        console.log(chalk.yellow(`[SISTEMA] Cargando ${folders.length} sub-bots de golpe...`));
-        // Carga en paralelo real
-        folders.forEach(folder => {
-            assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-        });
-    } catch (e) { }
+    const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+    const folders = readdirSync(path).filter(f => statSync(join(path, f)).isDirectory());
+    
+    console.log(chalk.yellow(`[SISTEMA] Cargando ${folders.length} sub-bots de golpe...`));
+    folders.forEach(folder => {
+        assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
+    });
 }

@@ -1,25 +1,24 @@
 let handler = async (m, { conn, command }) => {
-    let chat = global.db.data.chats[m.chat]
+    if (!(m.chat in global.db.data.chats)) return conn.reply(m.chat, '〽️ *¡Este chat no está registrado!*', m)
     
-    if (!chat) return conn.reply(m.chat, ' *¡Este chat no está registrado en la base de datos!*', m)
+    let chat = global.db.data.chats[m.chat]
+    let isBanning = command === 'banchat'
 
-    if (command === 'botón' || /on/i.test(command)) {
-        if (!chat.isBanned) return conn.reply(m.chat, ' *El bot ya está activo y funcionando.*', m)
-        
-        chat.isBanned = false
-        await conn.reply(m.chat, '*¡El bot ha sido reactivado en este chat!*', m)
-    }
-
-    if (command === 'botof' || /off/i.test(command)) {
-        if (chat.isBanned) return conn.reply(m.chat, ' *El bot ya se encuentra desactivado.*', m)
-        
+    if (isBanning) {
+        if (chat.isBanned) return conn.reply(m.chat, '⚠️ *¡El bot ya estaba baneado en este chat!*', m)
         chat.isBanned = true
-        await conn.reply(m.chat, '*El Bot Ha Sido Desactivado En Este Chat*', m)
+        await conn.reply(m.chat, '🚫 𝗘𝗹 𝗕𝗼𝘁 𝗛𝗮 𝗦𝗶𝗱𝗼 𝗗𝗲𝘀𝗮𝗰𝘁𝗶𝘃𝗮𝗱𝗼 𝗘𝗻 𝗘𝘀𝘁𝗲 𝗖𝗵𝗮𝘁', m)
+    } else {
+        if (!chat.isBanned) return conn.reply(m.chat, '👑 *¡El bot no está baneado en este chat!*', m)
+        chat.isBanned = false
+        await conn.reply(m.chat, '⚡ *¡El bot ya fue desbaneado en este chat!*', m)
     }
 }
 
-handler.command = /^(bot|botón|botof)$/i 
+handler.command = ['banchat', 'unbanchat', 'desbanearchat', 'desbanchat']
+
 handler.admin = true 
+handler.botAdmin = true
 handler.group = true
 
 export default handler

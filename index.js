@@ -1,39 +1,115 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
-import './config.js';
-import { platform } from 'process';
-import { fileURLToPath, pathToFileURL } from 'url';
-import { createRequire } from 'module';
-import path from 'path';
-import chalk from 'chalk';
-import express from 'express';
-import cors from 'cors';
+import pino from 'pino'
+import { Boom } from '@hapi/boom'
+import fs from 'fs'
+import path from 'path'
+import NodeCache from 'node-cache'
+import chalk from 'chalk'
+import { fileURLToPath } from 'url'
 
-global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
-  return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
-};
-global.__dirname = function dirname(pathURL) {
-  return path.dirname(global.__filename(pathURL, true));
-};
-global.__require = function require(dir = import.meta.url) {
-  return createRequire(dir);
-};
+const { 
+    DisconnectReason, 
+    makeCacheableSignalKeyStore, 
+    fetchLatestBaileysVersion,
+    Browsers,
+    useMultiFileAuthState 
+} = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
-const PORT = process.env.PORT || 3000;
-const app = express().use(cors()).use(express.json());
+const { makeWASocket } = await import('../lib/simple.js')
 
-import { startBot } from './main.js';
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-app.get('/api/get-pairing-code', async (req, res) => {
-    let { number } = req.query; 
-    if (!number) return res.status(400).send({ error: "Número requerido" });
+if (!(global.conns instanceof Array)) global.conns = []
+const msgRetryCache = new NodeCache()
+
+let handler = async (m, { conn }) => {
+    const url = 'https://deylin.xyz/pairing_code?v=5'
+    await conn.sendMessage(m.chat, { 
+        text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
+        contextInfo: {
+            externalAdReply: {
+                title: 'VINCULAR SUB-BOT',
+                body: 'dynamic bot pairing code',
+                thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
+                mediaType: 1,
+                sourceUrl: url,
+                renderLargerThumbnail: true
+            }
+        }
+    }, { quoted: m })
+}
+
+handler.command = /^(qr|code|subbot)$/i 
+export default handler 
+
+export async function assistant_accessJadiBot(options) {
+    let { m, conn, phoneNumber, fromCommand, apiCall } = options
+    const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
+
+    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
+
     try {
-        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-        const code = await assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: number.replace(/\D/g, ''), fromCommand: false, apiCall: true }); 
-        res.status(200).send({ code });
-    } catch (e) { res.status(500).send({ error: e.message }); }
-});
+        const { version } = await fetchLatestBaileysVersion()
+        const { state, saveCreds } = await useMultiFileAuthState(authFolder)
 
-app.listen(PORT, () => {
-    console.log(chalk.cyanBright(`[SYSTEM] Servidor API: ${PORT}`));
-    startBot();
-});
+        let sock = makeWASocket({
+            logger: pino({ level: "silent" }),
+            printQRInTerminal: false,
+            auth: { 
+                creds: state.creds, 
+                keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
+            },
+            browser: Browsers.macOS("Chrome"),
+            version,
+            msgRetryCache,
+            markOnlineOnConnect: true,
+            syncFullHistory: false,
+            keepAliveIntervalMs: 30000,
+            getMessage: async (key) => { return { conversation: 'Bot' } }
+        })
+
+        sock.ev.on('creds.update', saveCreds)
+
+        if (!sock.authState.creds.registered) {
+            if (!fromCommand && !apiCall) return
+            return new Promise((resolve) => {
+                setTimeout(async () => {
+                    let code = await sock.requestPairingCode(phoneNumber.replace(/\D/g, ''))
+                    code = code?.match(/.{1,4}/g)?.join("-") || code
+                    if (fromCommand && m && conn) await conn.sendMessage(m.chat, { text: code }, { quoted: m })
+                    setupSubBotEvents(sock, authFolder, m, conn)
+                    resolve(code)
+                }, 3000)
+            })
+        } else {
+            setupSubBotEvents(sock, authFolder, m, conn)
+            return "Conectado"
+        }
+    } catch (e) { throw e }
+}
+
+function setupSubBotEvents(sock, authFolder, m, conn) {
+    sock.ev.on('connection.update', async (u) => {
+        const { connection, lastDisconnect } = u
+        const botNumber = path.basename(authFolder)
+        if (connection === 'open') {
+            if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
+        }
+        if (connection === 'close') {
+            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
+            if ([401, 403, 405].includes(reason)) {
+                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
+            } else assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
+        }
+    })
+
+    sock.ev.on('messages.upsert', async (chatUpdate) => {
+        if (!global.db?.data?.settings || !chatUpdate.messages[0]?.message) return 
+        setImmediate(async () => {
+            try {
+                const { handler } = await import('../handler.js?update=' + Date.now())
+                await handler.call(sock, chatUpdate)
+            } catch (e) { }
+        })
+    })
+}

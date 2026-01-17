@@ -34,6 +34,6 @@ app.get('/api/get-pairing-code', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(chalk.cyanBright(`[SYSTEM] Servidor API en puerto: ${PORT}`));
+    console.log(chalk.cyanBright(`[SYSTEM] Servidor API: ${PORT}`));
     startBot();
 });

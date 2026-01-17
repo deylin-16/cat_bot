@@ -8,7 +8,7 @@ ${usedPrefix + command} <prompt>
 📸 *Ejemplo:*
 ${usedPrefix + command} gato samurái con armadura futurista`, m)
 
-  await conn.reply(m.chat, `${emoji} Generando imagen...`, m1, rcanal)
+  await conn.reply(m.chat, `🍪 Generando imagen...`, m)
   const res = await aiLabs.generate({ prompt: text, type: 'image' })
 
   if (!res.success) {

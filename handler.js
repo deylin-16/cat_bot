@@ -185,7 +185,7 @@ export async function handler(chatUpdate) {
             m.plugin = name;
 
             const isUnban = /^(unbanchat|desbanearchat|desbanchat)/i.test(command);
-            if (chat?.isBanned && !isROwner && !isUnban) return;
+                        if (chat?.isBanned && !isROwner) return;
             if (chat?.modoadmin && !isOwner && !isROwner && m.isGroup && !isAdmin) return;
 
             const checkPermissions = (perm) => ({

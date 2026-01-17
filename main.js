@@ -37,9 +37,9 @@ export async function startBot() {
 
     if (!existsSync('./sessions/creds.json')) {
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        const num = global.botNumber || await new Promise(r => rl.question(chalk.blueBright('Número:\n> '), r));
+        const num = global.botNumber || await new Promise(r => rl.question(chalk.blueBright('Número Principal:\n> '), r));
         const code = await global.conn.requestPairingCode(num.replace(/\D/g, ''));
-        console.log(chalk.magentaBright(`\nCODE: ${code?.match(/.{1,4}/g)?.join("-")}\n`));
+        console.log(chalk.magentaBright(`\nCÓDIGO: ${code?.match(/.{1,4}/g)?.join("-")}\n`));
         rl.close();
     }
 
@@ -53,9 +53,8 @@ export async function startBot() {
     });
 
     global.conn.ev.on('messages.upsert', async (m) => {
-        // Blindaje: Si no hay base de datos o el mensaje no tiene texto, ignorar
+        // Bloqueo: No procesar si la configuración no ha cargado
         if (!global.db?.data?.settings || !m.messages[0]) return;
-        
         try {
             const handler = await import(`./handler.js?update=${Date.now()}`);
             setImmediate(() => handler.handler.call(global.conn, m));
@@ -72,12 +71,14 @@ export async function startBot() {
 
 async function loadDatabase() {
     try {
+        console.log(chalk.yellow('[DB] Sincronizando Supabase...'));
         const { data } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').maybeSingle();
         if (data?.content) {
             global.db.data = data.content;
+            console.log(chalk.green('[DB] Datos cargados correctamente.'));
         } else {
             await global.db.read();
-            global.db.data = global.db.data || { users: {}, chats: {}, settings: { [global.conn?.user?.jid]: { prefix: ['/'] } } };
+            global.db.data = global.db.data || { users: {}, chats: {}, settings: {} };
         }
         global.db.chain = lodash.chain(global.db.data);
     } catch (e) {
@@ -90,8 +91,7 @@ async function autostartSubBots() {
     if (!existsSync(path)) return;
     const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
     const folders = readdirSync(path).filter(f => statSync(join(path, f)).isDirectory());
-    
-    console.log(chalk.yellow(`[SISTEMA] Cargando ${folders.length} sub-bots de golpe...`));
+    console.log(chalk.yellow(`[SISTEMA] Iniciando ${folders.length} sub-bots de golpe...`));
     folders.forEach(folder => {
         assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
     });

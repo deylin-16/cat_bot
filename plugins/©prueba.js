@@ -11,18 +11,21 @@ let handler = async (m, _2) => {
   let { conn, usedPrefix, noPrefix, args, groupMetadata } = _2
   let _return
   let _syntax = ''
+  // Aquí se construye el cuerpo de la ejecución
   let _text = (/^=/.test(usedPrefix) ? 'return ' : '') + noPrefix
   let old = m.exp * 1
+  
   try {
     let i = 15
-    let f = {
-      exports: {}
-    }
-    let exec = new (async () => { }).constructor('print', 'm', 'handler', 'require', 'conn', 'Array', 'process', 'args', 'groupMetadata', 'module', 'exports', 'argument', 'p', _text)
+    let f = { exports: {} }
+    // Definición de la función asíncrona dinámica
+    let exec = new (async () => { }).constructor(
+      'print', 'm', 'handler', 'require', 'conn', 'Array', 'process', 'args', 'groupMetadata', 'module', 'exports', 'argument', 'p', 
+      _text
+    )
 
     const printFunc = (...args) => {
       if (--i < 1) return
-      console.log(...args)
       return conn.reply(m.chat, format(...args), m)
     };
 
@@ -31,7 +34,7 @@ let handler = async (m, _2) => {
     let err = syntaxerror(_text, 'Execution Function', {
       allowReturnOutsideFunction: true,
       allowAwaitOutsideFunction: true,
-        sourceType: 'module'
+      sourceType: 'module'
     })
     if (err) _syntax = '```' + err + '```\n\n'
     _return = e
@@ -40,9 +43,10 @@ let handler = async (m, _2) => {
     m.exp = old
   }
 }
-handler.help = ['=> '] 
+
+handler.help = ['=>'] 
 handler.tags = ['owner']
-handler.command = ['=>']
+handler.command = ['=>', '>'] // Añadí '>' para ejecución normal
 handler.rowner = true
 
 export default handler

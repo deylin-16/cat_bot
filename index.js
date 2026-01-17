@@ -146,10 +146,6 @@ if (global.db) setInterval(async () => {
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
-  if (connection === 'open') {
-    console.log(chalk.greenBright('>>> CONEXIÓN EXITOSA'));
-    await autostartSubBots();
-  }
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
@@ -208,20 +204,28 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
 
 await global.reloadHandler();
 
+// Función de arranque masivo
 async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (existsSync(jadibtsPath)) {
         const folders = readdirSync(jadibtsPath);
-        folders.forEach(async (folder) => {
-            if (statSync(join(jadibtsPath, folder)).isDirectory()) {
+        // Usamos Promise.all para disparar todas las conexiones al mismo tiempo
+        await Promise.all(folders.map(async (folder) => {
+            const folderPath = join(jadibtsPath, folder);
+            if (statSync(folderPath).isDirectory()) {
                 try {
                     const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+                    // Ejecutamos sin await interno para que no bloquee el bucle
                     assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-                } catch (e) {}
+                } catch (e) {
+                    console.error(`Error cargando subbot ${folder}:`, e);
+                }
             }
-        });
+        }));
     }
 }
+
+autostartSubBots();
 
 function redefineConsoleMethod(methodName, filterStrings) {
   const original = console[methodName];

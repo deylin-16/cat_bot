@@ -8,6 +8,12 @@ import ws from 'ws';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 
+async function getLidFromJid(id, connection) {
+    if (id?.endsWith('@lid')) return id;
+    const res = await connection.onWhatsApp(id).catch(() => []);
+    return res[0]?.lid || id;
+}
+
 export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now();
     const conn = this;
@@ -19,10 +25,31 @@ export async function handler(chatUpdate) {
     const messageTimestamp = (m.messageTimestamp?.low || m.messageTimestamp || 0) * 1000;
     if (Date.now() - messageTimestamp > 10000) return; 
 
+    if (global.db.data == null) await global.loadDatabase();
+
+    const chatJid = m.key.remoteJid;
+    if (chatJid.endsWith('@g.us')) {
+        global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
+        const chatData = global.db.data.chats[chatJid];
+        const isROwner = global.owner.map(([number]) => number.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
+        const textCommand = (m.message?.conversation || m.message?.extendedTextMessage?.text || '').toLowerCase();
+        const isPriorityCommand = /^(prioridad|primary|setbot)/i.test(textCommand.trim().slice(1));
+
+        if (chatData?.primaryBot && chatData.primaryBot !== conn.user.jid) {
+            if (!isROwner && !isPriorityCommand) return;
+        }
+    }
+
+    const mainBotJid = global.conn?.user?.jid;
+    const isSubAssistant = conn.user.jid !== mainBotJid;
+
+    if (chatJid.endsWith('@g.us') && isSubAssistant && (!global.db.data.chats[chatJid]?.primaryBot)) {
+        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => null);
+        if (groupMetadata?.participants?.some(p => p.id === mainBotJid)) return;
+    }
+
     m = smsg(conn, m) || m;
     if (!m) return;
-
-    if (global.db.data == null) await global.loadDatabase();
 
     conn.processedMessages = conn.processedMessages || new Map();
     const id = m.key.id;
@@ -39,26 +66,18 @@ export async function handler(chatUpdate) {
     try {
         m.exp = 0;
         const senderJid = m.sender;
-        const chatJid = m.chat;
-
-        global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, detect: true, antiLink: true, modoadmin: false };
-        let chat = global.db.data.chats[chatJid];
-
-        const settingsJid = conn.user.jid;
-        global.db.data.settings[settingsJid] ||= { self: false, restrict: true };
-        const settings = global.db.data.settings[settingsJid];
-
-        global.db.data.users[senderJid] ||= { exp: 0, coin: 0, muto: false };
+        global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
         const user = global.db.data.users[senderJid];
+        const chat = global.db.data.chats[m.chat];
 
-        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
+        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + (m.sender.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(senderJid);
         const isOwner = isROwner || m.fromMe;
 
         if (m.isBaileys || opts['nyimak'] || (!isROwner && opts['self'])) return;
 
         let isAdmin = false, isBotAdmin = false;
         if (m.isGroup) {
-            const groupMetadata = (conn.chats[chatJid] || {}).metadata || await conn.groupMetadata(chatJid).catch(() => ({}));
+            const groupMetadata = (conn.chats[m.chat] || {}).metadata || await conn.groupMetadata(m.chat).catch(() => ({}));
             const participants = groupMetadata.participants || [];
             const bot = participants.find(p => p.id === conn.user.jid) || {};
             const userInGroup = participants.find(p => p.id === senderJid) || {};
@@ -66,35 +85,34 @@ export async function handler(chatUpdate) {
             isBotAdmin = !!bot?.admin;
         }
 
-        const prefixRegex = /[.#/!]/;
-
+        const prefixRegex = /^[.#/!]/;
         for (const name in global.plugins) {
             const plugin = global.plugins[name];
             if (!plugin || plugin.disabled) continue;
 
             const str = m.text || '';
-            const match = prefixRegex.exec(str);
+            const match = str.match(prefixRegex);
             const usedPrefix = match ? match[0] : '';
             const noPrefix = str.startsWith(usedPrefix) ? str.slice(usedPrefix.length).trim() : str;
-            const [command] = noPrefix.split(/\s+/);
-            
+            const command = noPrefix.split(/\s+/)[0].toLowerCase();
+
             const isAccept = plugin.command instanceof RegExp ? plugin.command.test(command) :
                              Array.isArray(plugin.command) ? plugin.command.some(cmd => cmd instanceof RegExp ? cmd.test(command) : cmd === command) :
                              typeof plugin.command === 'string' ? plugin.command === command : false;
 
             if (typeof plugin.before === 'function') {
-                if (await plugin.before.call(conn, m, { conn, isROwner, isOwner, isAdmin, isBotAdmin, chatUpdate })) continue;
+                if (await plugin.before.call(conn, m, { conn, isROwner, isOwner, isAdmin, isBotAdmin, isSubAssistant, chatUpdate })) continue;
             }
 
             if (!isAccept) continue;
             m.plugin = name;
             global.comando = command;
 
-            if (chat.isBanned && !isROwner) return;
-            if (chat.modoadmin && !isAdmin && !isROwner) return;
+            if (chat?.isBanned && !isROwner) return;
+            if (chat?.modoadmin && !isAdmin && !isROwner) return;
 
             const check = {
-                rowner: isROwner, owner: isOwner, group: m.isGroup, admin: isAdmin, botAdmin: isBotAdmin, private: !m.isGroup
+                rowner: isROwner, owner: isOwner, group: m.isGroup, admin: isAdmin, botAdmin: isBotAdmin, private: !m.isGroup, subBot: isSubAssistant || isROwner
             };
 
             let failType = Object.keys(check).find(key => plugin[key] && !check[key]);
@@ -104,16 +122,10 @@ export async function handler(chatUpdate) {
             }
 
             try {
-                await plugin.call(conn, m, { 
-                    conn, usedPrefix, noPrefix, 
-                    args: noPrefix.split(/\s+/).slice(1), 
-                    command, 
-                    text: noPrefix.split(/\s+/).slice(1).join(' '), 
-                    isROwner, isAdmin, isBotAdmin 
-                });
+                const args = noPrefix.split(/\s+/).slice(1);
+                await plugin.call(conn, m, { conn, usedPrefix, noPrefix, args, command, text: args.join(' '), isROwner, isAdmin, isBotAdmin, isSubAssistant });
             } catch (e) {
                 m.error = e;
-                console.error(e);
                 m.reply(`❌ *ERROR:* ${name}\n\n${format(e)}`);
             }
         }
@@ -135,12 +147,12 @@ export async function handler(chatUpdate) {
 global.dfail = (type, m, conn) => {
     const msg = {
         rowner: `👤 *ACCESO RESTRINGIDO*\nSolo mi *Creador* puede usar esto.`,
-        owner: `🛠️ *MODO OWNER*\nComando exclusivo para mis *Dueños*.`,
+        owner: `🛠️ *MODO OWNER*\nComando exclusivo para mis *Owners*.`,
         group: `📢 *SOLO GRUPOS*\nEste comando solo funciona en grupos.`,
         private: `📧 *CHAT PRIVADO*\nUsa este comando en el privado del bot.`,
         admin: `🛡️ *ADMIN REQUERIDO*\nDebes ser *Administrador* del grupo.`,
         botAdmin: `🤖 *BOT SIN ADMIN*\nNecesito ser *Administrador* para ejecutar esto.`,
-        restrict: `🚫 *RESTRICCIÓN*\nEsta función está desactivada.`
+        subBot: `🛰️ *SUB-BOT REQUERIDO*\nFunción para sub-asistentes o creador.`
     }[type];
     if (msg) conn.reply(m.chat, `*¡AVISO!* ⚠️\n\n${msg}`, m);
 };
@@ -149,4 +161,9 @@ let file = global.__filename(import.meta.url, true);
 watchFile(file, () => {
     unwatchFile(file);
     console.log(chalk.cyan("➜ Handler.js actualizado correctamente."));
+    if (global.conns) {
+        for (const u of global.conns.filter(c => c.user && c.ws?.socket?.readyState !== ws.CLOSED)) {
+            u.subreloadHandler?.(false);
+        }
+    }
 });

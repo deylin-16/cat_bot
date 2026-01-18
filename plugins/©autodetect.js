@@ -15,7 +15,8 @@ export async function before(m, { conn, groupMetadata }) {
   
   let emisor = m.sender || m.messageStubParameters?.[0] || '0@s.whatsapp.net'
   let usuario = `@${emisor.split`@`[0]}`
-  let tipo = '', mensaje = '', icon = '🛡️'
+  let tipo = '', mensaje = '', icon = '🛡️', descFinal = ''
+  let thumb = urlapi
 
   const st = m.messageStubType
   const param = m.messageStubParameters || []
@@ -26,9 +27,11 @@ export async function before(m, { conn, groupMetadata }) {
   } else if (st == 22) {
     icon = '🖼️'; tipo = 'IMAGEN DEL GRUPO'
     mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Estado:* Actualizada\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
+    thumb = await conn.profilePictureUrl(m.chat, 'image').catch(_ => urlapi)
   } else if (st == 24 || st == 20) {
     icon = '📜'; tipo = 'DESCRIPCIÓN'
     mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Acción:* Modificada\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
+    descFinal = `\n\n*📝 Descripción:* ${param[0] || 'Actualizada'}`
   } else if (st == 23) {
     icon = '🔗'; tipo = 'ENLACE DE GRUPO'
     mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Acción:* Restablecido\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
@@ -54,16 +57,15 @@ export async function before(m, { conn, groupMetadata }) {
   const date = new Date().toLocaleString('es-ES', { timeZone: 'America/Mexico_City' })
 
   await conn.sendMessage(m.chat, {
-    text: `\n\n${mensaje}\n\n> 📅 _${date}_`,
+    text: `\n\n${mensaje}\n\n> 📅 _${date}_${descFinal}`,
     contextInfo: {
       mentionedJid: [emisor, ...param],
       externalAdReply: {
         title: `LOG: ${tipo}`,
         body: groupMetadata.subject,
         mediaType: 1,
-        previewType: 0,
-        thumbnailUrl: urlapi,
-       // sourceUrl: 'https://github.com/deylin-q',
+        thumbnailUrl: thumb,
+        //sourceUrl: 'https://github.com/deylin-q',
         renderLargerThumbnail: false
       }
     }

@@ -76,6 +76,7 @@ export async function handler(chatUpdate) {
             sAutoresponder: '',
             modoadmin: false,
             welcome: true,
+            detect: true,
             autoresponder: false,
             antiLink: true,
             autoresponder2: false,

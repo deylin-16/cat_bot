@@ -3,10 +3,9 @@ import fetch from 'node-fetch'
 
 export async function before(m, { conn, groupMetadata }) {
   if (!m.messageStubType || !m.isGroup) return
+  
   const chat = global.db.data.chats[m.chat] || {}
-  if (!chat.detect) return
-
-  let botSettings = global.db.data.settings[conn.user.jid] || {}
+  if (chat.detect === false) return
 
   const botname = "𝗠𝗲𝗷𝗼𝗿 𝗕𝗼𝘁"
   const urlapi = `https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767146401111_3j2wTlRTQ8.jpeg`
@@ -60,11 +59,11 @@ export async function before(m, { conn, groupMetadata }) {
       mentionedJid: [emisor, ...param],
       externalAdReply: {
         title: `LOG: ${tipo}`,
-        body: groupMetadata.subject,
+        body: groupMetadata.subject || botname,
         mediaType: 1,
         thumbnailUrl: thumb,
         renderLargerThumbnail: false
       }
     }
-  }, { quoted: m })
+  }, { quoted: null })
 }

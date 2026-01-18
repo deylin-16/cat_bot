@@ -63,7 +63,7 @@ export async function before(m, { conn, groupMetadata }) {
         mediaType: 1,
         previewType: 0,
         thumbnailUrl: urlapi,
-       /) sourceUrl: 'https://github.com/deylin-q',
+       // sourceUrl: 'https://github.com/deylin-q',
         renderLargerThumbnail: false
       }
     }

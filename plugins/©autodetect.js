@@ -1,7 +1,7 @@
 import WAMessageStubType from '@whiskeysockets/baileys'
 import fetch from 'node-fetch'
 
-export async function before(m, { conn, participants, groupMetadata }) {
+export async function before(m, { conn, groupMetadata }) {
   if (!m.isGroup) return
   const chat = global.db.data.chats[m.chat] || {}
   if (!chat.detect) return
@@ -15,7 +15,6 @@ export async function before(m, { conn, participants, groupMetadata }) {
   
   let emisor = m.sender || m.messageStubParameters?.[0] || '0@s.whatsapp.net'
   let usuario = `@${emisor.split`@`[0]}`
-  let pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => urlapi)
   let tipo = '', mensaje = '', icon = '🛡️'
 
   const st = m.messageStubType
@@ -27,7 +26,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
   } else if (st == 22) {
     icon = '🖼️'; tipo = 'IMAGEN DEL GRUPO'
     mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Estado:* Actualizada\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-  } else if (st == 24) {
+  } else if (st == 24 || st == 20) {
     icon = '📜'; tipo = 'DESCRIPCIÓN'
     mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Acción:* Modificada\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
   } else if (st == 23) {
@@ -48,15 +47,6 @@ export async function before(m, { conn, participants, groupMetadata }) {
   } else if (st == 123) {
     icon = '⏳'; tipo = 'MENSAJES TEMPORALES'
     mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Tiempo:* ${param[0] == '0' ? 'Off' : param[0] + 's'}\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-  } else if (st == 145 || st == 147) {
-    icon = '🏛️'; tipo = 'VÍNCULO A COMUNIDAD'
-    mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Estado:* Grupo Vinculado\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-  } else if (st == 148) {
-    icon = '🏚️'; tipo = 'VÍNCULO A COMUNIDAD'
-    mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Estado:* Grupo Desvinculado\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-  } else if (st == 171) {
-    icon = '🔔'; tipo = 'APROBACIÓN'
-    mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Estado:* ${param[0] == 'on' ? 'Activado' : 'Desactivado'}\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
   } else {
     return
   }
@@ -64,17 +54,17 @@ export async function before(m, { conn, participants, groupMetadata }) {
   const date = new Date().toLocaleString('es-ES', { timeZone: 'America/Mexico_City' })
 
   await conn.sendMessage(m.chat, {
-    text: `🛡️ *𝗦𝗬𝗦𝗧𝗘𝗠 𝗗𝗘𝗧𝗘𝗖𝗧 𝗔𝗖𝗧𝗜𝗩𝗘*\n\n${mensaje}\n\n> 📅 _${date}_`,
+    text: `\n\n${mensaje}\n\n> 📅 _${date}_`,
     contextInfo: {
       mentionedJid: [emisor, ...param],
       externalAdReply: {
         title: `LOG: ${tipo}`,
-        body: `Grupo: ${groupMetadata.subject}`,
+        body: groupMetadata.subject,
         mediaType: 1,
         previewType: 0,
-        thumbnailUrl: pp,
+        thumbnailUrl: urlapi,
         sourceUrl: 'https://github.com/deylin-q',
-        renderLargerThumbnail: true
+        renderLargerThumbnail: false
       }
     }
   }, { quoted: m })

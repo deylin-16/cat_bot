@@ -2,17 +2,15 @@ import WAMessageStubType from '@whiskeysockets/baileys'
 import fetch from 'node-fetch'
 
 export async function before(m, { conn, groupMetadata }) {
-  if (!m.isGroup) return
+  if (!m.messageStubType || !m.isGroup) return
   const chat = global.db.data.chats[m.chat] || {}
   if (!chat.detect) return
 
   let botSettings = global.db.data.settings[conn.user.jid] || {}
-  if (botSettings.soloParaJid) return
-  if (!m.messageStubType) return
 
   const botname = "𝗠𝗲𝗷𝗼𝗿 𝗕𝗼𝘁"
   const urlapi = `https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767146401111_3j2wTlRTQ8.jpeg`
-  
+
   let emisor = m.sender || m.messageStubParameters?.[0] || '0@s.whatsapp.net'
   let usuario = `@${emisor.split`@`[0]}`
   let tipo = '', mensaje = '', icon = '🛡️', descFinal = ''
@@ -65,7 +63,6 @@ export async function before(m, { conn, groupMetadata }) {
         body: groupMetadata.subject,
         mediaType: 1,
         thumbnailUrl: thumb,
-        //sourceUrl: 'https://github.com/deylin-q',
         renderLargerThumbnail: false
       }
     }

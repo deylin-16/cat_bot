@@ -37,6 +37,20 @@ switch (type) {
       break;
 
 
+    case 'detect':
+      if (!m.isGroup) {
+        if (!isOwner) {
+          global.dfail('group', m, conn);
+          throw false;
+        }
+      } else if (!isAdmin) {
+        global.dfail('admin', m, conn);
+        throw false;
+      }
+      isEnable = chat.detect = !chat.detect;
+      break;
+
+
   
     case 'welcome':
     case 'bv':
@@ -58,6 +72,6 @@ switch (type) {
 };
 
 handler.command = [
-  '@welcome', 'bv', 'soloadmin', 'modoadmin', '@bienvenida', 'autor', 'res'
+  '@welcome', 'bv', 'soloadmin', 'modoadmin', '@bienvenida', 'autor', 'res', 'detect'
 ]
 export default handler

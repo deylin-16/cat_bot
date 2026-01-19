@@ -92,9 +92,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ❒ *Menús:* \`menu/menu2 ∆/menu3/menu4\`
 
 
-${animeCommands}
-
-> *Batería:* ${battery}`.trim()
+${animeCommands}`.trim()
 
         return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
@@ -128,9 +126,7 @@ ${animeCommands}
 ❒ *Menús:* \`menu/menu2/menu3/menu4 ∆\`
 
 
-${groupCommands}
-
-> *Batería:* ${battery}`.trim()
+${groupCommands}`.trim()
 
         return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
@@ -159,9 +155,7 @@ ${groupCommands}
 ❒ *Menús:* \`menu/menu2/menu3 ∆/menu4\`
 
 
-${gameCommands}
-
-> *Batería:* ${battery}`.trim()
+${gameCommands}`.trim()
 
         return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
@@ -202,9 +196,7 @@ ${gameCommands}
 ❒ 
 ❒ *Menús:* \`menu ∆/menu2/menu3/menu4\`
 
-${customCommands}
-
-> *Batería:* ${battery}`.trim()
+${customCommands}`.trim()
 
     await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
 }

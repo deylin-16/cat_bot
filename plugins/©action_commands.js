@@ -8,28 +8,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let { assistantName, assistantImage } = global.getAssistantConfig(conn.user.jid)
     let ownerBot = global.owner.map(([jid, name]) => ({ jid, name }))
     let _package = JSON.parse(await fs.promises.readFile(path.join(__dirname, '../package.json')).catch(_ => '{}')) || {}
-    
-    let groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat).catch(_ => ({})) : {}
-    let groupName = groupMetadata.subject || 'Chat Privado'
-    let totalMembers = groupMetadata.participants ? groupMetadata.participants.length : 0
-    
-    let isMenuGrupo = /menu4|menugrupo/i.test(command)
-    let thumb = assistantImage 
-    if (isMenuGrupo && m.isGroup) {
-        thumb = await conn.profilePictureUrl(m.chat, 'image').catch(_ => assistantImage)
-    }
+const groupName = groupMetadata.subject
+const totalMembers = groupMetadata.participants.length
 
-    let adReply = {
-        contextInfo: {
-            externalAdReply: {
-                title: assistantName,
-                mediaType: 1,
-                previewType: 0,
-                thumbnailUrl: thumb,
-                renderLargerThumbnail: true
-            }
-        }
-    }
 
     if (/menu2|anime|interaccion/i.test(command)) {
         let animeCommands = `
@@ -92,26 +73,35 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ❒ *Menús:* \`menu/menu2 ∆/menu3/menu4\`
 
 
-${animeCommands}`.trim()
+${animeCommands}
 
-        return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
+> *Nota:* Comandos directos sin prefijo.`.trim()
+
+        try {
+            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
+            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
+        } catch (e) {
+            await conn.reply(m.chat, caption, m)
+        }
+        return
     }
 
-    if (isMenuGrupo) {
-        let groupCommands = `
-┏━⊜  *GRUPO* ⊜━┓
+
+    if (/menu4|menugrupo/i.test(command)) {
+        let gameCommands = `
+┏━⊜  *GRUPO*  ⊜━┓
 ┃ °• cerrar/abrir/open/close
-┃ °• cerrargrupo/abrirgrupo
-┃ °• detect (Apagar/encender)
-┃ °• setwelcome (Configurar)
-┃ °• welcome (On/Off)
-┃ °• antilink (On/Off)
-┃ °• setpp (Cambiar imagen)
-┃ °• renombrar (Cambiar nombre)
-┃ °• setdesc (Cambiar descripción)
-┃ °• kick (Eliminar usuario)
-┃ °• N/tag (Texto/Multimedia)
-┃ °• tagall/todos (Mencionar)
+┃ °• cerrargrupo/abrirgrupo (Open/clóse: automático)
+┃ °• detect (Apagar/encender autodetect)
+┃ °• setwelcome  (Configurar bienvenida)
+┃ °• welcome (activar/desactivar: bienvenida)
+┃ °• antilink  (activar/desactivar: antilink)
+┃ °• setpp (Cambiar imagen del grupo)
+┃ °• renombrar (Cambiar nombre del grupo)
+┃ °• setdesc (Cambiar descripción del grupo)
+┃ °• kick (Elimina a un usuario)
+┃ °• N/tag (Texto/imagen/vídeo/audio)
+┃ °• tagall/todos (Menciona todos los miembros)
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `
@@ -126,9 +116,17 @@ ${animeCommands}`.trim()
 ❒ *Menús:* \`menu/menu2/menu3/menu4 ∆\`
 
 
-${groupCommands}`.trim()
+${gameCommands}
 
-        return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
+> *Nota:* Seguimos desarrollando mas.`.trim()
+
+        try {
+            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
+            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
+        } catch (e) {
+            await conn.reply(m.chat, caption, m)
+        }
+        return
     }
 
     if (/menu3|game|juegos/i.test(command)) {
@@ -155,10 +153,19 @@ ${groupCommands}`.trim()
 ❒ *Menús:* \`menu/menu2/menu3 ∆/menu4\`
 
 
-${gameCommands}`.trim()
+${gameCommands}
 
-        return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
+> *Nota:* Seguimos desarrollando mas.`.trim()
+
+        try {
+            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
+            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
+        } catch (e) {
+            await conn.reply(m.chat, caption, m)
+        }
+        return
     }
+
 
     let customCommands = `
 ┏━━━━━━━━━━━━━━━━━━┓
@@ -166,39 +173,61 @@ ${gameCommands}`.trim()
 ┃ ° menú (principal)
 ┃ ° menu2 (Animes)
 ┃ ° menu3 (Juegos)
-┃ ° menu4 (Grupo)
+┃ ° munu4 (configuraciones del grupo)
 ┃
 ┃   *UTILIDADES*
 ┃ ◦ kick / elimina
 ┃ ◦ ntodos / tagall
 ┃
 ┃   *DESCARGAS*
-┃ ◦ fb / ig / tt
+┃ ◦ descarga (FB, TikTok, IG)
+┃ ◦ fb (Link de Facebook)
+┃ ◦ ig (link de instagram)
+┃ ◦ tt (link de Tiktok)
 ┃
 ┃   *BÚSQUEDA*
-┃ ◦ pin / ttss / play
+┃ ◦ pin (Pinterest)
+┃ ◦ ttss (TikTok Search)
+┃ ◦ play / 🎧 (YouTube)
+┃
+┃   *FUNCIONES*
+┃ ◦ robar perfil
+┃ ◦ tomar perfil
+┃ ◦ s / sticker
+┃ ◦ toimg (Sticker a imagen)
 ┃
 ┃   *IA & SISTEMA*
-┃ ◦ ia (ChatGPT) / hd
-┃ ◦ s / sticker / toimg
+┃ ◦ ia (ChatGPT)
+┃ ◦ hd (Mejorar calidad)
+┃ ◦ res (Auto-IA)
 ┃
 ┃   *ESPÍA*
-┃ ◦ read / ver / :)
+┃ ◦ read / ver / :) (ViewOnce)
+┃ 
+┃   *MOTIVACIÓN*
+┃ ◦ consejo / motivacion
 ┗━━━━━━━━━━━━━━━━━━┛`;
 
     let caption = `
 👋 *HOLA, SOY ${assistantName.toUpperCase()}*
 
-❒ *Creador:* ${ownerBot[0]?.name || 'Deylin'}
+❒ *Creador:* ${ownerBot[0].name}
 ❒ *Versión:* ${_package.version}
 ❒ *Activo:* ${msToDate(process.uptime() * 1000)}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ 
 ❒ *Menús:* \`menu ∆/menu2/menu3/menu4\`
 
-${customCommands}`.trim()
+${customCommands}
 
-    await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
+> Usa *.menu2* para ver los comandos de Anime.`.trim()
+
+    try {
+        let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
+        await conn.sendMessage(m.chat, { image: sendImage, caption: caption }, { quoted: m })
+    } catch (e) {
+        await conn.reply(m.chat, caption, m)
+    }
 }
 
 handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime', 'menu3', 'game', 'juegos', 'menu4', 'menugrupo']

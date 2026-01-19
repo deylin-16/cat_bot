@@ -67,7 +67,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ❒ *Versión:* ${_package.version}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒
-❒ *Menús:* \`menu/menu2 ∆/menu3\`
+❒ *Menús:* \`menu/menu2 ∆/menu3/menu4\`
 
 
 ${animeCommands}
@@ -83,6 +83,43 @@ ${animeCommands}
         return
     }
 
+
+    if (/menu4|menugrupo/i.test(command)) {
+        let gameCommands = `
+┏━⊜  *GRUPO*  ⊜━┓
+┃ °• cerrar/abrir/open/close
+┃ °• cerrargrupo/abrirgrupo (Open/clóse: automático)
+┃ °• detect (Apagar/encender autodetect)
+┃ °• setwelcome  (Configurar bienvenida)
+┃ °• welcome (activar/desactivar: bienvenida)
+┃ °• antilink  (activar/desactivar: antilink)
+┃ °• setpp (Cambiar imagen del grupo)
+┃ °• renombrar (Cambiar nombre del grupo)
+┃ °• setdesc (Cambiar descripción del grupo)
+┗━━━━━━━━━━━━━━━┛`;
+
+        let caption = `
+🎮 *MENÚ DE JUEGOS* 🍪
+
+❒ *Bot:* ${assistantName}
+❒ *Versión:* ${_package.version}
+❒ *Hazte subbot desde: deylin.xyz/pairing_code*
+❒ 
+❒ *Menús:* \`menu/menu2/menu3/menu4 ∆\`
+
+
+${gameCommands}
+
+> *Nota:* Seguimos desarrollando mas.`.trim()
+
+        try {
+            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
+            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
+        } catch (e) {
+            await conn.reply(m.chat, caption, m)
+        }
+        return
+    }
 
     if (/menu3|game|juegos/i.test(command)) {
         let gameCommands = `
@@ -105,7 +142,7 @@ ${animeCommands}
 ❒ *Versión:* ${_package.version}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ 
-❒ *Menús:* \`menu/menu2/menu3 ∆\`
+❒ *Menús:* \`menu/menu2/menu3 ∆/menu4\`
 
 
 ${gameCommands}
@@ -124,10 +161,11 @@ ${gameCommands}
     
     let customCommands = `
 ┏━━━━━━━━━━━━━━━━━━┓
-┃   *GRUPOS*
-┃ ◦ cierra / abre
-┃ ◦ renombrar / setdesc
-┃ ◦ setpp (Cambiar foto)
+┃   *MENÚS*
+┃ ° menú (principal)
+┃ ° menu2 (Animes)
+┃ ° menu3 (Juegos)
+┃ ° munu4 (configuraciones del grupo)
 ┃
 ┃   *UTILIDADES*
 ┃ ◦ kick / elimina
@@ -170,7 +208,7 @@ ${gameCommands}
 ❒ *Activo:* ${msToDate(process.uptime() * 1000)}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ 
-❒ *Menús:* \`menu ∆/menu2/menu3\`
+❒ *Menús:* \`menu ∆/menu2/menu3/menu4\`
 
 ${customCommands}
 
@@ -184,7 +222,7 @@ ${customCommands}
     }
 }
 
-handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime', 'menu3', 'game', 'juegos']
+handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime', 'menu3', 'game', 'juegos', 'menu4', 'menugrupo']
 
 export default handler
 

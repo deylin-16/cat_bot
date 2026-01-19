@@ -47,21 +47,21 @@ let handler = async (m, { conn, text }) => {
         try {
             pp = await conn.profilePictureUrl(m.chat, 'image')
             await conn.sendMessage(m.chat, {
-                text: `*La foto de ${name} es privada, te envío la del grupo.*`
+                text: `*La foto de ${m.pushName} es privada, te envío la del grupo.*`
             }, {
                 quoted: m
             })
         } catch {
             pp = 'https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/1745522645448.jpeg'
             await conn.sendMessage(m.chat, {
-                text: `*No encontré foto para ${name}.*`
+                text: `*No encontré foto para ${m.pushName}.*`
             }, {
                 quoted: m
             })
         }
     }
 
-    await conn.sendFile(m.chat, pp, 'profile.jpg', `*Aquí tienes la foto de perfil de ${m.}*`, m)
+    await conn.sendFile(m.chat, pp, 'profile.jpg', `*Aquí tienes la foto de perfil de ${m.pushName}*`, m)
     await m.react('✔️')
 }
 

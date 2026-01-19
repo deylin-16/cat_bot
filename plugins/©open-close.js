@@ -25,21 +25,16 @@ function getTz(jid) {
 function parseTiempo(entrada, tz) {
     entrada = entrada.toLowerCase().replace(/\s/g, '');
     const ahora = moment().tz(tz);
-
     if (/^\d{1,2}:\d{2}(am|pm)?$/.test(entrada)) {
         let [full, h, m, p] = entrada.match(/^(\d{1,2}):(\d{2})(am|pm)?$/);
         let horas = parseInt(h);
         const minutos = parseInt(m);
-
         if (p === 'pm' && horas < 12) horas += 12;
         if (p === 'am' && horas === 12) horas = 0;
-
         let objetivo = moment.tz(tz).set({ hour: horas, minute: minutos, second: 0, millisecond: 0 });
         if (objetivo.isBefore(ahora)) objetivo.add(1, 'days');
-
         return { ms: objetivo.diff(ahora), fecha: objetivo };
     }
-
     const duracionMatch = entrada.match(/^(\d+)(h|m|s)$/);
     if (duracionMatch) {
         const valor = parseInt(duracionMatch[1]);
@@ -50,19 +45,39 @@ function parseTiempo(entrada, tz) {
     return null;
 }
 
-let handler = async (m, { conn, args, command }) => {
+let handler = async (m, { conn, args, command, groupMetadata }) => {
     const chatId = m.chat;
     const tz = getTz(m.sender);
-    const horaActual = moment().tz(tz).format('hh:mm:ss A');
+    const horaActual = moment().tz(tz).format('hh:mm A');
+    const isAnnounce = groupMetadata.announce;
+
+    const adReply = {
+        externalAdReply: {
+            title: "𝗦𝗬𝗦𝗧𝗘𝗠 𝗔𝗨𝗧𝗢𝗠𝗔𝗧𝗜𝗢𝗡",
+            body: `Zona Horaria: ${tz}`,
+            mediaType: 1,
+            previewType: 0,
+            thumbnailUrl: "https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767146401111_3j2wTlRTQ8.jpeg",
+            renderLargerThumbnail: false
+        }
+    };
 
     if (command === 'cerrar' || command === 'close') {
+        if (isAnnounce) return m.reply(`⚠️ *AVISO:* El grupo ya se encuentra *CERRADO* actualmente.\nSolo administradores pueden escribir.`);
         await conn.groupSettingUpdate(chatId, 'announcement');
-        return m.reply(`🔒 *GRUPO CERRADO*\n\nAcción inmediata ejecutada.\n*Hora local (${tz}):* ${horaActual}`);
+        return conn.sendMessage(chatId, { 
+            text: `🔒 *GRUPO CONFIGURADO*\n\nAcción: Cierre inmediato\nEstado: Solo Admins\nHora: ${horaActual} (${tz})\n\n> El sistema ha restringido el envío de mensajes a miembros generales.`,
+            contextInfo: adReply
+        });
     }
 
     if (command === 'abrir' || command === 'open') {
+        if (!isAnnounce) return m.reply(`⚠️ *AVISO:* El grupo ya se encuentra *ABIERTO* actualmente.\nTodos pueden participar.`);
         await conn.groupSettingUpdate(chatId, 'not_announcement');
-        return m.reply(`🔓 *GRUPO ABIERTO*\n\nAcción inmediata ejecutada.\n*Hora local (${tz}):* ${horaActual}`);
+        return conn.sendMessage(chatId, { 
+            text: `🔓 *GRUPO CONFIGURADO*\n\nAcción: Apertura inmediata\nEstado: Todos pueden escribir\nHora: ${horaActual} (${tz})\n\n> El sistema ha habilitado la participación para todos los miembros.`,
+            contextInfo: adReply
+        });
     }
 
     if (args[0] === 'cancelar') {
@@ -70,15 +85,15 @@ let handler = async (m, { conn, args, command }) => {
         const a = global.programaciones.aperturas[chatId];
         if (c) { clearTimeout(c); delete global.programaciones.cierres[chatId]; }
         if (a) { clearTimeout(a); delete global.programaciones.aperturas[chatId]; }
-        return m.reply('✅ Todas las programaciones para este grupo han sido canceladas.');
+        return m.reply('✅ *OPERACIÓN CANCELADA*\nSe han eliminado todas las tareas programadas para este chat.');
     }
 
     if (!args[0]) {
-        return m.reply(`⏰ *SISTEMA DE HORARIOS*\n\n*Inmediatos:*\n.abrir | .cerrar\n\n*Programados:*\n.cerrargrupo 10:00pm\n.abrirgrupo 1h | 30m | 15s\n\n*Admin local:* ${tz}\n*Hora:* ${horaActual}`);
+        return m.reply(`⚙️ *PANEL DE CONTROL DE GRUPO*\n\n*Inmediatos:*\n- .abrir | .cerrar\n\n*Programar cierre:*\n- .cerrargrupo 10:00pm\n- .cerrargrupo 1h (o 30m / 15s)\n\n*Programar apertura:*\n- .abrirgrupo 08:00am\n- .abrirgrupo 2h\n\n*Tu Ubicación:* ${tz}\n*Tu Hora:* ${horaActual}`);
     }
 
     const resultado = parseTiempo(args[0], tz);
-    if (!resultado) return m.reply('⛔ Formato inválido. Use 10:00pm, 1h, 10m o 30s.');
+    if (!resultado) return m.reply('⛔ *ERROR:* Formato de tiempo inválido.\nUse: 10:00pm, 1h, 30m o 20s.');
 
     const { ms, fecha } = resultado;
     const horaDestino = fecha.format('hh:mm:ss A');
@@ -88,11 +103,14 @@ let handler = async (m, { conn, args, command }) => {
         global.programaciones.cierres[chatId] = setTimeout(async () => {
             try {
                 await conn.groupSettingUpdate(chatId, 'announcement');
-                await conn.sendMessage(chatId, { text: `🔒 *CIERRE PROGRAMADO*\nEl grupo ha sido cerrado según lo previsto.` });
+                await conn.sendMessage(chatId, { 
+                    text: `🔒 *CIERRE AUTOMÁTICO*\n\nSe ha cumplido el horario programado.\nEstado: Solo Administradores.`,
+                    contextInfo: adReply
+                });
             } catch (e) { console.error(e); }
             delete global.programaciones.cierres[chatId];
         }, ms);
-        return m.reply(`✅ Cierre programado para las: *${horaDestino}*\n(Hora de ${tz})`);
+        return m.reply(`✅ *CIERRE PROGRAMADO*\n\nEjecución: ${horaDestino}\nPaís: ${tz}\n\n> El grupo se cerrará automáticamente en el tiempo indicado.`);
     }
 
     if (command === 'abrirgrupo') {
@@ -100,11 +118,14 @@ let handler = async (m, { conn, args, command }) => {
         global.programaciones.aperturas[chatId] = setTimeout(async () => {
             try {
                 await conn.groupSettingUpdate(chatId, 'not_announcement');
-                await conn.sendMessage(chatId, { text: `🔓 *APERTURA PROGRAMADA*\nEl grupo ha sido abierto según lo previsto.` });
+                await conn.sendMessage(chatId, { 
+                    text: `🔓 *APERTURA AUTOMÁTICA*\n\nSe ha cumplido el horario programado.\nEstado: Todos pueden escribir.`,
+                    contextInfo: adReply
+                });
             } catch (e) { console.error(e); }
             delete global.programaciones.aperturas[chatId];
         }, ms);
-        return m.reply(`✅ Apertura programada para las: *${horaDestino}*\n(Hora de ${tz})`);
+        return m.reply(`✅ *APERTURA PROGRAMADA*\n\nEjecución: ${horaDestino}\nPaís: ${tz}\n\n> El grupo se abrirá automáticamente en el tiempo indicado.`);
     }
 };
 

@@ -199,6 +199,10 @@ ${gameCommands}`.trim()
 ┃
 ┃ 🔍 *BÚSQUEDA*
 ┃ ├ ◦ \`pin\` | \`ttss\`
+┃ ├ ◦ \`ytsearch\`
+┃ ├ ◦ \`gif\`
+┃ ├ ◦ \`anime\`
+┃ ├ ◦ \`meme\` | \`memes\`
 ┃ └ ◦ \`play\` | \`play2\` (Música)
 ┃
 ┃ 🎨 *FUNCIONES*

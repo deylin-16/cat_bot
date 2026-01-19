@@ -1,4 +1,4 @@
-/*import moment from 'moment-timezone';
+import moment from 'moment-timezone';
 
 global.programaciones = global.programaciones || { cierres: {}, aperturas: {} };
 
@@ -102,7 +102,7 @@ let handler = async (m, { conn, args, command, groupMetadata }) => {
         if (isAnnounce) return m.reply(`* ⚠️ *AVISO:* El grupo ya se encuentra *CERRADO* actualmente.\n\n> Solo administradores pueden escribir.`);
         await conn.groupSettingUpdate(chatId, 'announcement');
         return conn.sendMessage(chatId, { 
-            text: `🔒 *GRUPO CONFIGURADO*\n\nAcción: Cierre inmediato\nEstado: Solo Admins\nHora: ${horaActual} (${tz})\n\n> Puedes hacer que el grupo se abra automáticamente con el comando: `\#abrirgrupo`\.`,
+            text: `🔒 *GRUPO CONFIGURADO*\n\nAcción: Cierre inmediato\nEstado: Solo Admins\nHora: ${horaActual} (${tz})\n\n> Puedes hacer que el grupo se abra automáticamente con el comando: \`#abrirgrupo\`.`,
             contextInfo: adReply
         });
     }
@@ -111,7 +111,7 @@ let handler = async (m, { conn, args, command, groupMetadata }) => {
         if (!isAnnounce) return m.reply(`* ⚠️ *AVISO:* El grupo ya se encuentra *ABIERTO* actualmente.\n\n> Todos pueden participar.`);
         await conn.groupSettingUpdate(chatId, 'not_announcement');
         return conn.sendMessage(chatId, { 
-            text: `🔓 *GRUPO CONFIGURADO*\n\nAcción: Apertura inmediata\nEstado: Todos pueden escribir\nHora: ${horaActual} (${tz})\n\n> Puedes programar un cierre automático del grupo con el comando: `\#cerrargrupo`\`,
+            text: `🔓 *GRUPO CONFIGURADO*\n\nAcción: Apertura inmediata\nEstado: Todos pueden escribir\nHora: ${horaActual} (${tz})\n\n> Puedes programar un cierre automático del grupo con el comando: \`#cerrargrupo\``,
             contextInfo: adReply
         });
     }
@@ -170,4 +170,4 @@ handler.admin = true;
 handler.botAdmin = true;
 handler.group = true;
 
-export default handler;*/
+export default handler;

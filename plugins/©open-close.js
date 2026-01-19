@@ -1,4 +1,4 @@
-import moment from 'moment-timezone';
+/*import moment from 'moment-timezone';
 
 global.programaciones = global.programaciones || { cierres: {}, aperturas: {} };
 
@@ -170,4 +170,4 @@ handler.admin = true;
 handler.botAdmin = true;
 handler.group = true;
 
-export default handler;
+export default handler;*/

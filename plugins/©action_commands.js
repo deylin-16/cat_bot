@@ -19,17 +19,13 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         thumb = await conn.profilePictureUrl(m.chat, 'image').catch(_ => assistantImage)
     }
 
-    let battery = conn.battery ? `${conn.battery.value}% ${conn.battery.live ? '⚡' : '🔋'}` : 'N/A'
-
     let adReply = {
         contextInfo: {
             externalAdReply: {
                 title: assistantName,
-                body: isMenuGrupo ? `Grupo: ${groupName}` : `Batería: ${battery}`,
                 mediaType: 1,
                 previewType: 0,
                 thumbnailUrl: thumb,
-                sourceUrl: "https://deylin.xyz/pairing_code",
                 renderLargerThumbnail: true
             }
         }

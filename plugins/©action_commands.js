@@ -96,6 +96,9 @@ ${animeCommands}
 ┃ °• setpp (Cambiar imagen del grupo)
 ┃ °• renombrar (Cambiar nombre del grupo)
 ┃ °• setdesc (Cambiar descripción del grupo)
+┃ °• kick (Elimina a un usuario)
+┃ °• N/tag (Texto/imagen/vídeo/audio)
+┃ °• tagall/todos (Menciona todos los miembros)
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `

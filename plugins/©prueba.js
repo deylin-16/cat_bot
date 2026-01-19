@@ -1,146 +1,59 @@
-import axios from 'axios'
-import { wrapper } from 'axios-cookiejar-support'
-import { CookieJar } from 'tough-cookie'
+import axios from 'axios';
 
-const BASE_URL = 'https://downr.org'
-const INFO_API = `${BASE_URL}/.netlify/functions/video-info`
-const DOWNLOAD_API = `${BASE_URL}/.netlify/functions/youtube-download`
-const ANALYTICS_API = `${BASE_URL}/.netlify/functions/analytics`
-
-const headers = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Origin': 'https://downr.org',
-  'Referer': 'https://downr.org/',
-  'Content-Type': 'application/json',
-  'Accept': '*/*',
-  'Accept-Language': 'en-US,en;q=0.9'
-}
-
-const jar = new CookieJar()
-const client = wrapper(axios.create({ jar }))
-
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
-
-async function initSession() {
-  try {
-    await client.get(ANALYTICS_API, { headers })
-  } catch (_) {
-  }
-}
-
-async function fetchVideoInfo(url) {
-  let videoData = null
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+let handler = async (m, { conn }) => {
     try {
-      const infoResponse = await client.post(
-        INFO_API,
-        { url },
-        { headers }
-      )
-      videoData = infoResponse.data
-      break
-    } catch (error) {
-      if (error.response && error.response.status === 403 && error.response.data === 'user_retry_required') {
-        await sleep(2000)
-        continue
-      }
-      throw error
-    }
-  }
-  return videoData
-}
+        const group = m.chat;
+        const groupMetadata = await conn.groupMetadata(group);
+        const inviteCode = await conn.groupInviteCode(group);
+        const mainLink = 'https://chat.whatsapp.com/' + inviteCode;
 
-function buildTasks(url, videoData) {
-  const mediaList = videoData?.medias || []
-  const video240p = mediaList.find(m => m.quality === '240p' && m.type === 'video')
-  const audioSource = mediaList.find(m => m.type === 'audio')
-
-  const tasks = []
-  if (video240p) {
-    tasks.push({
-      type: 'video',
-      name: 'Video MP4 (240p)',
-      payload: { url, downloadMode: 'auto', videoQuality: '240p' }
-    })
-  }
-  if (audioSource) {
-    tasks.push({
-      type: 'audio',
-      name: 'Audio MP3 (128kbps)',
-      payload: { url, downloadMode: 'audio', videoQuality: '128' }
-    })
-  }
-  return tasks
-}
-
-async function requestDownload(task) {
-  const downloadResponse = await client.post(DOWNLOAD_API, task.payload, { headers })
-  return downloadResponse.data
-}
-
-const handler = async (m, { conn, text, args, usedPrefix, command }) => {
-  const url = (text || args?.[0] || '').trim()
-  if (!url) {
-    return conn.reply(m.chat, `Uso: ${usedPrefix + command} <url>`, m)
-  }
-
-  await m.react?.('⏳')
-
-  try {
-    await initSession()
-    const videoData = await fetchVideoInfo(url)
-
-    if (!videoData) {
-      await m.react?.('❌')
-      return conn.reply(m.chat, 'No se pudo obtener metadata del video.', m)
-    }
-
-    const tasks = buildTasks(url, videoData)
-    if (!tasks.length) {
-      await m.react?.('❌')
-      return conn.reply(m.chat, 'No se encontraron formatos disponibles.', m)
-    }
-
-    let results = {
-      status: 'success',
-      title: videoData.title,
-      author: videoData.author,
-      thumbnail: videoData.thumbnail,
-      links: []
-    }
-
-    for (const task of tasks) {
-      try {
-        const data = await requestDownload(task)
-        if (data?.url) {
-          results.links.push({
-            type: task.type,
-            name: task.name,
-            download_url: data.url
-          })
+        let shortLink = mainLink;
+        try {
+            const { data } = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(mainLink)}`);
+            shortLink = data;
+        } catch {
+            shortLink = 'No disponible';
         }
-      } catch (error) {
-        console.error(`Error en task ${task.name}:`, error?.message)
-      }
+
+        const caption = `
+  *─── 「 ENLACE DE GRUPO 」 ───*
+
+  ▢ *GRUPO:* ${groupMetadata.subject}
+  ▢ *MIEMBROS:* ${groupMetadata.participants.length}
+  ▢ *CREADOR:* @${groupMetadata.owner?.split('@')[0] || 'Desconocido'}
+
+  ▢ *ENLACE DIRECTO:*
+  • ${mainLink}
+
+  ▢ *ENLACE CORTO:*
+  • ${shortLink}
+
+  *──────────────────────────*
+  _Nota: No comparta el enlace con desconocidos para evitar spam._`.trim();
+
+        await conn.reply(m.chat, caption, m, {
+            contextInfo: {
+                mentionedJid: [groupMetadata.owner],
+                externalAdReply: {
+                    title: 'INVITACIÓN AL GRUPO',
+                    body: groupMetadata.subject,
+                    mediaType: 1,
+                    sourceUrl: mainLink,
+                    thumbnailUrl: await conn.profilePictureUrl(group, 'image').catch(_ => null),
+                    renderLargerThumbnail: false
+                }
+            }
+        });
+
+    } catch (e) {
+        m.reply('❌ Error al generar el enlace. Asegúrese de que soy administrador.');
     }
+};
 
-    if (results.links.length === 0) {
-      await m.react?.('❌')
-      return conn.reply(m.chat, 'No se pudieron generar links de descarga.', m)
-    }
+handler.help = ['link'];
+handler.tags = ['grupo'];
+handler.command = ['link', 'enlace'];
+handler.group = true;
+handler.botAdmin = true;
 
-    await conn.reply(m.chat, JSON.stringify(results, null, 2), m)
-    await m.react?.('✅')
-
-  } catch (error) {
-    await m.react?.('❌')
-    console.error('Downr error:', error?.response?.data || error?.message)
-    return conn.reply(m.chat, '❌ Error al procesar Downr.', m)
-  }
-}
-
-handler.help = ['downrraw <url>']
-handler.tags = ['dl']
-handler.command = /^(downrraw|downrorg|downrlink)$/i
-
-export default handler
+export default handler;

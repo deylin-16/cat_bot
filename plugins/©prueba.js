@@ -20,11 +20,12 @@ let handler = async (m, { conn }) => {
 
   ▢ *GRUPO:* ${groupMetadata.subject}
   ▢ *MIEMBROS:* ${groupMetadata.participants.length}
+  ▢ *CREADOR:* @${groupMetadata.owner?.split('@')[0] || 'Desconocido'}
   
   ▢ *ENLACE PRINCIPAL:*
   • ${mainLink}
 
-  ▢ *ACCESO RÁPIDO:*
+  ▢ *ENLACE CORTO:*
   • ${shortLink}
 
   *──────────────────────────*`.trim();

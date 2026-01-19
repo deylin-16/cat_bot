@@ -1,10 +1,31 @@
+import fetch from 'node-fetch';
+
 let recordatorios = {};
 
 async function handler(m, { args, command, conn, participants }) {
     const chatId = m.chat;
 
+    const res = await fetch('https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1768838597942_CHk6Hpv5C.jpeg');
+    const thumb2 = Buffer.from(await res.arrayBuffer());
+
+    const fkontak = {
+        key: {
+            participants: "0@s.whatsapp.net",
+            remoteJid: "status@broadcast",
+            fromMe: false,
+            id: "Halo"
+        },
+        message: {
+            locationMessage: {
+                name: '𝗥𝗘𝗖𝗢𝗥𝗗𝗔𝗧𝗢𝗥𝗜𝗢',
+                jpegThumbnail: thumb2
+            }
+        },
+        participant: "0@s.whatsapp.net"
+    };
+
     if (command === 'recordatorio') {
-        if (args.length < 2) return m.reply('Uso correcto: *!recordatorio [minutos] [repeticiones]* (Respondiendo a un mensaje)\n\n EJ: #recordatorio 1 3\nCantidad: 3 veces\nCada: 1 minuto');
+        if (args.length < 2) return m.reply('Uso: *!recordatorio [minutos] [repeticiones]* (Respondiendo a un mensaje)');
 
         let tiempo = parseInt(args[0]);
         let repeticiones = parseInt(args[1]);
@@ -31,12 +52,12 @@ async function handler(m, { args, command, conn, participants }) {
                         forward: mQuoted.fakeObj || mQuoted, 
                         contextInfo: { 
                             mentionedJid: mencionados,
-                            isForwarded: false 
+                            isForwarded: false
                         } 
-                    });
-                    
+                    }, { quoted: fkontak });
+
                     contador++;
-                    
+
                     if (contador < repeticiones) {
                         recordatorios[chatId].timeout = setTimeout(enviarRecordatorio, tiempo * 60000);
                     } else {

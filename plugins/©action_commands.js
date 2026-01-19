@@ -8,9 +8,28 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let { assistantName, assistantImage } = global.getAssistantConfig(conn.user.jid)
     let ownerBot = global.owner.map(([jid, name]) => ({ jid, name }))
     let _package = JSON.parse(await fs.promises.readFile(path.join(__dirname, '../package.json')).catch(_ => '{}')) || {}
-const groupName = groupMetadata.subject
-const totalMembers = groupMetadata.participants.length
+    
+    let groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat).catch(_ => ({})) : {}
+    let groupName = groupMetadata.subject || 'Chat Privado'
+    let totalMembers = groupMetadata.participants ? groupMetadata.participants.length : 0
+    
+    let isMenuGrupo = /menu4|menugrupo/i.test(command)
+    let thumb = assistantImage 
+    if (isMenuGrupo && m.isGroup) {
+        thumb = await conn.profilePictureUrl(m.chat, 'image').catch(_ => assistantImage)
+    }
 
+    let adReply = {
+        contextInfo: {
+            externalAdReply: {
+                title: assistantName,
+                mediaType: 1,
+                previewType: 0,
+                thumbnailUrl: thumb,
+                renderLargerThumbnail: true
+            }
+        }
+    }
 
     if (/menu2|anime|interaccion/i.test(command)) {
         let animeCommands = `
@@ -73,22 +92,13 @@ const totalMembers = groupMetadata.participants.length
 ❒ *Menús:* \`menu/menu2 ∆/menu3/menu4\`
 
 
-${animeCommands}
+${animeCommands}`.trim()
 
-> *Nota:* Comandos directos sin prefijo.`.trim()
-
-        try {
-            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
-            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
-        } catch (e) {
-            await conn.reply(m.chat, caption, m)
-        }
-        return
+        return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
 
-
-    if (/menu4|menugrupo/i.test(command)) {
-        let gameCommands = `
+    if (isMenuGrupo) {
+        let groupCommands = `
 ┏━⊜  *GRUPO*  ⊜━┓
 ┃ °• cerrar/abrir/open/close
 ┃ °• cerrargrupo/abrirgrupo (Open/clóse: automático)
@@ -116,17 +126,9 @@ ${animeCommands}
 ❒ *Menús:* \`menu/menu2/menu3/menu4 ∆\`
 
 
-${gameCommands}
+${groupCommands}`.trim()
 
-> *Nota:* Seguimos desarrollando mas.`.trim()
-
-        try {
-            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
-            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
-        } catch (e) {
-            await conn.reply(m.chat, caption, m)
-        }
-        return
+        return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
 
     if (/menu3|game|juegos/i.test(command)) {
@@ -153,19 +155,10 @@ ${gameCommands}
 ❒ *Menús:* \`menu/menu2/menu3 ∆/menu4\`
 
 
-${gameCommands}
+${gameCommands}`.trim()
 
-> *Nota:* Seguimos desarrollando mas.`.trim()
-
-        try {
-            let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
-            await conn.sendMessage(m.chat, { image: sendImage, caption, mentions: [m.sender] }, { quoted: m })
-        } catch (e) {
-            await conn.reply(m.chat, caption, m)
-        }
-        return
+        return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
-
 
     let customCommands = `
 ┏━━━━━━━━━━━━━━━━━━┓
@@ -211,23 +204,16 @@ ${gameCommands}
     let caption = `
 👋 *HOLA, SOY ${assistantName.toUpperCase()}*
 
-❒ *Creador:* ${ownerBot[0].name}
+❒ *Creador:* ${ownerBot[0]?.name || 'Deylin'}
 ❒ *Versión:* ${_package.version}
 ❒ *Activo:* ${msToDate(process.uptime() * 1000)}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ 
 ❒ *Menús:* \`menu ∆/menu2/menu3/menu4\`
 
-${customCommands}
+${customCommands}`.trim()
 
-> Usa *.menu2* para ver los comandos de Anime.`.trim()
-
-    try {
-        let sendImage = typeof assistantImage === 'string' ? { url: assistantImage } : assistantImage
-        await conn.sendMessage(m.chat, { image: sendImage, caption: caption }, { quoted: m })
-    } catch (e) {
-        await conn.reply(m.chat, caption, m)
-    }
+    await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
 }
 
 handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime', 'menu3', 'game', 'juegos', 'menu4', 'menugrupo']

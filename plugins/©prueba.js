@@ -5,14 +5,14 @@ let handler = async (m, { conn }) => {
         const group = m.chat;
         const groupMetadata = await conn.groupMetadata(group);
         const inviteCode = await conn.groupInviteCode(group);
-        const mainLink = 'https://chat.whatsapp.com/' + inviteCode;
+        const mainLink = `https://chat.whatsapp.com/${inviteCode}`;
 
-        let shortLink = mainLink;
+        let shortLink;
         try {
-            const { data } = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(mainLink)}`);
+            const { data } = await axios.get(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(mainLink)}`);
             shortLink = data;
         } catch {
-            shortLink = 'No disponible';
+            shortLink = 'Link corto no disponible';
         }
 
         const caption = `
@@ -20,22 +20,19 @@ let handler = async (m, { conn }) => {
 
   ▢ *GRUPO:* ${groupMetadata.subject}
   ▢ *MIEMBROS:* ${groupMetadata.participants.length}
-  ▢ *CREADOR:* @${groupMetadata.owner?.split('@')[0] || 'Desconocido'}
-
-  ▢ *ENLACE DIRECTO:*
+  
+  ▢ *ENLACE PRINCIPAL:*
   • ${mainLink}
 
-  ▢ *ENLACE CORTO:*
+  ▢ *ACCESO RÁPIDO:*
   • ${shortLink}
 
-  *──────────────────────────*
-  _Nota: No comparta el enlace con desconocidos para evitar spam._`.trim();
+  *──────────────────────────*`.trim();
 
         await conn.reply(m.chat, caption, m, {
             contextInfo: {
-                mentionedJid: [groupMetadata.owner],
                 externalAdReply: {
-                    title: 'INVITACIÓN AL GRUPO',
+                    title: 'INVITACIÓN OFICIAL',
                     body: groupMetadata.subject,
                     mediaType: 1,
                     sourceUrl: mainLink,
@@ -46,7 +43,7 @@ let handler = async (m, { conn }) => {
         });
 
     } catch (e) {
-        m.reply('❌ Error al generar el enlace. Asegúrese de que soy administrador.');
+        m.reply('❌ Error: Verifica que el bot sea administrador.');
     }
 };
 

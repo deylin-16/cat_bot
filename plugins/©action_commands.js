@@ -160,46 +160,39 @@ ${gameCommands}`.trim()
         return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
 
-    let customCommands = `
-┏━━━━━━━━━━━━━━━━━━┓
-┃   *MENÚS*
-┃ ° menú (principal)
-┃ ° menu2 (Animes)
-┃ ° menu3 (Juegos)
-┃ ° munu4 (configuraciones del grupo)
-┃
-┃   *UTILIDADES*
-┃ ◦ kick / elimina
-┃ ◦ ntodos / tagall
-┃
-┃   *DESCARGAS*
-┃ ◦ descarga (FB, TikTok, IG)
-┃ ◦ fb (Link de Facebook)
-┃ ◦ ig (link de instagram)
-┃ ◦ tt (link de Tiktok)
-┃
-┃   *BÚSQUEDA*
-┃ ◦ pin (Pinterest)
-┃ ◦ ttss (TikTok Search)
-┃ ◦ play / 🎧 (YouTube)
-┃
-┃   *FUNCIONES*
-┃ ◦ robar perfil
-┃ ◦ tomar perfil
-┃ ◦ s / sticker
-┃ ◦ toimg (Sticker a imagen)
-┃
-┃   *IA & SISTEMA*
-┃ ◦ ia (ChatGPT)
-┃ ◦ hd (Mejorar calidad)
-┃ ◦ res (Auto-IA)
-┃
-┃   *ESPÍA*
-┃ ◦ read / ver / :) (ViewOnce)
+        let customCommands = `
+╭━━〔 📂 *CATÁLOGO DE MENÚS* 〕━━╮
 ┃ 
-┃   *MOTIVACIÓN*
-┃ ◦ consejo / motivacion
-┗━━━━━━━━━━━━━━━━━━┛`;
+┃ 💠 \`Principal\` ➜ .menu
+┃ ⛩️ \`Animes\` ➜ .menu2
+┃ 🎮 \`Juegos\` ➜ .menu3
+┃ ⚙️ \`Gestión\` ➜ .menu4
+┃
+╰━━━━━━━━━━━━━━━━━━━━╯
+
+╭━━〔 🛠️ *HERRAMIENTAS* 〕━━╮
+┃
+┃ 📥 *DESCARGAS*
+┃ ├ ◦ \`fb\` | \`ig\` | \`tiktok\`
+┃ └ ◦ \`descarga\` (Multilink)
+┃
+┃ 🔍 *BÚSQUEDA*
+┃ ├ ◦ \`pin\` | \`ttss\`
+┃ └ ◦ \`play\` | \`play2\` (Música)
+┃
+┃ 🎨 *FUNCIONES*
+┃ ├ ◦ \`s\` (Sticker) | \`toimg\`
+┃ ├ ◦ \`robar\` | \`tomar\` perfil
+┃ ├ ◦ \`ver\` | \`read\` (ViewOnce)
+┃ └ ◦ \`consejo\` | \`motivacion\`
+┃
+┃ 🧠 *IA & SISTEMA*
+┃ ├ ◦ \`ia\` | \`res\` (Auto-AI)
+┃ └ ◦ \`hd\` (Enhancer)
+┃
+┃
+╰━━━━━━━━━━━━━━━━━━━━╯`.trim();
+
 
     let caption = `
 👋 *HOLA, SOY ${assistantName.toUpperCase()}*

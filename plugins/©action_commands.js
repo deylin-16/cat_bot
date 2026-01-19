@@ -25,7 +25,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
                 title: assistantName,
                 mediaType: 1,
                 previewType: 0,
-                thumbnailUrl: thumb,
+                thumbnail: thumb,
                 renderLargerThumbnail: true
             }
         }

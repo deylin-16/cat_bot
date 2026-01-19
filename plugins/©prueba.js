@@ -58,12 +58,14 @@ function buildTasks(url, videoData) {
   const tasks = []
   if (video240p) {
     tasks.push({
+      type: 'video',
       name: 'Video MP4 (240p)',
       payload: { url, downloadMode: 'auto', videoQuality: '240p' }
     })
   }
   if (audioSource) {
     tasks.push({
+      type: 'audio',
       name: 'Audio MP3 (128kbps)',
       payload: { url, downloadMode: 'audio', videoQuality: '128' }
     })
@@ -74,14 +76,6 @@ function buildTasks(url, videoData) {
 async function requestDownload(task) {
   const downloadResponse = await client.post(DOWNLOAD_API, task.payload, { headers })
   return downloadResponse.data
-}
-
-async function downloadToBuffer(url) {
-  const response = await axios.get(url, { responseType: 'arraybuffer' })
-  const buffer = Buffer.from(response.data)
-  const contentType = response.headers?.['content-type'] || ''
-  const contentLength = Number(response.headers?.['content-length'] || 0)
-  return { buffer, contentType, contentLength }
 }
 
 const handler = async (m, { conn, text, args, usedPrefix, command }) => {
@@ -107,46 +101,37 @@ const handler = async (m, { conn, text, args, usedPrefix, command }) => {
       return conn.reply(m.chat, 'No se encontraron formatos disponibles.', m)
     }
 
+    let results = {
+      status: 'success',
+      title: videoData.title,
+      author: videoData.author,
+      thumbnail: videoData.thumbnail,
+      links: []
+    }
+
     for (const task of tasks) {
       try {
         const data = await requestDownload(task)
-        if (!data?.url) {
-          await conn.reply(m.chat, `${task.name}: Sin URL disponible.`, m)
-          continue
-        }
-
-        const download = await downloadToBuffer(data.url)
-        const fileName = task.payload.downloadMode === 'audio' ? 'downr-audio.mp3' : 'downr-video.mp4'
-
-        if (task.payload.downloadMode === 'audio') {
-          await conn.sendMessage(
-            m.chat,
-            {
-              audio: download.buffer,
-              mimetype: 'audio/mpeg',
-              fileName,
-              ptt: false
-            },
-            { quoted: m }
-          )
-        } else {
-          await conn.sendMessage(
-            m.chat,
-            {
-              video: download.buffer,
-              mimetype: 'video/mp4',
-              fileName
-            },
-            { quoted: m }
-          )
+        if (data?.url) {
+          results.links.push({
+            type: task.type,
+            name: task.name,
+            download_url: data.url
+          })
         }
       } catch (error) {
-        await conn.reply(m.chat, `${task.name}: Error al descargar el archivo.`, m)
-        console.error('Downr request error:', error?.response?.data || error?.message)
+        console.error(`Error en task ${task.name}:`, error?.message)
       }
     }
+
+    if (results.links.length === 0) {
+      await m.react?.('❌')
+      return conn.reply(m.chat, 'No se pudieron generar links de descarga.', m)
+    }
+
+    await conn.reply(m.chat, JSON.stringify(results, null, 2), m)
     await m.react?.('✅')
-    return true
+
   } catch (error) {
     await m.react?.('❌')
     console.error('Downr error:', error?.response?.data || error?.message)

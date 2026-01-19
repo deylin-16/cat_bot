@@ -14,10 +14,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let totalMembers = groupMetadata.participants ? groupMetadata.participants.length : 0
     
     let isMenuGrupo = /menu4|menugrupo/i.test(command)
-    let thumb = assistantImage 
+        let thumb = assistantImage
     if (isMenuGrupo && m.isGroup) {
-        thumb = await conn.profilePictureUrl(m.chat, 'image').catch(_ => assistantImage)
+        try {
+            const profileUrl = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null)
+            thumb = profileUrl ? await (await fetch(profileUrl)).buffer() : assistantImage
+        } catch {
+            thumb = assistantImage
+        }
     }
+
 
     let adReply = {
         contextInfo: {

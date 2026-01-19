@@ -61,7 +61,7 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    await conn.sendFile(m.chat, pp, 'profile.jpg', `*Aquí tienes la foto de perfil de ${name}*`, m)
+    await conn.sendFile(m.chat, pp, 'profile.jpg', `*Aquí tienes la foto de perfil de ${m.}*`, m)
     await m.react('✔️')
 }
 

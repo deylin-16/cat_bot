@@ -8,6 +8,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let { assistantName, assistantImage } = global.getAssistantConfig(conn.user.jid)
     let ownerBot = global.owner.map(([jid, name]) => ({ jid, name }))
     let _package = JSON.parse(await fs.promises.readFile(path.join(__dirname, '../package.json')).catch(_ => '{}')) || {}
+const groupName = groupMetadata.subject
+const totalMembers = groupMetadata.participants.length
+
 
     if (/menu2|anime|interaccion/i.test(command)) {
         let animeCommands = `
@@ -102,9 +105,11 @@ ${animeCommands}
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `
-🎮 *MENÚ DE JUEGOS* 🍪
+⚙️ *MENÚ DE CONFIGURACIÓN* 🍪
 
 ❒ *Bot:* ${assistantName}
+❒ *Grupo:* ${groupName}
+❒ *Miembros:* ${totalMembers}
 ❒ *Versión:* ${_package.version}
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ 

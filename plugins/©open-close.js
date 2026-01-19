@@ -99,19 +99,19 @@ let handler = async (m, { conn, args, command, groupMetadata }) => {
     };
 
     if (command === 'cerrar' || command === 'close') {
-        if (isAnnounce) return m.reply(`⚠️ *AVISO:* El grupo ya se encuentra *CERRADO* actualmente.\nSolo administradores pueden escribir.`);
+        if (isAnnounce) return m.reply(`* ⚠️ *AVISO:* El grupo ya se encuentra *CERRADO* actualmente.\n\n> Solo administradores pueden escribir.`);
         await conn.groupSettingUpdate(chatId, 'announcement');
         return conn.sendMessage(chatId, { 
-            text: `🔒 *GRUPO CONFIGURADO*\n\nAcción: Cierre inmediato\nEstado: Solo Admins\nHora: ${horaActual} (${tz})\n\n> El sistema ha restringido el envío de mensajes a miembros generales.`,
+            text: `🔒 *GRUPO CONFIGURADO*\n\nAcción: Cierre inmediato\nEstado: Solo Admins\nHora: ${horaActual} (${tz})\n\n> Puedes hacer que el grupo se abra automáticamente con el comando: `\#abrirgrupo`\.`,
             contextInfo: adReply
         });
     }
 
     if (command === 'abrir' || command === 'open') {
-        if (!isAnnounce) return m.reply(`⚠️ *AVISO:* El grupo ya se encuentra *ABIERTO* actualmente.\nTodos pueden participar.`);
+        if (!isAnnounce) return m.reply(`* ⚠️ *AVISO:* El grupo ya se encuentra *ABIERTO* actualmente.\n\n> Todos pueden participar.`);
         await conn.groupSettingUpdate(chatId, 'not_announcement');
         return conn.sendMessage(chatId, { 
-            text: `🔓 *GRUPO CONFIGURADO*\n\nAcción: Apertura inmediata\nEstado: Todos pueden escribir\nHora: ${horaActual} (${tz})\n\n> El sistema ha habilitado la participación para todos los miembros.`,
+            text: `🔓 *GRUPO CONFIGURADO*\n\nAcción: Apertura inmediata\nEstado: Todos pueden escribir\nHora: ${horaActual} (${tz})\n\n> Puedes programar un cierre automático del grupo con el comando: `\#cerrargrupo`\`,
             contextInfo: adReply
         });
     }

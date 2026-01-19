@@ -100,19 +100,33 @@ ${animeCommands}`.trim()
     if (isMenuGrupo) {
         let groupCommands = `
 ┏━⊜  *GRUPO*  ⊜━┓
+┃ 
 ┃ °• cerrar/abrir/open/close
+┃ 
 ┃ °• cerrargrupo/abrirgrupo (Open/clóse: automático)
+┃ 
 ┃ °• detect (Apagar/encender autodetect)
+┃ 
 ┃ °• setwelcome  (Configurar bienvenida)
+┃ 
 ┃ °• welcome (activar/desactivar: bienvenida)
+┃ 
 ┃ °• antilink  (activar/desactivar: antilink)
+┃ 
 ┃ °• setpp (Cambiar imagen del grupo)
+┃ 
 ┃ °• renombrar (Cambiar nombre del grupo)
+┃ 
 ┃ °• setdesc (Cambiar descripción del grupo)
+┃ 
 ┃ °• kick (Elimina a un usuario)
+┃ 
 ┃ °• N/tag (Texto/imagen/vídeo/audio)
-┃ °• tagall/todos (Menciona todos los miembros)
+┃ 
+┃ °• tagall/todos (Menciona a todos)
+┃ 
 ┃ °• recordatorio (Minutos+veces)
+┃ 
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `

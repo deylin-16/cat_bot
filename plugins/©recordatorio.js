@@ -1,4 +1,4 @@
-/*import fetch from 'node-fetch';
+import fetch from 'node-fetch';
 
 let recordatorios = {};
 
@@ -91,4 +91,4 @@ handler.command = ['recordatorio', 'cancelarrecordatorio'];
 handler.admin = true;
 handler.group = true;
 
-export default handler;*/
+export default handler;

@@ -4,8 +4,6 @@ import fetch from 'node-fetch'
 const RESPONSES = {
     NO_ADMIN: ['Solo los administradores pueden usar este comando.'],
     NO_BOT_ADMIN: ['Necesito ser administrador para ejecutar esta acción.'],
-    CLOSE_SUCCESS: ['El grupo ha sido cerrado.'],
-    OPEN_SUCCESS: ['El grupo ha sido abierto.'],
     RENAME_MISSING: ['Escribe el nuevo nombre después del comando.'],
     RENAME_SUCCESS: (subject) => [`Nombre actualizado a: *${subject}*.`],
     DESC_MISSING: ['Escribe la nueva descripción o responde a un texto.'],
@@ -28,15 +26,7 @@ const handler = async (m, { conn, text, command, isAdmin, isBotAdmin, participan
     if (!isAdmin) return m.reply(randomResponse('NO_ADMIN'))
     if (!isBotAdmin) return m.reply(randomResponse('NO_BOT_ADMIN'))
 
-    if (/cierra|cerrar|bloquear/i.test(command)) {
-        await conn.groupSettingUpdate(m.chat, 'announcement')
-        m.reply(randomResponse('CLOSE_SUCCESS'))
-
-    } else if (/abre|abrir|desbloquear/i.test(command)) {
-        await conn.groupSettingUpdate(m.chat, 'not_announcement')
-        m.reply(randomResponse('OPEN_SUCCESS'))
-
-    } else if (/renombrar|setnombre/i.test(command)) {
+    if (/renombrar|setnombre/i.test(command)) {
         if (!text) return m.reply(randomResponse('RENAME_MISSING'))
         await conn.groupUpdateSubject(m.chat, text)
         m.reply(randomResponse('RENAME_SUCCESS', text))
@@ -87,7 +77,7 @@ const handler = async (m, { conn, text, command, isAdmin, isBotAdmin, participan
     }
 }
 
-handler.command = /^(cierra|cerrar|abre|abrir|renombrar|setnombre|desc|setdesc|setfoto|setpp|elimina|kick|ban|echar|sacar|tagall|ntodos|anuncio)$/i
+handler.command = /^(renombrar|setnombre|desc|setdesc|setfoto|setpp|elimina|kick|ban|echar|sacar|tagall|ntodos|anuncio)$/i
 handler.group = true
 handler.admin = true
 

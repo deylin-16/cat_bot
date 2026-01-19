@@ -56,7 +56,7 @@ let handler = async (m, { conn, args, command }) => {
     const { ms, fecha } = resultado;
     const horaDestino = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    if (command === 'cerrargrupo') {
+    if (command === 'cerrargrupo' || command === 'cerrar' || command === 'close') {
         if (global.programaciones.cierres[chatId]) clearTimeout(global.programaciones.cierres[chatId]);
 
         global.programaciones.cierres[chatId] = setTimeout(async () => {
@@ -74,7 +74,7 @@ let handler = async (m, { conn, args, command }) => {
         return m.reply(`✅ Cierre programado: *${horaDestino}*`);
     }
 
-    if (command === 'abrirgrupo') {
+    if (command === 'abrirgrupo' || command === 'open' || command === 'abrir') {
         if (global.programaciones.aperturas[chatId]) clearTimeout(global.programaciones.aperturas[chatId]);
 
         global.programaciones.aperturas[chatId] = setTimeout(async () => {
@@ -93,7 +93,7 @@ let handler = async (m, { conn, args, command }) => {
     }
 };
 
-handler.command = /^(cerrargrupo|abrirgrupo)$/i;
+handler.command = /^(cerrargrupo|abrirgrupo|abrir|cerrar|open|close)$/i;
 handler.admin = true;
 handler.botAdmin = true;
 handler.group = true;

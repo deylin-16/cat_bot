@@ -32,6 +32,7 @@ let handler = async (m, { conn }) => {
 
         await conn.reply(m.chat, caption, m, {
             contextInfo: {
+            mentionedJid: [groupMetadata.owner],
                 externalAdReply: {
                     title: 'INVITACIÓN OFICIAL',
                     body: groupMetadata.subject,

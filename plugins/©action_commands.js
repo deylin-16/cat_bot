@@ -112,6 +112,7 @@ ${animeCommands}`.trim()
 ┃ °• kick (Elimina a un usuario)
 ┃ °• N/tag (Texto/imagen/vídeo/audio)
 ┃ °• tagall/todos (Menciona todos los miembros)
+┃ °• recordatorio (Minutos+veces)
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `

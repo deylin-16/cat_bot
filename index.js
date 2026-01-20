@@ -24,10 +24,11 @@ const {
     fetchLatestBaileysVersion, 
     makeCacheableSignalKeyStore, 
     jidNormalizedUser, 
-    Browsers 
+    Browsers,
+    extractMessageContent,
+    downloadMediaMessage
 } = (await import('@whiskeysockets/baileys')).default;
 
-const { protoType, serialize } = await import('./lib/simple.js');
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
@@ -39,8 +40,6 @@ global.__dirname = (pathURL) => path.dirname(global.__filename(pathURL, true));
 global.__require = (dir = import.meta.url) => createRequire(dir);
 
 const __dirname = global.__dirname(import.meta.url);
-protoType();
-serialize();
 
 global.db = new Low(new JSONFile('database.json'));
 global.loadDatabase = async function loadDatabase() {
@@ -60,7 +59,6 @@ await global.loadDatabase();
 const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
 const { version } = await fetchLatestBaileysVersion();
 const msgRetryCounterCache = new NodeCache();
-const userDevicesCache = new NodeCache();
 
 const connectionOptions = {
     version,
@@ -73,27 +71,10 @@ const connectionOptions = {
     browser: Browsers.macOS("Chrome"),
     generateHighQualityLinkPreview: true,
     msgRetryCounterCache,
-    userDevicesCache,
     syncFullHistory: false,
     markOnlineOnConnect: false,
     getMessage: async (key) => (await (await import('./lib/store.js')).default.loadMessage(jidNormalizedUser(key.remoteJid), key.id))?.message || ""
 };
-
-global.conn = makeWASocket(connectionOptions);
-
-if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
-    let phoneNumber = global.botNumber;
-    if (!phoneNumber) {
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        phoneNumber = await new Promise(res => rl.question(chalk.blueBright('\n[ INPUT ] Ingrese el número del Bot: '), res));
-        rl.close();
-    }
-    const cleanNumber = phoneNumber.replace(/\D/g, '');
-    setTimeout(async () => {
-        let code = await global.conn.requestPairingCode(cleanNumber);
-        console.log(chalk.black.bgMagenta(`\n CÓDIGO DE VINCULACIÓN: ${code?.match(/.{1,4}/g)?.join("-") || code} \n`));
-    }, 3000);
-}
 
 const formatError = (err) => {
     const stack = err.stack || String(err);
@@ -108,6 +89,55 @@ const formatError = (err) => {
 process.on('uncaughtException', formatError);
 process.on('unhandledRejection', formatError);
 
+const serialize = (conn, m) => {
+    if (!m) return m;
+    let vM = m.message;
+    m.id = m.key.id;
+    m.isBaileys = m.id.startsWith('BAE5') && m.id.length === 16;
+    m.chat = jidNormalizedUser(m.key.remoteJid);
+    m.fromMe = m.key.fromMe;
+    m.isGroup = m.chat.endsWith('@g.us');
+    m.sender = jidNormalizedUser(m.fromMe ? conn.user.id : (m.key.participant || m.key.remoteJid));
+    
+    if (vM) {
+        m.type = Object.keys(vM)[0];
+        m.msg = extractMessageContent(vM[m.type]);
+        m.body = m.msg?.text || m.msg?.caption || m.msg?.selectedId || m.msg?.contentText || m.msg?.code || "";
+        m.quoted = m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo : null;
+        if (m.quoted) {
+            m.quoted.type = Object.keys(m.quoted.quotedMessage)[0];
+            m.quoted.msg = extractMessageContent(m.quoted.quotedMessage[m.quoted.type]);
+            m.quoted.id = m.msg.contextInfo.stanzaId;
+            m.quoted.sender = jidNormalizedUser(m.msg.contextInfo.participant || m.chat);
+            m.quoted.fromMe = m.quoted.sender === jidNormalizedUser(conn.user.id);
+            m.quoted.body = m.quoted.msg?.text || m.quoted.msg?.caption || "";
+        }
+    }
+    
+    m.reply = (text, chatId, options) => conn.sendMessage(chatId || m.chat, { text }, { quoted: m, ...options });
+    m.react = (text) => conn.sendMessage(m.chat, { react: { text, key: m.key } });
+    
+    return m;
+};
+
+global.conn = makeWASocket(connectionOptions);
+
+if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
+    let phoneNumber = global.botNumber;
+    if (!phoneNumber) {
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        phoneNumber = await new Promise(res => rl.question(chalk.blueBright('\n[ INPUT ] Ingrese el número del Bot: '), res));
+        rl.close();
+    }
+    const cleanNumber = (phoneNumber || '').replace(/\D/g, '');
+    if (cleanNumber) {
+        setTimeout(async () => {
+            let code = await global.conn.requestPairingCode(cleanNumber);
+            console.log(chalk.black.bgMagenta(`\n CÓDIGO DE VINCULACIÓN: ${code?.match(/.{1,4}/g)?.join("-") || code} \n`));
+        }, 3000);
+    }
+}
+
 global.reloadHandler = async function (restatConn) {
     try {
         const handlerPath = `./handler.js?update=${Date.now()}`;
@@ -117,16 +147,21 @@ global.reloadHandler = async function (restatConn) {
             global.conn.ev.removeAllListeners();
             global.conn = makeWASocket(connectionOptions);
         }
-        global.conn.handler = async (chatUpdate) => {
+
+        global.conn.ev.on('messages.upsert', async (chatUpdate) => {
             try {
-                await handler.handler.call(global.conn, chatUpdate);
+                if (!chatUpdate.messages || chatUpdate.messages.length === 0) return;
+                const m = serialize(global.conn, chatUpdate.messages[0]);
+                if (!m) return;
+                await handler.handler.call(global.conn, m, chatUpdate);
             } catch (e) { formatError(e); }
-        };
-        global.conn.ev.on('messages.upsert', global.conn.handler);
+        });
+
         global.conn.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect } = update;
             if (connection === 'close') {
-                if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
+                const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+                if (code !== DisconnectReason.loggedOut) await global.reloadHandler(true);
             }
         });
         global.conn.ev.on('creds.update', saveCreds);

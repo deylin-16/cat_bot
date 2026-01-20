@@ -6,7 +6,7 @@ const localCache = {};
 const handler = async (m, { conn, text, command, usedPrefix }) => {
     if (!text?.trim()) return conn.reply(m.chat, `*── 「 SISTEMA DE DESCARGAS 」 ──*\n\n*Uso:* ${usedPrefix + command} <búsqueda>`, m);
 
-    await m.react("🌐");
+    await m.react("⌛");
 
     try {
         let videoId, videoInfo;
@@ -22,24 +22,25 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             videoId = videoInfo.videoId;
         }
 
-        const url = 'https://youtube.com/watch?v=' + videoId;
         const isAudio = /play$|audio$|mp3|ytmp3/i.test(command);
-        const mediaType = isAudio ? 'audio' : 'video';
+        const mediaType = isAudio ? 'mp3' : 'mp4';
         const cacheKey = `${videoId}_${mediaType}`;
 
         if (localCache[cacheKey]) {
             await m.react("⚡");
             try {
-                return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: localCache[cacheKey] } } }, { quoted: m });
+                await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: localCache[cacheKey].infoMsgId } } }, { quoted: m });
+                return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: localCache[cacheKey].mediaMsgId } } }, { quoted: m });
             } catch {
                 delete localCache[cacheKey];
             }
         }
 
-        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*\n\n▢ *TÍTULO:* ${videoInfo.title}\n▢ *CANAL:* ${videoInfo.author?.name || '---'}\n▢ *TIEMPO:* ${videoInfo.timestamp || '---'}\n▢ *TIPO:* ${mediaType.toUpperCase()}\n\n*──────────────────*`;
+        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*\n\n▢ *TÍTULO:* ${videoInfo.title}\n▢ *CANAL:* ${videoInfo.author?.name || '---'}\n▢ *TIEMPO:* ${videoInfo.timestamp || '---'}\n▢ *TIPO:* ${mediaType.toUpperCase()}\n▢ *ID YT:* ${videoId}\n\n*──────────────────*`;
 
-        await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
+        const infoMsg = await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
 
+        const url = 'https://youtube.com/watch?v=' + videoId;
         const apiUrl = isAudio 
             ? `https://smasha.alyabot.xyz/download_audio?url=${encodeURIComponent(url)}`
             : `https://smasha.alyabot.xyz/download_video?url=${encodeURIComponent(url)}`;
@@ -68,8 +69,14 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             }, { quoted: m });
         }
 
-        if (sentMsg?.key?.id) {
-            localCache[cacheKey] = sentMsg.key.id;
+        if (sentMsg?.key?.id && infoMsg?.key?.id) {
+            localCache[cacheKey] = {
+                youtubeId: videoId,
+                whatsappId: m.chat,
+                infoMsgId: infoMsg.key.id,
+                mediaMsgId: sentMsg.key.id,
+                type: mediaType
+            };
         }
 
         await m.react("✅");

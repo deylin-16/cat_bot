@@ -1,23 +1,26 @@
-let handler = async (m, { conn, text, command }) => {
-    global.db.data.settings ||= {}
-    global.db.data.settings[conn.user.jid] ||= { prefix: ['./', '#', '/'] }
-    let setting = global.db.data.settings[conn.user.jid]
+let handler = async (m, { conn, text, command, isROwner, isOwner }) => {
+    const botId = conn.user.jid;
+    global.db.data.settings[botId] ||= { prefix: ['.', '#', '/'] };
 
     if (command === 'setprefix') {
-        if (!text) return m.reply(`Por favor, ingresa los prefijos que deseas usar (máximo 3).\nEjemplo: setprefix 😏 # 😭`)
-        let newPrefix = text.split(/\s+/).filter(v => v).slice(0, 3)
-        if (newPrefix.length === 0) return m.reply(`Prefijos no válidos.`)
-        setting.prefix = newPrefix
-        await m.reply(`Prefijos actualizados correctamente para este bot: ${newPrefix.join(' ')}`)
+        if (!text) return m.reply(`*⚠️ Ingrese los prefijos deseados separándolos por espacio.*\n*Ejemplo:* #setprefix . # ! (Máximo 3)`);
+        
+        let newPrefixes = text.split(/\s+/).filter(v => v.length > 0);
+        if (newPrefixes.length > 3) return m.reply(`*❌ Solo puedes establecer un máximo de 3 prefijos.*`);
+        
+        global.db.data.settings[botId].prefix = newPrefixes;
+        m.reply(`*✅ Prefijos actualizados para esta instancia:* ${newPrefixes.join(' ')}`);
     }
 
     if (command === 'resetprefix') {
-        setting.prefix = ['./', '#', '/']
-        await m.reply(`Los prefijos han sido reseteados a los valores por defecto: . / #`)
+        global.db.data.settings[botId].prefix = ['.', '#', '/'];
+        m.reply(`*✅ Prefijos reseteados a los valores por defecto:* . # /`);
     }
 }
 
-handler.command = ['setprefix', 'resetprefix']
-handler.owner = true
+handler.help = ['setprefix', 'resetprefix'];
+handler.tags = ['owner', 'subbot'];
+handler.command = /^(setprefix|resetprefix)$/i;
+handler.owner = true; 
 
-export default handler
+export default handler;

@@ -193,10 +193,12 @@ ${gameCommands}`.trim()
 
 ╭━━〔  🍪 *SUB-BOT* 〕━━╮
 ┃ 
-┃ 💠 \`seticono\` ➜ cambia el icono
-┃ ⛩️ \`setprefix\` ➜ .menu2
-┃ 🎮 \`Juegos\` ➜ .menu3
-┃ ⚙️ \`Gestión\` ➜ .menu4
+┣¶╮
+┃ ├° \`seticono\` ➜ cambia el icono
+┃ ├° \`setprefix\` ➜ cambia el prefijo 
+┃ ├° \`resetprefix\` ➜ elimina prefijos 
+┃ ├° \`setimage\` ➜ cambia la imagen del bot
+┃ ╰° \`setname\` ➜ cambia el nombre del bot 
 ┃
 ╰━━━━━━━━━━━━━━━━━━━━╯
 

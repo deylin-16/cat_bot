@@ -7,7 +7,7 @@ const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
 const handler = async (m, { conn, text, command, usedPrefix }) => {
-    if (!text?.trim()) return conn.reply(m.chat, `*── 「 SISTEMA DE DESCARGAS 」 ──*\n\n*Uso:* ${usedPrefix + command} <búsqueda o enlace>\n*Estado:* Requerido`, m);
+    if (!text?.trim()) return conn.reply(m.chat, `*── 「 SISTEMA DE DESCARGAS 」 ──*\n\n*Uso:* ${usedPrefix + command} <búsqueda>\n*Estado:* Esperando entrada...`, m);
 
     await m.react("⏳");
 
@@ -20,7 +20,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             videoInfo = await yts({ videoId });
         } else {
             const search = await yts(text);
-            if (!search.videos.length) return conn.reply(m.chat, "── 「 ERROR 」 ──\n\nNo se encontraron registros en la red.", m);
+            if (!search.videos.length) return conn.reply(m.chat, "── 「 ERROR 」 ──\n\nNo se localizaron registros.", m);
             videoInfo = search.videos[0];
             videoId = videoInfo.videoId;
         }
@@ -28,44 +28,49 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         const url = 'https://youtu.be/' + videoId;
         const isAudio = /play$|audio$|mp3|ytmp3/i.test(command);
         const mediaType = isAudio ? 'audio' : 'video';
-        const cacheKey = `yt:${mediaType}:${videoId}`;
-        
-        // Verificación de Caché en Supabase
+
+        // 1. Verificación de Caché (Supabase)
         const { data: cacheData } = await supabase.from('media_index').select('file_id').eq('id_video_yt', videoId).eq('media_type', mediaType).maybeSingle();
 
         if (cacheData?.file_id) {
             await m.react("⚡");
-            return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cacheData.file_id } } }, { quoted: m });
+            try {
+                return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cacheData.file_id } } }, { quoted: m });
+            } catch (e) {
+                console.error("Error al reenviar caché, procediendo a descarga nueva.");
+            }
         }
 
-        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*
+        const infoText = `*── 「 CONTENIDO 」 ──*
   
   ▢ *TÍTULO:* ${videoInfo.title}
   ▢ *CANAL:* ${videoInfo.author?.name || '---'}
-  ▢ *TIEMPO:* ${videoInfo.timestamp || '---'}
-  ▢ *VISTAS:* ${(videoInfo.views || 0).toLocaleString()}
-  ▢ *ORIGEN:* ${url}
+  ▢ *DURACIÓN:* ${videoInfo.timestamp || '---'}
+  ▢ *ORIGEN:* YouTube
   
   *──────────────────*`;
 
         await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
 
+        // 2. Obtención de URL desde APIs
         const mediaData = isAudio ? await getAudioFromApis(url) : await getVideoFromApis(url);
-        
-        if (!mediaData || !mediaData.url) {
-            throw new Error("No_Service_Available");
-        }
+        if (!mediaData?.url) throw new Error("Payload_Indefinido");
+
+        // 3. Conversión de URL a Buffer (Solución al error de Path)
+        const response = await fetch(mediaData.url);
+        if (!response.ok) throw new Error(`HTTP_Error: ${response.status}`);
+        const buffer = await response.buffer();
 
         let sentMsg;
         if (isAudio) {
             sentMsg = await conn.sendMessage(m.chat, {
-                audio: { url: mediaData.url },
+                audio: buffer,
                 mimetype: "audio/mp4",
                 fileName: `${videoInfo.title}.mp3`,
                 contextInfo: {
                     externalAdReply: {
                         title: videoInfo.title,
-                        body: 'Procesamiento de Audio Estándar',
+                        body: 'Audio System Optimized',
                         mediaType: 1,
                         renderLargerThumbnail: true,
                         thumbnailUrl: videoInfo.image,
@@ -75,14 +80,14 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             }, { quoted: m });
         } else {
             sentMsg = await conn.sendMessage(m.chat, {
-                video: { url: mediaData.url },
-                caption: `*── 「 DESCARGA EXITOSA 」 ──*\n\n▢ *ID:* ${videoId}\n▢ *FILE:* ${videoInfo.title}`,
+                video: buffer,
+                caption: `*── 「 COMPLETO 」 ──*\n\n▢ *FILE:* ${videoInfo.title}`,
                 mimetype: "video/mp4",
                 fileName: `${videoInfo.title}.mp4`
             }, { quoted: m });
         }
 
-        // Guardado en Caché Post-Envío
+        // 4. Registro en Supabase para futuro reenvío (Caché)
         if (sentMsg?.key?.id) {
             await supabase.from('media_index').upsert({ 
                 id_video_yt: videoId, 
@@ -94,17 +99,16 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         await m.react("✅");
     } catch (error) {
         await m.react("❌");
-        conn.reply(m.chat, `*── 「 ERROR DE SISTEMA 」 ──*\n\n*MENSAJE:* ${error.message}`, m);
+        conn.reply(m.chat, `*── 「 FAILURE 」 ──*\n\n*LOG:* ${error.message}`, m);
     }
 };
 
 async function getAudioFromApis(url) {
     const urls = [
         `https://api-adonix.ultraplus.click/download/ytaudio?apikey=Destroy&url=${encodeURIComponent(url)}`,
-        `https://api.stellarwa.xyz/dl/ytmp3?url=${encodeURIComponent(url)}&quality=256&key=Yuki-WaBot`,
-        `https://api.vreden.web.id/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`
+        `https://api.stellarwa.xyz/dl/ytmp3?url=${encodeURIComponent(url)}&quality=256&key=Yuki-WaBot`
     ];
-    return await fetchFastest(urls);
+    return await fetchWithRetry(urls);
 }
 
 async function getVideoFromApis(url) {
@@ -112,13 +116,13 @@ async function getVideoFromApis(url) {
         `https://api-adonix.ultraplus.click/download/ytvideo?apikey=Destroy&url=${encodeURIComponent(url)}`,
         `https://api.stellarwa.xyz/dl/ytmp4?url=${encodeURIComponent(url)}&quality=360&key=Yuki-WaBot`
     ];
-    return await fetchFastest(urls);
+    return await fetchWithRetry(urls);
 }
 
-async function fetchFastest(urls) {
+async function fetchWithRetry(urls) {
     for (const api of urls) {
         try {
-            const res = await fetch(api, { timeout: 15000 }).then(r => r.json());
+            const res = await fetch(api, { timeout: 10000 }).then(r => r.json());
             const dUrl = res?.data?.url || res?.data?.dl || res?.result?.download?.url || res?.result?.download;
             if (dUrl && typeof dUrl === 'string') return { url: dUrl };
         } catch (e) { continue; }

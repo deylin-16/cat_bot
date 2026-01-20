@@ -1,64 +1,51 @@
 import axios from 'axios';
 
-let handler = async (m, { conn, text }) => {
-  const rwait = '🕒';
-  const done = '✅';
-  
-  if (!text) return global.design(conn, m, `Por favor, ingresa lo que deseas buscar.`);
+const handler = async (m, { conn, text, usedPrefix, command }) => {
+    if (!text) return conn.reply(m.chat, `*── 「 SISTEMA DE BÚSQUEDA 」 ──*\n\n*Uso:* ${usedPrefix + command} <términos>\nEJ: ${usedPrefix + command} GATOS`, m);
 
-  try {
-    await m.react(rwait);
+    await m.react("🔍");
 
-    
-    const { data: response } = await axios.get(`https://www.tikwm.com/api/feed/search?keywords=${encodeURIComponent(text)}`);
+    try {
+        const { data: response } = await axios.get(`https://www.tikwm.com/api/feed/search?keywords=${encodeURIComponent(text)}`);
 
-    if (!response.data || !response.data.videos || response.data.videos.length === 0) {
-      await m.react('❌');
-      return global.design(conn, m, `No se encontraron resultados para "${text}".`);
+        if (!response.data || !response.data.videos || response.data.videos.length === 0) {
+            await m.react("❌");
+            return conn.reply(m.chat, `*── 「 SIN RESULTADOS 」 ──*\n\nNo se localizó contenido para: ${text}`, m);
+        }
+
+        const videoList = response.data.videos.slice(0, 5);
+        
+
+        await Promise.all(videoList.map(async (video, index) => {
+            try {
+                const videoUrl = `https://www.tiktok.com/@${video.author.unique_id}/video/${video.video_id}`;
+                const caption = `*── 「 TIKTOK RESULT ${index + 1} 」 ──*\n\n` +
+                                `▢ *Título:* ${video.title || 'Sin título'}\n` +
+                                `▢ *Autor:* ${video.author.nickname}\n` +
+                                `▢ *Vistas:* ${video.play_count.toLocaleString()}\n` +
+                                `▢ *Link:* ${videoUrl}`;
+
+                const videoBuffer = await axios.get(video.play, { responseType: 'arraybuffer' });
+
+                await conn.sendMessage(m.chat, { 
+                    video: Buffer.from(videoBuffer.data), 
+                    caption: caption,
+                    mimetype: 'video/mp4'
+                }, { quoted: m });
+            } catch (e) {
+                console.error(`Error en video ${index + 1}:`, e.message);
+            }
+        }));
+
+        await m.react("✅");
+
+    } catch (error) {
+        console.error(error);
+        await m.react("❌");
+        conn.reply(m.chat, `*LOG:* ${error.message}`, m);
     }
-
-    
-    const videoData = response.data.videos[0];
-    const videoUrl = `https://www.tiktok.com/@${videoData.author.unique_id}/video/${videoData.video_id}`;
-
-    
-    const { data: dlData } = await axios.get(`${url_api}/api/download/tiktok?url=${encodeURIComponent(videoUrl)}&apikey=dk_ofical_user`);
-
-    let finalVideo, finalTitle, finalAuthor;
-
-    if (dlData.success) {
-      
-      finalVideo = dlData.play; 
-      finalTitle = dlData.title;
-      finalAuthor = dlData.autor; 
-    } else {
-      finalVideo = videoData.play;
-      finalTitle = videoData.title;
-      finalAuthor = videoData.author.nickname;
-    }
-
-    const caption = `
-*TIKTOK SEARCH*
-⍰ *Título:* ${finalTitle || 'Sin título'}
-♚ *Autor:* ${finalAuthor}
-✔ *Link:* ${videoUrl}
-`.trim();
-
-    await conn.sendMessage(m.chat, { 
-      video: { url: finalVideo }, 
-      caption: caption,
-      mimetype: 'video/mp4'
-    }, { quoted: m });
-
-    await m.react(done);
-
-  } catch (error) {
-    console.error(error);
-    await m.react('❌');
-    conn.reply(m.chat, `Error: ${error.message}`, m);
-  }
 };
 
-handler.command = ['tiktoksearch', 'ttss', 'tiktoks'];
+handler.command = /^(tiktoksearch|ttss|tiktoks)$/i;
 
 export default handler;

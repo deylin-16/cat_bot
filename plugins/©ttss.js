@@ -2,7 +2,7 @@ import axios from 'axios';
 import baileys from '@whiskeysockets/baileys';
 
 async function sendAlbumMessage(conn, jid, medias, options = {}) {
-    if (medias.length < 2) return; 
+    if (medias.length < 2) return;
 
     const album = baileys.generateWAMessageFromContent(jid, {
         messageContextInfo: {},
@@ -34,13 +34,13 @@ async function sendAlbumMessage(conn, jid, medias, options = {}) {
             messageAssociation: { associationType: 1, parentMessageKey: album.key }
         };
         await conn.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id });
-        await baileys.delay(options.delay || 500);
+        await baileys.delay(options.delay || 300);
     }
     return album;
 }
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
-    if (!text) return conn.reply(m.chat, `*── 「 SISTEMA DE ÁLBUM 」 ──*\n\n*Uso:* ${usedPrefix + command} <términos>\n*Ejemplo:* ${usedPrefix + command} gatos graciosos`, m);
+    if (!text) return conn.reply(m.chat, `*── 「 SISTEMA DE ÁLBUM 」 ──*\n\n*Uso:* ${usedPrefix + command} <términos>`, m);
 
     await m.react("🕒");
 
@@ -49,45 +49,47 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
         if (!response.data || !response.data.videos || response.data.videos.length === 0) {
             await m.react("❌");
-            return conn.reply(m.chat, `*── 「 SIN RESULTADOS 」 ──*\n\nNo se localizó contenido para la búsqueda.`, m);
+            return conn.reply(m.chat, `*── 「 SIN RESULTADOS 」 ──*\n\nNo se localizó contenido.`, m);
         }
 
         const rawVideos = response.data.videos.slice(0, 5);
         const medias = [];
+        let linksMetadata = "";
 
-        
-        await Promise.all(rawVideos.map(async (v) => {
+        await Promise.all(rawVideos.map(async (v, index) => {
             try {
                 const res = await axios.get(v.play, { responseType: 'arraybuffer' });
                 medias.push({
                     type: 'video',
                     data: Buffer.from(res.data)
                 });
+                
+                const videoUrl = `https://www.tiktok.com/@${v.author.unique_id}/video/${v.video_id}`;
+                linksMetadata += `▢ *Link #${index + 1}:* ${videoUrl}\n`;
             } catch (e) {
-                console.error("Error descargando video para álbum:", e.message);
+                console.error("Error en descarga paralela:", e.message);
             }
         }));
 
-        if (medias.length < 2) {
-            throw new Error("No se pudieron recolectar suficientes videos para el álbum.");
-        }
+        if (medias.length < 2) throw new Error("Recursos_Insuficientes_Album");
 
         const albumCaption = `*── 「 TIKTOK ALBUM 」 ──*\n\n` +
                              `▢ *BÚSQUEDA:* ${text}\n` +
-                             `▢ *VIDEOS:* ${medias.length}\n`;
+                             `▢ *VIDEOS:* ${medias.length}\n` +
+                             `${linksMetadata}` +
+                             `*──────────────────*`;
 
         await sendAlbumMessage(conn, m.chat, medias, {
             caption: albumCaption,
             quoted: m,
-            delay: 300 
+            delay: 300
         });
 
         await m.react("✅");
 
     } catch (error) {
-        console.error(error);
         await m.react("❌");
-        conn.reply(m.chat, `*── 「 ERROR 」 ──*\n\n*LOG:* ${error.message}`, m);
+        conn.reply(m.chat, `*── 「 FAILURE 」 ──*\n\n*LOG:* ${error.message}`, m);
     }
 };
 

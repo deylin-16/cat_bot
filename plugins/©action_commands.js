@@ -37,7 +37,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         }
     }
 
-    if (/menu2|anime|interaccion/i.test(command)) {
+    if (/menu2|interaccion/i.test(command)) {
         let animeCommands = `
 ┏━⊜ *INTERACCIONES* ⊜━┓
 ┃ ◌ Kiss, Kiss2, Kiss3
@@ -252,7 +252,7 @@ ${customCommands}`.trim()
     await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
 }
 
-handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'anime', 'menu3', 'game', 'juegos', 'menu4', 'menugrupo']
+handler.command = ['menu', 'comandos', 'funcioned', 'ayuda', 'menu2', 'menu3', 'game', 'juegos', 'menu4', 'menugrupo']
 
 export default handler
 

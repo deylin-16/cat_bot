@@ -26,6 +26,9 @@ global.ch = {
 ch1: '120363406846602793@newsletter'
 }
 
+var more = String.fromCharCode(8206)
+global.rmr = more.repeat(850)
+
 global.getAssistantConfig = (botJid) => {
     const __dirname = path.dirname(fileURLToPath(import.meta.url))
     const DB_PATH = path.join(__dirname, 'db/assistant_sessions.json')

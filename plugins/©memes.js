@@ -56,7 +56,7 @@ async function sendAlbumMessage(conn, jid, medias, options = {}) {
 
 let handler = async (m, { conn }) => {
   try {
-    const res = await fetch(`${url_api}/api/memes?apikey=by_deylin`);
+    const res = await fetch(`${url_api}/api/search/memes?apikey=by_deylin`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
 

@@ -1,6 +1,6 @@
 {
    "name": "WhatsApp-bot",
-   "version": "2.4.8-beta",
+   "version": "3.8.0-pre-launch",
    "description": "WhatsApp Bot Multi Device",
    "main": "index.js",
    "type": "module",

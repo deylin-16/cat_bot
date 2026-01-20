@@ -57,16 +57,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             sentMsg = await conn.sendMessage(m.chat, {
                 audio: buffer,
                 mimetype: "audio/mp4",
-                fileName: `${videoInfo.title}.mp3`,
-                contextInfo: {
-                    externalAdReply: {
-                        title: videoInfo.title,
-                        body: 'Quick Stream System',
-                        mediaType: 1,
-                        renderLargerThumbnail: true,
-                        thumbnailUrl: videoInfo.image,
-                        sourceUrl: url
-                    }
+                fileName: `${videoInfo.title}.mp3`
                 }
             }, { quoted: m });
         } else {

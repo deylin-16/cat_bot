@@ -25,41 +25,49 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             videoId = videoInfo.videoId;
         }
 
-        const url = 'https://youtu.be/' + videoId;
+        const url = 'https://youtube.com/watch?v=' + videoId;
         const isAudio = /play$|audio$|mp3|ytmp3/i.test(command);
         const mediaType = isAudio ? 'audio' : 'video';
 
-        // 1. Verificación de Caché (Supabase)
-        const { data: cacheData } = await supabase.from('media_index').select('file_id').eq('id_video_yt', videoId).eq('media_type', mediaType).maybeSingle();
+        const { data: cacheData } = await supabase.from('media_index')
+            .select('file_id')
+            .eq('id_video_yt', videoId)
+            .eq('media_type', mediaType)
+            .maybeSingle();
 
         if (cacheData?.file_id) {
             await m.react("⚡");
             try {
+          
                 return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cacheData.file_id } } }, { quoted: m });
             } catch (e) {
-                console.error("Error al reenviar caché, procediendo a descarga nueva.");
+                console.error("Caché inválida, descargando de nuevo...");
             }
         }
 
-        const infoText = `*── 「 CONTENIDO 」 ──*
+        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*
   
   ▢ *TÍTULO:* ${videoInfo.title}
   ▢ *CANAL:* ${videoInfo.author?.name || '---'}
-  ▢ *DURACIÓN:* ${videoInfo.timestamp || '---'}
-  ▢ *ORIGEN:* YouTube
+  ▢ *TIEMPO:* ${videoInfo.timestamp || '---'}
+  ▢ *TIPO:* ${mediaType.toUpperCase()}
   
   *──────────────────*`;
 
         await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
 
-        // 2. Obtención de URL desde APIs
-        const mediaData = isAudio ? await getAudioFromApis(url) : await getVideoFromApis(url);
-        if (!mediaData?.url) throw new Error("Payload_Indefinido");
+        const apiUrl = isAudio 
+            ? `https://smasha.alyabot.xyz/download_audio?url=${encodeURIComponent(url)}`
+            : `https://smasha.alyabot.xyz/download_video?url=${encodeURIComponent(url)}`;
 
-        // 3. Conversión de URL a Buffer (Solución al error de Path)
-        const response = await fetch(mediaData.url);
-        if (!response.ok) throw new Error(`HTTP_Error: ${response.status}`);
-        const buffer = await response.buffer();
+        const apiRes = await fetch(apiUrl).then(res => res.json());
+        const dlUrl = apiRes?.file_url;
+
+        if (!dlUrl) throw new Error("API_Smasha_Sin_Respuesta");
+
+        const mediaRes = await fetch(dlUrl);
+        if (!mediaRes.ok) throw new Error(`Error_Descarga: ${mediaRes.status}`);
+        const buffer = await mediaRes.buffer();
 
         let sentMsg;
         if (isAudio) {
@@ -70,7 +78,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
                 contextInfo: {
                     externalAdReply: {
                         title: videoInfo.title,
-                        body: 'Audio System Optimized',
+                        body: 'Audio System Emma Violets',
                         mediaType: 1,
                         renderLargerThumbnail: true,
                         thumbnailUrl: videoInfo.image,
@@ -87,7 +95,6 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             }, { quoted: m });
         }
 
-        // 4. Registro en Supabase para futuro reenvío (Caché)
         if (sentMsg?.key?.id) {
             await supabase.from('media_index').upsert({ 
                 id_video_yt: videoId, 
@@ -102,33 +109,6 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         conn.reply(m.chat, `*── 「 FAILURE 」 ──*\n\n*LOG:* ${error.message}`, m);
     }
 };
-
-async function getAudioFromApis(url) {
-    const urls = [
-        `https://api-adonix.ultraplus.click/download/ytaudio?apikey=Destroy&url=${encodeURIComponent(url)}`,
-        `https://api.stellarwa.xyz/dl/ytmp3?url=${encodeURIComponent(url)}&quality=256&key=Yuki-WaBot`
-    ];
-    return await fetchWithRetry(urls);
-}
-
-async function getVideoFromApis(url) {
-    const urls = [
-        `https://api-adonix.ultraplus.click/download/ytvideo?apikey=Destroy&url=${encodeURIComponent(url)}`,
-        `https://api.stellarwa.xyz/dl/ytmp4?url=${encodeURIComponent(url)}&quality=360&key=Yuki-WaBot`
-    ];
-    return await fetchWithRetry(urls);
-}
-
-async function fetchWithRetry(urls) {
-    for (const api of urls) {
-        try {
-            const res = await fetch(api, { timeout: 10000 }).then(r => r.json());
-            const dUrl = res?.data?.url || res?.data?.dl || res?.result?.download?.url || res?.result?.download;
-            if (dUrl && typeof dUrl === 'string') return { url: dUrl };
-        } catch (e) { continue; }
-    }
-    return null;
-}
 
 handler.command = /^(play|audio|mp3|video|mp4)$/i;
 export default handler;

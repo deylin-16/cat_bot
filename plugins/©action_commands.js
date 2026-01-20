@@ -191,6 +191,15 @@ ${gameCommands}`.trim()
 ┃
 ╰━━━━━━━━━━━━━━━━━━━━╯
 
+╭━━〔  🍪 *SUB-BOT* 〕━━╮
+┃ 
+┃ 💠 \`seticono\` ➜ cambia el icono
+┃ ⛩️ \`setprefix\` ➜ .menu2
+┃ 🎮 \`Juegos\` ➜ .menu3
+┃ ⚙️ \`Gestión\` ➜ .menu4
+┃
+╰━━━━━━━━━━━━━━━━━━━━╯
+
 ╭━━〔 🛠️ *HERRAMIENTAS* 〕━━╮
 ┃
 ┃ 📥 *DESCARGAS*
@@ -208,11 +217,13 @@ ${gameCommands}`.trim()
 ┃ 🎨 *FUNCIONES*
 ┃ ├ ◦ \`s\` (Sticker) | \`toimg\`
 ┃ ├ ◦ \`robar\` | \`tomar\` perfil
+┃ ├ ◦ \`gay\`
 ┃ ├ ◦ \`ver\` | \`read\` (ViewOnce)
 ┃ └ ◦ \`consejo\` | \`motivacion\`
 ┃
 ┃ 🧠 *IA & SISTEMA*
 ┃ ├ ◦ \`ia\` | \`res\` (Auto-AI)
+┃ ├ ◦ \`imgg\` (Crea una imagen IA)
 ┃ └ ◦ \`hd\` (Enhancer)
 ┃
 ┃

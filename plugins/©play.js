@@ -1,15 +1,12 @@
 import yts from 'yt-search';
 import fetch from 'node-fetch';
-import { createClient } from '@supabase/supabase-js';
 
-const SB_URL = "https://kzuvndqicwcclhayyttc.supabase.co";
-const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
-const supabase = createClient(SB_URL, SB_KEY);
+const localCache = {};
 
 const handler = async (m, { conn, text, command, usedPrefix }) => {
     if (!text?.trim()) return conn.reply(m.chat, `*── 「 SISTEMA DE DESCARGAS 」 ──*\n\n*Uso:* ${usedPrefix + command} <búsqueda>`, m);
 
-    await m.react("⏳");
+    await m.react("🌐");
 
     try {
         let videoId, videoInfo;
@@ -28,19 +25,14 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         const url = 'https://youtube.com/watch?v=' + videoId;
         const isAudio = /play$|audio$|mp3|ytmp3/i.test(command);
         const mediaType = isAudio ? 'audio' : 'video';
+        const cacheKey = `${videoId}_${mediaType}`;
 
-        const { data: cacheData } = await supabase.from('media_index')
-            .select('file_id')
-            .eq('id_video_yt', videoId)
-            .eq('media_type', mediaType)
-            .maybeSingle();
-
-        if (cacheData?.file_id) {
+        if (localCache[cacheKey]) {
             await m.react("⚡");
             try {
-                return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cacheData.file_id } } }, { quoted: m });
+                return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: localCache[cacheKey] } } }, { quoted: m });
             } catch {
-                console.log("Reintento por fallo de caché");
+                delete localCache[cacheKey];
             }
         }
 
@@ -55,7 +47,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         const apiRes = await fetch(apiUrl).then(res => res.json());
         const dlUrl = apiRes?.file_url;
 
-        if (!dlUrl) throw new Error("API_OFFLINE");
+        if (!dlUrl) throw new Error("API_ERROR");
 
         const mediaRes = await fetch(dlUrl);
         const buffer = await mediaRes.buffer();
@@ -69,7 +61,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
                 contextInfo: {
                     externalAdReply: {
                         title: videoInfo.title,
-                        body: 'Audio System',
+                        body: 'Quick Stream System',
                         mediaType: 1,
                         renderLargerThumbnail: true,
                         thumbnailUrl: videoInfo.image,
@@ -87,11 +79,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         }
 
         if (sentMsg?.key?.id) {
-            await supabase.from('media_index').upsert({ 
-                id_video_yt: videoId, 
-                file_id: sentMsg.key.id, 
-                media_type: mediaType 
-            });
+            localCache[cacheKey] = sentMsg.key.id;
         }
 
         await m.react("✅");

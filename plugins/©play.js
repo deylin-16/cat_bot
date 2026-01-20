@@ -1,4 +1,4 @@
-/*import yts from 'yt-search';
+import yts from 'yt-search';
 import fetch from 'node-fetch';
 
 const localCache = {};
@@ -58,7 +58,6 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
                 audio: buffer,
                 mimetype: "audio/mp4",
                 fileName: `${videoInfo.title}.mp3`
-                }
             }, { quoted: m });
         } else {
             sentMsg = await conn.sendMessage(m.chat, {
@@ -81,4 +80,4 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 };
 
 handler.command = /^(play|audio|mp3|video|mp4)$/i;
-export default handler;*/
+export default handler;

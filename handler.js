@@ -130,11 +130,11 @@ export async function handler(chatUpdate) {
         }
 
         const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
-        
-        global.db.data.settings ||= {};
-        global.db.data.settings[conn.user.jid] ||= { prefix: ['./', '#', '/'] };
-        const currentPrefixes = global.db.data.settings[conn.user.jid].prefix;
-        const prefixRegex = new RegExp('^[' + currentPrefixes.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('') + ']');
+
+        const botSettings = global.db.data.settings[conn.user.jid] ||= { prefix: ['.', '#', '/'] };
+        const currentPrefixes = botSettings.prefix;
+        const escapedPrefixes = currentPrefixes.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+        const prefixRegex = new RegExp(`^(${escapedPrefixes})`);
 
         for (const name in global.plugins) {
             const plugin = global.plugins[name];
@@ -164,7 +164,7 @@ export async function handler(chatUpdate) {
             const match = str.match(prefixRegex);
 
             if (match) {
-                usedPrefix = match[0];
+                usedPrefix = match[1];
                 command = str.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
             } else {
                 continue;

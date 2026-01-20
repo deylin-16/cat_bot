@@ -7,7 +7,7 @@ const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
 const handler = async (m, { conn, text, command, usedPrefix }) => {
-    if (!text?.trim()) return conn.reply(m.chat, `⚠️ *Uso:* ${usedPrefix + command} <nombre o enlace>`, m);
+    if (!text?.trim()) return conn.reply(m.chat, `*── 「 USO DEL SISTEMA 」 ──*\n\n*Comando:* ${usedPrefix + command} <búsqueda>\n*Estado:* Esperando parámetros...`, m);
 
     await m.react("⏳");
 
@@ -17,11 +17,10 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
         if (videoMatch) {
             videoId = videoMatch[1];
-            const search = await yts({ videoId });
-            videoInfo = search;
+            videoInfo = await yts({ videoId });
         } else {
             const search = await yts(text);
-            if (!search.videos.length) return conn.reply(m.chat, "❌ Sin resultados.", m);
+            if (!search.videos.length) return conn.reply(m.chat, "── 「 ERROR 」 ──\n\nNo se localizaron registros.", m);
             videoInfo = search.videos[0];
             videoId = videoInfo.videoId;
         }
@@ -32,35 +31,28 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         const cacheKey = `yt:${mediaType}:${videoId}`;
         let cachedFileId = null;
 
-        if (global.redis && !global.redisDisabled) {
-            try { cachedFileId = await global.redis.get(cacheKey); } catch { }
-        }
-
-        if (!cachedFileId) {
-            try {
-                const { data } = await supabase.from('media_index').select('file_id').eq('id_video_yt', videoId).eq('media_type', mediaType).maybeSingle();
-                if (data) cachedFileId = data.file_id;
-            } catch { }
+        if (global.db.data.settings?.[conn.user.jid]?.cache) {
+            const { data } = await supabase.from('media_index').select('file_id').eq('id_video_yt', videoId).eq('media_type', mediaType).maybeSingle();
+            if (data) cachedFileId = data.file_id;
         }
 
         if (cachedFileId) {
-            await m.react("⚡");
-            try {
-                return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cachedFileId } } }, { quoted: m });
-            } catch { }
+            await m.react("🍪");
+            return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cachedFileId } } }, { quoted: m });
         }
 
-        const infoMessage = `[ DOWNLOADER - YOUTUBE ]\n\n` +
-            `• Título: ${videoInfo.title}\n` +
-            `• Canal: ${videoInfo.author?.name || '---'}\n` +
-            `• Duración: ${videoInfo.timestamp || '---'}\n` +
-            `• Vistas: ${(videoInfo.views || 0).toLocaleString()}\n` +
-            `• Link: ${url}`;
+        const info = `> \t\t*DOWNLOADER*
+  
+  ▢ *CONTENIDO:* ${videoInfo.title}
+  ▢ *CANAL:* ${videoInfo.author?.name || '---'}
+  ▢ *TIEMPO:* ${videoInfo.timestamp || '---'}
+  ▢ *VISTAS:* ${(videoInfo.views || 0).toLocaleString()}
+  ▢ *ORIGEN:* ${url}`;
 
-        await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoMessage }, { quoted: m });
+        await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: info }, { quoted: m });
 
         const mediaData = isAudio ? await getAudioFromApis(url) : await getVideoFromApis(url);
-        if (!mediaData?.url) throw new Error(`No se pudo obtener el archivo.`);
+        if (!mediaData?.url) throw new Error("Null_Payload_Response");
 
         let sentMsg;
         if (isAudio) {
@@ -71,7 +63,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
                 contextInfo: {
                     externalAdReply: {
                         title: videoInfo.title,
-                        body: videoInfo.author?.name,
+                        body: 'Audio Metadata System',
                         mediaType: 1,
                         renderLargerThumbnail: true,
                         thumbnailUrl: videoInfo.image,
@@ -82,20 +74,16 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         } else {
             sentMsg = await conn.sendMessage(m.chat, {
                 video: { url: mediaData.url },
-                caption: `✅ Descarga completada\n• ${videoInfo.title}`,
+                caption: `*── 「 SYSTEM COMPLETE 」 ──*\n\n▢ *ID:* ${videoId}\n▢ *FILE:* ${videoInfo.title}`,
                 mimetype: "video/mp4",
                 fileName: `${videoInfo.title}.mp4`
             }, { quoted: m });
         }
 
         if (sentMsg?.key?.id) {
-            const newFileId = sentMsg.key.id;
-            if (global.redis && !global.redisDisabled) {
-                await global.redis.set(cacheKey, newFileId, { EX: 86400 }).catch(() => {});
-            }
             await supabase.from('media_index').upsert({ 
                 id_video_yt: videoId, 
-                file_id: newFileId, 
+                file_id: sentMsg.key.id, 
                 media_type: mediaType 
             }).catch(() => {});
         }
@@ -103,46 +91,38 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         await m.react("✅");
     } catch (error) {
         await m.react("❌");
-        conn.reply(m.chat, `⚠️ Error: ${error.message}`, m);
+        console.error(`[SYSTEM_ERROR]: ${error.message}`);
+        conn.reply(m.chat, `*── 「 SYSTEM FAILURE 」 ──*\n\n*LOG:* ${error.message}`, m);
     }
 };
 
 async function getAudioFromApis(url) {
-    const apis = [
+    const endpoints = [
         `https://api-adonix.ultraplus.click/download/ytaudio?apikey=Destroy&url=${encodeURIComponent(url)}`,
         `https://api.stellarwa.xyz/dl/ytmp3?url=${encodeURIComponent(url)}&quality=256&key=Yuki-WaBot`,
-        `https://api.vreden.web.id/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`,
-        `https://api.ootaizumi.web.id/downloader/youtube/play?query=${encodeURIComponent(url)}`,
-        `https://api.nekolabs.web.id/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp3`
+        `https://api.vreden.web.id/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`
     ];
-
-    for (const api of apis) {
-        try {
-            const res = await fetch(api, { timeout: 15000 }).then(r => r.json());
-            const link = res?.data?.url || res?.data?.dl || res?.result?.download?.url || res?.result?.download || res?.result?.downloadUrl;
-            if (link) return { url: link };
-        } catch (e) {}
-    }
-    return null;
+    return await requestService(endpoints);
 }
 
 async function getVideoFromApis(url) {
-    const apis = [
+    const endpoints = [
         `https://api-adonix.ultraplus.click/download/ytvideo?apikey=Destroy&url=${encodeURIComponent(url)}`,
-        `https://api.stellarwa.xyz/dl/ytmp4?url=${encodeURIComponent(url)}&quality=360&key=Yuki-WaBot`,
-        `https://api.vreden.web.id/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`,
-        `https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`
+        `https://api.stellarwa.xyz/dl/ytmp4?url=${encodeURIComponent(url)}&quality=360&key=Yuki-WaBot`
     ];
+    return await requestService(endpoints);
+}
 
-    for (const api of apis) {
+async function requestService(urls) {
+    for (const link of urls) {
         try {
-            const res = await fetch(api, { timeout: 15000 }).then(r => r.json());
-            const link = res?.data?.url || res?.data?.dl || res?.result?.download?.url || res?.result?.download || res?.result?.downloadUrl;
-            if (link) return { url: link };
-        } catch (e) {}
+            const res = await fetch(link, { timeout: 15000 }).then(r => r.json());
+            const downloadUrl = res?.data?.url || res?.data?.dl || res?.result?.download?.url || res?.result?.download;
+            if (downloadUrl) return { url: downloadUrl };
+        } catch (e) { continue; }
     }
     return null;
 }
 
-handler.command = /^(play|audio|mp3|ytmp3|play2|video|mp4|ytmp4)$/i;
+handler.command = /^(play|audio|mp3|video|mp4)$/i;
 export default handler;

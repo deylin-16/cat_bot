@@ -1,58 +1,23 @@
-import axios from 'axios';
+let handler = async (m, { conn, text, command }) => {
+    global.db.data.settings ||= {}
+    global.db.data.settings[conn.user.jid] ||= { prefix: ['./', '#', '/'] }
+    let setting = global.db.data.settings[conn.user.jid]
 
-let handler = async (m, { conn }) => {
-    try {
-        const group = m.chat;
-        const groupMetadata = await conn.groupMetadata(group);
-        const inviteCode = await conn.groupInviteCode(group);
-        const mainLink = `https://chat.whatsapp.com/${inviteCode}`;
-
-        let shortLink;
-        try {
-            const { data } = await axios.get(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(mainLink)}`);
-            shortLink = data;
-        } catch {
-            shortLink = 'Link corto no disponible';
-        }
-
-        const caption = `
-  *─── 「 ENLACE DE GRUPO 」 ───*
-
-  ▢ *GRUPO:* ${groupMetadata.subject}
-  ▢ *MIEMBROS:* ${groupMetadata.participants.length}
-  ▢ *CREADOR:* @${groupMetadata.owner?.split('@')[0] || 'Desconocido'}
-  
-  ▢ *ENLACE PRINCIPAL:*
-  • ${mainLink}
-
-  ▢ *ENLACE CORTO:*
-  • ${shortLink}
-
-  *──────────────────────────*`.trim();
-
-        await conn.reply(m.chat, caption, m, {
-            contextInfo: {
-            mentionedJid: [groupMetadata.owner],
-                externalAdReply: {
-                    title: 'INVITACIÓN OFICIAL',
-                    body: groupMetadata.subject,
-                    mediaType: 1,
-                    sourceUrl: mainLink,
-                    thumbnailUrl: await conn.profilePictureUrl(group, 'image').catch(_ => null),
-                    renderLargerThumbnail: false
-                }
-            }
-        });
-
-    } catch (e) {
-        m.reply('❌ Error: Verifica que el bot sea administrador.');
+    if (command === 'setprefix') {
+        if (!text) return m.reply(`Por favor, ingresa los prefijos que deseas usar (máximo 3).\nEjemplo: setprefix 😏 # 😭`)
+        let newPrefix = text.split(/\s+/).filter(v => v).slice(0, 3)
+        if (newPrefix.length === 0) return m.reply(`Prefijos no válidos.`)
+        setting.prefix = newPrefix
+        await m.reply(`Prefijos actualizados correctamente para este bot: ${newPrefix.join(' ')}`)
     }
-};
 
-handler.help = ['link'];
-handler.tags = ['grupo'];
-handler.command = ['link', 'enlace'];
-handler.group = true;
-handler.botAdmin = true;
+    if (command === 'resetprefix') {
+        setting.prefix = ['./', '#', '/']
+        await m.reply(`Los prefijos han sido reseteados a los valores por defecto: . / #`)
+    }
+}
 
-export default handler;
+handler.command = ['setprefix', 'resetprefix']
+handler.owner = true
+
+export default handler

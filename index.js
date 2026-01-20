@@ -18,13 +18,11 @@ import readline from 'readline';
 import express from 'express';
 import cors from 'cors';
 import cfonts from 'cfonts';
-import { createClient } from '@supabase/supabase-js';
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
-const supabase = createClient("https://kzuvndqicwcclhayyttc.supabase.co", "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M");
 
 let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
@@ -65,18 +63,7 @@ global.loadDatabase = async function loadDatabase() {
   }
   if (global.db.data !== null) return;
   global.db.READ = true;
-
-  try {
-    const { data } = await supabase.from('bot_data').select('content').eq('id', 'main_bot').maybeSingle();
-    if (data?.content) {
-      global.db.data = data.content;
-    } else {
-      await global.db.read().catch(console.error);
-    }
-  } catch (e) {
-    await global.db.read().catch(console.error);
-  }
-
+  await global.db.read().catch(console.error);
   global.db.READ = null;
   global.db.data = {
     users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {},
@@ -136,12 +123,7 @@ if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
 }
 
 conn.isInit = false;
-if (global.db) setInterval(async () => { 
-    if (global.db.data) {
-        await global.db.write();
-        supabase.from('bot_data').upsert({ id: 'main_bot', content: global.db.data, updated_at: new Date() }).then();
-    }
-}, 30 * 1000);
+if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
@@ -161,8 +143,8 @@ global.reloadHandler = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
 
+
   conn.handler = async (chatUpdate) => {
-    if (!global.db?.data?.settings || !chatUpdate.messages[0]) return;
     setImmediate(async () => {
         try {
             await handler.handler.call(global.conn, chatUpdate);
@@ -204,27 +186,22 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
 
 await global.reloadHandler();
 
-// Función de arranque masivo
 async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (existsSync(jadibtsPath)) {
         const folders = readdirSync(jadibtsPath);
-        // Usamos Promise.all para disparar todas las conexiones al mismo tiempo
-        await Promise.all(folders.map(async (folder) => {
-            const folderPath = join(jadibtsPath, folder);
-            if (statSync(folderPath).isDirectory()) {
+
+        folders.forEach(async (folder) => {
+            if (statSync(join(jadibtsPath, folder)).isDirectory()) {
                 try {
                     const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
-                    // Ejecutamos sin await interno para que no bloquee el bucle
+
                     assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
-                } catch (e) {
-                    console.error(`Error cargando subbot ${folder}:`, e);
-                }
+                } catch (e) {}
             }
-        }));
+        });
     }
 }
-
 autostartSubBots();
 
 function redefineConsoleMethod(methodName, filterStrings) {

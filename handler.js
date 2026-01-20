@@ -5,7 +5,7 @@ import path, { join } from 'path';
 import { unwatchFile, watchFile } from 'fs';
 import chalk from 'chalk';
 import ws from 'ws';
-import fetch from 'node-fetch';
+import fetch from 'fetch-node';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 
@@ -131,7 +131,6 @@ export async function handler(chatUpdate) {
 
         const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
         
-        // Carga de prefijos personalizados por bot
         global.db.data.settings ||= {};
         global.db.data.settings[conn.user.jid] ||= { prefix: ['./', '#', '/'] };
         const currentPrefixes = global.db.data.settings[conn.user.jid].prefix;
@@ -168,7 +167,6 @@ export async function handler(chatUpdate) {
                 usedPrefix = match[0];
                 command = str.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
             } else {
-                // Se eliminó la lógica de comando sin prefijo
                 continue;
             }
 

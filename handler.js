@@ -131,8 +131,8 @@ export async function handler(chatUpdate) {
 
         const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
 
-        const botSettings = global.db.data.settings[conn.user.jid] ||= { prefix: ['.', '#', '/'] };
-        const currentPrefixes = botSettings.prefix;
+        const botSettings = global.db.data.settings?.[conn.user.jid] || { prefix: ['.', '#', '/'] };
+        const currentPrefixes = Array.isArray(botSettings.prefix) ? botSettings.prefix : ['.', '#', '/'];
         const escapedPrefixes = currentPrefixes.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
         const prefixRegex = new RegExp(`^(${escapedPrefixes})`);
 

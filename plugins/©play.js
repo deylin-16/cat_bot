@@ -7,7 +7,7 @@ const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
 const handler = async (m, { conn, text, command, usedPrefix }) => {
-    if (!text?.trim()) return conn.reply(m.chat, `*── 「 SISTEMA DE DESCARGAS 」 ──*\n\n*Uso:* ${usedPrefix + command} <búsqueda>\n*Estado:* Esperando entrada...`, m);
+    if (!text?.trim()) return conn.reply(m.chat, `*── 「 SISTEMA DE DESCARGAS 」 ──*\n\n*Uso:* ${usedPrefix + command} <búsqueda>`, m);
 
     await m.react("⏳");
 
@@ -20,7 +20,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             videoInfo = await yts({ videoId });
         } else {
             const search = await yts(text);
-            if (!search.videos.length) return conn.reply(m.chat, "── 「 ERROR 」 ──\n\nNo se localizaron registros.", m);
+            if (!search.videos || search.videos.length === 0) return conn.reply(m.chat, "── 「 ERROR 」 ──\n\nNo se localizaron registros.", m);
             videoInfo = search.videos[0];
             videoId = videoInfo.videoId;
         }
@@ -38,21 +38,13 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         if (cacheData?.file_id) {
             await m.react("⚡");
             try {
-          
                 return await conn.sendMessage(m.chat, { forward: { key: { remoteJid: conn.user.jid, id: cacheData.file_id } } }, { quoted: m });
-            } catch (e) {
-                console.error("Caché inválida, descargando de nuevo...");
+            } catch {
+                console.log("Reintento por fallo de caché");
             }
         }
 
-        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*
-  
-  ▢ *TÍTULO:* ${videoInfo.title}
-  ▢ *CANAL:* ${videoInfo.author?.name || '---'}
-  ▢ *TIEMPO:* ${videoInfo.timestamp || '---'}
-  ▢ *TIPO:* ${mediaType.toUpperCase()}
-  
-  *──────────────────*`;
+        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*\n\n▢ *TÍTULO:* ${videoInfo.title}\n▢ *CANAL:* ${videoInfo.author?.name || '---'}\n▢ *TIEMPO:* ${videoInfo.timestamp || '---'}\n▢ *TIPO:* ${mediaType.toUpperCase()}\n\n*──────────────────*`;
 
         await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
 
@@ -63,10 +55,9 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         const apiRes = await fetch(apiUrl).then(res => res.json());
         const dlUrl = apiRes?.file_url;
 
-        if (!dlUrl) throw new Error("API_Smasha_Sin_Respuesta");
+        if (!dlUrl) throw new Error("API_OFFLINE");
 
         const mediaRes = await fetch(dlUrl);
-        if (!mediaRes.ok) throw new Error(`Error_Descarga: ${mediaRes.status}`);
         const buffer = await mediaRes.buffer();
 
         let sentMsg;
@@ -78,7 +69,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
                 contextInfo: {
                     externalAdReply: {
                         title: videoInfo.title,
-                        body: 'Audio System Emma Violets',
+                        body: 'Audio System',
                         mediaType: 1,
                         renderLargerThumbnail: true,
                         thumbnailUrl: videoInfo.image,
@@ -100,7 +91,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
                 id_video_yt: videoId, 
                 file_id: sentMsg.key.id, 
                 media_type: mediaType 
-            }).catch(() => {});
+            });
         }
 
         await m.react("✅");

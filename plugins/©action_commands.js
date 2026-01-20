@@ -97,6 +97,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 ❒
 ❒ *Menús:* \`menu/menu2 ∆/menu3/menu4\`
 
+${rmr}
 
 ${animeCommands}`.trim()
 
@@ -146,6 +147,7 @@ ${animeCommands}`.trim()
 ❒ 
 ❒ *Menús:* \`menu/menu2/menu3/menu4 ∆\`
 
+${rmr}
 
 ${groupCommands}`.trim()
 
@@ -175,6 +177,7 @@ ${groupCommands}`.trim()
 ❒ 
 ❒ *Menús:* \`menu/menu2/menu3 ∆/menu4\`
 
+${rmr}
 
 ${gameCommands}`.trim()
 
@@ -241,6 +244,8 @@ ${gameCommands}`.trim()
 ❒ *Hazte subbot desde: deylin.xyz/pairing_code*
 ❒ 
 ❒ *Menús:* \`menu ∆/menu2/menu3/menu4\`
+
+${rmr}
 
 ${customCommands}`.trim()
 

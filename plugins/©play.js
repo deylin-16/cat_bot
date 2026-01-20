@@ -1,48 +1,39 @@
-import axios from 'axios';
-import { wrapper } from 'axios-cookiejar-support';
-import { CookieJar } from 'tough-cookie';
-import yts from "yt-search";
+import yts from 'yt-search';
+import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 
 const SB_URL = "https://kzuvndqicwcclhayyttc.supabase.co";
 const SB_KEY = "sb_publishable_06Cs4IemHbf35JVVFKcBPQ_BlwJWa3M";
 const supabase = createClient(SB_URL, SB_KEY);
 
-const jar = new CookieJar();
-const client = wrapper(axios.create({ jar }));
+const handler = async (m, { conn, text, command, usedPrefix }) => {
+    if (!text?.trim()) return conn.reply(m.chat, `⚠️ *Uso:* ${usedPrefix + command} <nombre o enlace>`, m);
 
-const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Origin': 'https://downr.org',
-    'Referer': 'https://downr.org/',
-    'Content-Type': 'application/json'
-};
+    await m.react("⏳");
 
-const handler = async (m, { conn, text, command }) => {
-    if (!text?.trim()) return global.design(conn, m, `✨ *Uso correcto:*\n\n*${command}* nombre de la canción o link`);
-
-    await m.react("🔎");
     try {
-        let url, videoId;
-        if (/youtube.com|youtu.be/.test(text)) {
-            url = text;
-            videoId = text.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
+        let videoId, videoInfo;
+        const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/);
+
+        if (videoMatch) {
+            videoId = videoMatch[1];
+            const search = await yts({ videoId });
+            videoInfo = search;
         } else {
             const search = await yts(text);
-            if (!search.videos.length) return global.design(conn, m, "❌ No se encontró el video.");
-            url = search.videos[0].url;
-            videoId = search.videos[0].videoId;
+            if (!search.videos.length) return conn.reply(m.chat, "❌ Sin resultados.", m);
+            videoInfo = search.videos[0];
+            videoId = videoInfo.videoId;
         }
 
-        const isAudio = /play$|audio$/i.test(command);
+        const url = 'https://youtu.be/' + videoId;
+        const isAudio = /play$|audio$|mp3|ytmp3/i.test(command);
         const mediaType = isAudio ? 'audio' : 'video';
         const cacheKey = `yt:${mediaType}:${videoId}`;
         let cachedFileId = null;
 
         if (global.redis && !global.redisDisabled) {
-            try {
-                cachedFileId = await global.redis.get(cacheKey);
-            } catch { }
+            try { cachedFileId = await global.redis.get(cacheKey); } catch { }
         }
 
         if (!cachedFileId) {
@@ -59,65 +50,41 @@ const handler = async (m, { conn, text, command }) => {
             } catch { }
         }
 
-        await client.get('https://downr.org/.netlify/functions/analytics', { headers }).catch(() => {});
-        
-        let info;
-        for (let i = 0; i < 3; i++) {
-            const res = await client.post('https://downr.org/.netlify/functions/video-info', { url }, { headers });
-            info = res.data;
-            if (info) break;
-            await new Promise(r => setTimeout(r, 2000));
-        }
+        const infoMessage = `[ DOWNLOADER - YOUTUBE ]\n\n` +
+            `• Título: ${videoInfo.title}\n` +
+            `• Canal: ${videoInfo.author?.name || '---'}\n` +
+            `• Duración: ${videoInfo.timestamp || '---'}\n` +
+            `• Vistas: ${(videoInfo.views || 0).toLocaleString()}\n` +
+            `• Link: ${url}`;
 
-        if (!info) throw new Error("No se pudo obtener metadata.");
+        await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoMessage }, { quoted: m });
 
-        const payload = isAudio 
-            ? { url, downloadMode: 'audio', videoQuality: '128' }
-            : { url, downloadMode: 'auto', videoQuality: '360p' };
+        const mediaData = isAudio ? await getAudioFromApis(url) : await getVideoFromApis(url);
+        if (!mediaData?.url) throw new Error(`No se pudo obtener el archivo.`);
 
-        const dlRes = await client.post('https://downr.org/.netlify/functions/youtube-download', payload, { headers });
-        const downloadUrl = dlRes.data?.url;
-
-        if (!downloadUrl) throw new Error("No se generó link de descarga.");
-
-        const title = info.title || "YouTube Media";
-        const thumbnail = info.thumbnail || "";
-        const bodyText = `🎬 *Canal:* ${info.author || 'Desconocido'}\n⏳ *Duración:* ${info.durationLabel || '00:00'}`;
-        
         let sentMsg;
         if (isAudio) {
             sentMsg = await conn.sendMessage(m.chat, {
-                audio: { url: downloadUrl },
+                audio: { url: mediaData.url },
                 mimetype: "audio/mp4",
-                fileName: `${title}.mp3`,
+                fileName: `${videoInfo.title}.mp3`,
                 contextInfo: {
                     externalAdReply: {
-                        title: title,
-                        body: bodyText,
+                        title: videoInfo.title,
+                        body: videoInfo.author?.name,
                         mediaType: 1,
                         renderLargerThumbnail: true,
-                        thumbnailUrl: thumbnail,
+                        thumbnailUrl: videoInfo.image,
                         sourceUrl: url
                     }
                 }
             }, { quoted: m });
         } else {
-            await m.react("🎥");
             sentMsg = await conn.sendMessage(m.chat, {
-                video: { url: downloadUrl },
-                caption: `✅ *Título:* ${title}\n🔗 *Link:* ${url}\n${bodyText}`,
+                video: { url: mediaData.url },
+                caption: `✅ Descarga completada\n• ${videoInfo.title}`,
                 mimetype: "video/mp4",
-                fileName: `${title}.mp4`,
-                contextInfo: {
-                    externalAdReply: {
-                        title: title,
-                        body: bodyText,
-                        mediaType: 1,
-                        renderLargerThumbnail: true,
-                        thumbnailUrl: thumbnail,
-                        sourceUrl: url
-                    }
-                }
+                fileName: `${videoInfo.title}.mp4`
             }, { quoted: m });
         }
 
@@ -136,9 +103,46 @@ const handler = async (m, { conn, text, command }) => {
         await m.react("✅");
     } catch (error) {
         await m.react("❌");
-        global.design(conn, m, `⚠️ Error: ${error.message}`);
+        conn.reply(m.chat, `⚠️ Error: ${error.message}`, m);
     }
 };
 
-handler.command = /^(play|audio|play2|video)$/i;
+async function getAudioFromApis(url) {
+    const apis = [
+        `https://api-adonix.ultraplus.click/download/ytaudio?apikey=Destroy&url=${encodeURIComponent(url)}`,
+        `https://api.stellarwa.xyz/dl/ytmp3?url=${encodeURIComponent(url)}&quality=256&key=Yuki-WaBot`,
+        `https://api.vreden.web.id/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`,
+        `https://api.ootaizumi.web.id/downloader/youtube/play?query=${encodeURIComponent(url)}`,
+        `https://api.nekolabs.web.id/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp3`
+    ];
+
+    for (const api of apis) {
+        try {
+            const res = await fetch(api, { timeout: 15000 }).then(r => r.json());
+            const link = res?.data?.url || res?.data?.dl || res?.result?.download?.url || res?.result?.download || res?.result?.downloadUrl;
+            if (link) return { url: link };
+        } catch (e) {}
+    }
+    return null;
+}
+
+async function getVideoFromApis(url) {
+    const apis = [
+        `https://api-adonix.ultraplus.click/download/ytvideo?apikey=Destroy&url=${encodeURIComponent(url)}`,
+        `https://api.stellarwa.xyz/dl/ytmp4?url=${encodeURIComponent(url)}&quality=360&key=Yuki-WaBot`,
+        `https://api.vreden.web.id/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`,
+        `https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`
+    ];
+
+    for (const api of apis) {
+        try {
+            const res = await fetch(api, { timeout: 15000 }).then(r => r.json());
+            const link = res?.data?.url || res?.data?.dl || res?.result?.download?.url || res?.result?.download || res?.result?.downloadUrl;
+            if (link) return { url: link };
+        } catch (e) {}
+    }
+    return null;
+}
+
+handler.command = /^(play|audio|mp3|ytmp3|play2|video|mp4|ytmp4)$/i;
 export default handler;

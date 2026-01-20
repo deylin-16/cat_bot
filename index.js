@@ -25,8 +25,7 @@ const {
     makeCacheableSignalKeyStore, 
     jidNormalizedUser, 
     Browsers,
-    extractMessageContent,
-    downloadMediaMessage
+    extractMessageContent
 } = (await import('@whiskeysockets/baileys')).default;
 
 const { chain } = lodash;
@@ -91,26 +90,29 @@ process.on('unhandledRejection', formatError);
 
 const serialize = (conn, m) => {
     if (!m) return m;
-    let vM = m.message;
     m.id = m.key.id;
-    m.isBaileys = m.id.startsWith('BAE5') && m.id.length === 16;
     m.chat = jidNormalizedUser(m.key.remoteJid);
     m.fromMe = m.key.fromMe;
     m.isGroup = m.chat.endsWith('@g.us');
     m.sender = jidNormalizedUser(m.fromMe ? conn.user.id : (m.key.participant || m.key.remoteJid));
     
+    let vM = m.message;
     if (vM) {
         m.type = Object.keys(vM)[0];
         m.msg = extractMessageContent(vM[m.type]);
-        m.body = m.msg?.text || m.msg?.caption || m.msg?.selectedId || m.msg?.contentText || m.msg?.code || "";
+        m.body = m.msg?.text || m.msg?.caption || m.msg?.selectedId || m.msg?.contentText || m.msg?.code || m.text || "";
+        m.text = m.body; // Compatibilidad con handlers viejos
+        
         m.quoted = m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo : null;
         if (m.quoted) {
-            m.quoted.type = Object.keys(m.quoted.quotedMessage)[0];
-            m.quoted.msg = extractMessageContent(m.quoted.quotedMessage[m.quoted.type]);
+            let qM = m.quoted.quotedMessage;
+            m.quoted.type = Object.keys(qM)[0];
+            m.quoted.msg = extractMessageContent(qM[m.quoted.type]);
             m.quoted.id = m.msg.contextInfo.stanzaId;
             m.quoted.sender = jidNormalizedUser(m.msg.contextInfo.participant || m.chat);
             m.quoted.fromMe = m.quoted.sender === jidNormalizedUser(conn.user.id);
             m.quoted.body = m.quoted.msg?.text || m.quoted.msg?.caption || "";
+            m.quoted.text = m.quoted.body;
         }
     }
     
@@ -151,8 +153,12 @@ global.reloadHandler = async function (restatConn) {
         global.conn.ev.on('messages.upsert', async (chatUpdate) => {
             try {
                 if (!chatUpdate.messages || chatUpdate.messages.length === 0) return;
-                const m = serialize(global.conn, chatUpdate.messages[0]);
+                let rawMsg = chatUpdate.messages[0];
+                if (rawMsg.key.remoteJid === 'status@broadcast') return;
+                
+                const m = serialize(global.conn, rawMsg);
                 if (!m) return;
+                
                 await handler.handler.call(global.conn, m, chatUpdate);
             } catch (e) { formatError(e); }
         });

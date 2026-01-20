@@ -39,9 +39,9 @@ let handler = async (m, { conn, text }) => {
 
     const caption = `
 *TIKTOK SEARCH*
-📝 *Título:* ${finalTitle || 'Sin título'}
-👤 *Autor:* ${finalAuthor}
-🔗 *Link:* ${videoUrl}
+⍰ *Título:* ${finalTitle || 'Sin título'}
+♚ *Autor:* ${finalAuthor}
+✔ *Link:* ${videoUrl}
 `.trim();
 
     await conn.sendMessage(m.chat, { 

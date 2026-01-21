@@ -6,24 +6,18 @@ const processingResponses = [
     "Inicializando protocolo de adquisición de contenido. Esperando respuesta del servidor de origen.",
     "El sistema está realizando la depuración y estructuración del enlace.",
     "Estableciendo conexión segura y validando el identificador del recurso.",
-    "Calculando la ruta óptima para la transferencia de archivos. Un momento de latencia es requerido.",
-    "Ejecutando la fase de 'fetch'. La descarga comenzará en breve.",
     "Módulo de rastreo activo. Recuperando información del vídeo solicitado."
 ];
 
 const errorResponses = {
     general: [
         "Fallo de acceso al recurso. Verifique la sintaxis y disponibilidad del enlace.",
-        "Error en la secuencia de depuración de datos. El sistema no pudo establecer conexión con el origen.",
-        "Advertencia: Enlace no procesable. Intente con una URL diferente.",
-        "Excepción no manejada durante la adquisición del contenido. Revise la validez del identificador.",
-        "La operación ha excedido el tiempo de espera. Reintente la solicitud en unos instantes."
+        "Error en la secuencia de depuración de datos.",
+        "Advertencia: Enlace no procesable. Intente con una URL diferente."
     ],
     unknown: [
-        "Plataforma no reconocida. Los parámetros de URL no coinciden con TikTok, Instagram o Facebook.",
-        "El origen del enlace es ajeno a los protocolos de descarga definidos.",
-        "Dominio desconocido detectado. El sistema solo admite enlaces de las tres plataformas principales.",
-        "Se requiere una URL válida de una plataforma compatible para iniciar la descarga."
+        "Plataforma no reconocida o enlace inválido.",
+        "Se requiere una URL válida de TikTok, Instagram o Facebook."
     ]
 };
 
@@ -31,28 +25,36 @@ function getRandomResponse(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-function getErrorResponse(type = 'general') {
-    return getRandomResponse(errorResponses[type]);
-}
-
 async function tiktokdl(url) {
+    
+
     let api = `https://tikwm.com/api/?url=${encodeURIComponent(url)}`;
-    let res = await fetch(api);
-    if (!res.ok) throw new Error("Respuesta de API de TikTok no válida.");
+    let res = await fetch(api, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!res.ok) throw new Error("API_ERROR");
     let json = await res.json();
-    if (json.code !== 0) throw new Error(json.msg || "Error en la estructura de datos de TikTok.");
+    
+    if (json.code !== 0 || !json.data) throw new Error(json.msg || "DATA_ERROR");
+    
     return json.data;
 }
 
 async function igfb_dl(url) {
-    const res = await igdl(url);
-    if (!res || !res.data || res.data.length === 0) throw new Error("Contenido nulo o inexistente en el enlace.");
-    return res.data;
+    try {
+        const res = await igdl(url);
+        if (!res || !res.data || res.data.length === 0) return null;
+        return res.data;
+    } catch {
+        return null;
+    }
 }
 
 var handler = async (m, { conn, args }) => {
     if (!args[0]) {
-        return global.design(conn, m, `Introduzca un identificador (enlace) para iniciar el proceso de adquisición de datos.`);
+        return global.design(conn, m, `Introduzca un enlace válido para iniciar la descarga.`);
     }
 
     const url = args[0];
@@ -62,62 +64,62 @@ var handler = async (m, { conn, args }) => {
         await m.react('⏳');
         await global.design(conn, m, getRandomResponse(processingResponses));
 
-        if (url.includes('tiktok.com')) {
+        if (url.includes('tiktok.com') || url.includes('vt.tiktok.com')) {
             const data = await tiktokdl(url);
+            
+            const videoURL = data.play || data.wmplay || data.hdplay;
 
-            const videoURL = data.play || data.hdplay; 
-
-            if (!videoURL) throw new Error("El sistema de TikTok no suministró una URL de video ejecutable.");
+            if (!videoURL) throw new Error("NO_VIDEO_URL");
 
             result = {
                 url: videoURL,
                 filename: 'tiktok.mp4',
+                caption: data.title || ''
             };
 
-        } else if (url.includes('instagram.com')) {
+        } 
+        
+        else if (url.includes('instagram.com')) {
             const data = await igfb_dl(url);
+            if (!data) throw new Error("IG_ERROR");
 
             for (let media of data) {
-                const filename = media.type === 'video' ? 'instagram_video.mp4' : 'instagram_image.jpg';
-                
-                
+                const filename = media.url.includes('.mp4') ? 'instagram.mp4' : 'instagram.jpg';
                 await conn.sendFile(m.chat, media.url, filename, '', m);
             }
-            if (data.length > 0) return; 
+            await m.react('✅');
+            return;
 
-        } else if (url.includes('facebook.com') || url.includes('fb.watch')) {
+        }
+        else if (url.includes('facebook.com') || url.includes('fb.watch')) {
             const data = await igfb_dl(url);
+            if (!data) throw new Error("FB_ERROR");
 
-            const videoData = data.find(i => i.resolution === "720p (HD)") || data.find(i => i.resolution === "360p (SD)") || data[0];
-
-            if (!videoData || !videoData.url) throw new Error("No se pudo resolver una URL de video ejecutable para Facebook.");
-            
+            const videoData = data.find(i => i.resolution === "720p (HD)") || data[0];
             result = {
                 url: videoData.url,
                 filename: 'facebook.mp4',
+                caption: ''
             };
-
-        } else {
+        } 
+        else {
             await m.react('❌');
-            return global.design(conn, m, getErrorResponse('unknown'));
+            return global.design(conn, m, getRandomResponse(errorResponses.unknown));
         }
 
-        if (result) {
-            
-            await conn.sendFile(m.chat, result.url, result.filename, '', m);
+        if (result && result.url) {
+            await conn.sendFile(m.chat, result.url, result.filename, result.caption, m);
+            await m.react('✅');
         }
-        await m.react('✅');
 
     } catch (error) {
-        console.error(error);
+        console.error("Error en Descargador:", error);
         await m.react('❌');
-        return global.design(conn, m, getErrorResponse('general'));
+        return global.design(conn, m, getRandomResponse(errorResponses.general));
     }
 };
 
-
-handler.command = ['descargar', 'dl', 'descarga', 'fb', 'ig', 'tiktok', 'facebook', 'instagram'];
+handler.command = ['dl', 'descarga', 'fb', 'ig', 'tiktok'];
 handler.register = true;
-handler.group = true;
 
 export default handler;

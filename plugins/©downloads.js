@@ -1,23 +1,31 @@
 import fetch from 'node-fetch';
 import { igdl } from 'ruhend-scraper';
 
+const formatViews = (num) => {
+    if (!num) return '---';
+    return Intl.NumberFormat('en', { notation: 'compact' }).format(num);
+};
+
 async function tiktokdl(url) {
     const apikey = "dk_ofical_user";
     const apiEndpoint = `https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(url)}&apikey=${apikey}`;
-    
-    const res = await fetch(apiEndpoint);
-    const json = await res.json();
 
-    if (!json.success) throw new Error(json.error || "Error en la API de Deylin");
-    
-    return json;
+    try {
+        const res = await fetch(apiEndpoint);
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || "Error en la API de Deylin");
+        return json;
+    } catch (e) {
+        throw new Error("Servidor de TikTok no disponible");
+    }
 }
 
 async function igfb_dl(url) {
     try {
         const res = await igdl(url);
-        if (!res || !res.data || res.data.length === 0) return null;
-        return res.data;
+        if (!res || !res.data || !Array.isArray(res.data) || res.data.length === 0) return null;
+        return res; 
     } catch {
         return null;
     }
@@ -34,48 +42,54 @@ var handler = async (m, { conn, args }) => {
     try {
         await m.react('⏳');
 
-        if (url.includes('tiktok.com')) {
+        if (url.match(/(tiktok\.com|vt\.tiktok\.com)/gi)) {
             const data = await tiktokdl(url);
             const videoURL = data.play || data.wmplay;
 
-            if (!videoURL) throw new Error("NO_VIDEO_URL");
+            if (!videoURL) throw new Error("No se encontró el enlace de descarga.");
 
-            
             const caption = `*── 「 TIKTOK DOWNLOAD 」 ──*\n\n` +
                             `▢ *TÍTULO:* ${data.title || 'Sin título'}\n` +
                             `▢ *AUTOR:* ${data.music_info?.author || '---'}\n` +
                             `▢ *DURACIÓN:* ${data.duration}s\n` +
-                            `▢ *VISTAS:* ${data.stats?.play_count || '---'}\n` +
+                            `▢ *VISTAS:* ${formatViews(data.stats?.play_count)}\n` +
                             `▢ *CRÉDITOS:* ${data.restantes} disp.\n\n` +
                             `*──────────────────*`;
 
             result = { url: videoURL, filename: 'tiktok.mp4', caption };
-
         } 
+        
         else if (url.includes('instagram.com')) {
-            const data = await igfb_dl(url);
-            if (!data) throw new Error("IG_ERROR");
+            const res = await igfb_dl(url);
+            if (!res) throw new Error("No pude obtener datos de Instagram.");
 
-            for (let media of data) {
+            for (let media of res.data) {
                 const isVideo = media.url.includes('.mp4');
-                const caption = `*── 「 INSTAGRAM 」 ──*\n\n▢ *LINK:* ${url}\n*──────────────────*`;
+                const caption = `*── 「 INSTAGRAM 」 ──*\n\n` +
+                                `▢ *POST:* ${url}\n` +
+                                `▢ *TIPO:* ${isVideo ? 'VIDEO' : 'IMAGEN'}\n` +
+                                `*──────────────────*`;
                 await conn.sendFile(m.chat, media.url, isVideo ? 'instagram.mp4' : 'instagram.jpg', caption, m);
             }
             await m.react('✅');
             return;
-
         }
-        else if (url.includes('facebook.com') || url.includes('fb.watch')) {
-            const data = await igfb_dl(url);
-            if (!data) throw new Error("FB_ERROR");
 
-            const videoData = data.find(i => i.resolution === "720p (HD)") || data[0];
-            const caption = `*── 「 FACEBOOK 」 ──*\n\n▢ *CALIDAD:* ${videoData.resolution || 'Standard'}\n*──────────────────*`;
-            
+        else if (url.match(/(facebook\.com|fb\.watch)/gi)) {
+            const res = await igfb_dl(url);
+            if (!res) throw new Error("No pude obtener datos de Facebook.");
+
+            const videoData = res.data.find(i => i.resolution === "720p (HD)") || res.data[0];
+            const caption = `*── 「 FACEBOOK 」 ──*\n\n` +
+                            `▢ *CALIDAD:* ${videoData.resolution || 'Standard'}\n` +
+                            `▢ *LINK:* ${url}\n\n` +
+                            `*──────────────────*`;
+
             result = { url: videoData.url, filename: 'facebook.mp4', caption };
         } 
         else {
             await m.react('❌');
+            return global.design(conn, m, "Enlace no soportado.");
         }
 
         if (result && result.url) {
@@ -86,8 +100,7 @@ var handler = async (m, { conn, args }) => {
     } catch (error) {
         console.error("Error en Descargador:", error);
         await m.react('❌');
-        const errorText = `*Log:* ${error.message}`;
-        return global.design(conn, m, errorText);
+        return global.design(conn, m, `*ERROR:* ${error.message}`);
     }
 };
 

@@ -12,12 +12,12 @@ async function tiktokdl(url) {
 
     try {
         const res = await fetch(apiEndpoint);
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        if (!json.success) throw new Error(json.error || "Error en la API de Deylin");
+        if (!json.success) throw new Error(json.error || "API Error");
         return json;
     } catch (e) {
-        throw new Error("Servidor de TikTok no disponible");
+        throw new Error("Servidor TikTok no disponible");
     }
 }
 
@@ -25,7 +25,7 @@ async function igfb_dl(url) {
     try {
         const res = await igdl(url);
         if (!res || !res.data || !Array.isArray(res.data) || res.data.length === 0) return null;
-        return res; 
+        return res;
     } catch {
         return null;
     }
@@ -49,7 +49,7 @@ var handler = async (m, { conn, args }) => {
             if (!videoURL) throw new Error("No se encontró el enlace de descarga.");
 
             const caption = `*── 「 TIKTOK DOWNLOAD 」 ──*\n\n` +
-                            `▢ *TÍTULO:* ${data.title || 'Sin título'}\n` +
+                            `▢ *TÍTULO:* ${data.title || '---'}\n` +
                             `▢ *AUTOR:* ${data.music_info?.author || '---'}\n` +
                             `▢ *DURACIÓN:* ${data.duration}s\n` +
                             `▢ *VISTAS:* ${formatViews(data.stats?.play_count)}\n` +
@@ -61,15 +61,14 @@ var handler = async (m, { conn, args }) => {
         
         else if (url.includes('instagram.com')) {
             const res = await igfb_dl(url);
-            if (!res) throw new Error("No pude obtener datos de Instagram.");
+            if (!res) throw new Error("No se obtuvieron datos.");
 
-            for (let media of res.data) {
-                const isVideo = media.url.includes('.mp4');
-                const caption = `*── 「 INSTAGRAM 」 ──*\n\n` +
-                                `▢ *POST:* ${url}\n` +
-                                `▢ *TIPO:* ${isVideo ? 'VIDEO' : 'IMAGEN'}\n` +
-                                `*──────────────────*`;
-                await conn.sendFile(m.chat, media.url, isVideo ? 'instagram.mp4' : 'instagram.jpg', caption, m);
+            const videos = res.data.filter(media => media.url.includes('.mp4'));
+            if (videos.length === 0) throw new Error("No se encontraron videos en este enlace.");
+
+            for (let video of videos) {
+                const caption = `*── 「 INSTAGRAM VIDEO 」 ──*\n\n▢ *LINK:* ${url}\n*──────────────────*`;
+                await conn.sendFile(m.chat, video.url, 'instagram.mp4', caption, m);
             }
             await m.react('✅');
             return;
@@ -77,10 +76,10 @@ var handler = async (m, { conn, args }) => {
 
         else if (url.match(/(facebook\.com|fb\.watch)/gi)) {
             const res = await igfb_dl(url);
-            if (!res) throw new Error("No pude obtener datos de Facebook.");
+            if (!res) throw new Error("No se obtuvieron datos.");
 
             const videoData = res.data.find(i => i.resolution === "720p (HD)") || res.data[0];
-            const caption = `*── 「 FACEBOOK 」 ──*\n\n` +
+            const caption = `*── 「 FACEBOOK VIDEO 」 ──*\n\n` +
                             `▢ *CALIDAD:* ${videoData.resolution || 'Standard'}\n` +
                             `▢ *LINK:* ${url}\n\n` +
                             `*──────────────────*`;
@@ -98,7 +97,6 @@ var handler = async (m, { conn, args }) => {
         }
 
     } catch (error) {
-        console.error("Error en Descargador:", error);
         await m.react('❌');
         return global.design(conn, m, `*ERROR:* ${error.message}`);
     }

@@ -35,12 +35,12 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
                 delete localCache[cacheKey];
             }
         }
+const url = 'https://youtube.com/watch?v=' + videoId;
 
         const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*\n\n▢ *TÍTULO:* ${videoInfo.title}\n▢ *CANAL:* ${videoInfo.author?.name || '---'}\n▢ *TIEMPO:* ${videoInfo.timestamp || '---'}\n▢ *TIPO:* ${mediaType.toUpperCase()}\n▢ *ID YT:* ${videoId}\n▢ *Link:* ${url}\n\n*──────────────────*`;
 
         const infoMsg = await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
 
-        const url = 'https://youtube.com/watch?v=' + videoId;
         const apiUrl = isAudio 
             ? `https://smasha.alyabot.xyz/download_audio?url=${encodeURIComponent(url)}`
             : `https://smasha.alyabot.xyz/download_video?url=${encodeURIComponent(url)}`;

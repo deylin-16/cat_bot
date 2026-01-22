@@ -26,20 +26,15 @@ function getRandomResponse(array) {
 }
 
 async function tiktokdl(url) {
+    const apikey = "dk_ofical_user";
+    const apiEndpoint = `https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(url)}&apikey=${apikey}`;
     
+    const res = await fetch(apiEndpoint);
+    const json = await res.json();
 
-    let api = `https://tikwm.com/api/?url=${encodeURIComponent(url)}`;
-    let res = await fetch(api, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-    });
+    if (!json.success) throw new Error(json.error || "Error en la API de Deylin");
     
-    if (!res.ok) throw new Error("API_ERROR");
-    let json = await res.json();
-    
-    if (json.code !== 0 || !json.data) throw new Error(json.msg || "DATA_ERROR");
-    
-    return json.data;
+    return json;
 }
 
 async function igfb_dl(url) {
@@ -64,28 +59,32 @@ var handler = async (m, { conn, args }) => {
         await m.react('⏳');
         await global.design(conn, m, getRandomResponse(processingResponses));
 
-        if (url.includes('tiktok.com') || url.includes('vt.tiktok.com')) {
+        if (url.includes('tiktok.com')) {
             const data = await tiktokdl(url);
-            
-            const videoURL = data.play || data.wmplay || data.hdplay;
+            const videoURL = data.play || data.wmplay;
 
             if (!videoURL) throw new Error("NO_VIDEO_URL");
 
-            result = {
-                url: videoURL,
-                filename: 'tiktok.mp4',
-                caption: data.title || ''
-            };
+            
+            const caption = `*── 「 TIKTOK DOWNLOAD 」 ──*\n\n` +
+                            `▢ *TÍTULO:* ${data.title || 'Sin título'}\n` +
+                            `▢ *AUTOR:* ${data.music_info?.author || '---'}\n` +
+                            `▢ *DURACIÓN:* ${data.duration}s\n` +
+                            `▢ *VISTAS:* ${data.stats?.play_count || '---'}\n` +
+                            `▢ *CRÉDITOS:* ${data.restantes} disp.\n\n` +
+                            `*──────────────────*`;
+
+            result = { url: videoURL, filename: 'tiktok.mp4', caption };
 
         } 
-        
         else if (url.includes('instagram.com')) {
             const data = await igfb_dl(url);
             if (!data) throw new Error("IG_ERROR");
 
             for (let media of data) {
-                const filename = media.url.includes('.mp4') ? 'instagram.mp4' : 'instagram.jpg';
-                await conn.sendFile(m.chat, media.url, filename, '', m);
+                const isVideo = media.url.includes('.mp4');
+                const caption = `*── 「 INSTAGRAM 」 ──*\n\n▢ *TIPO:* ${isVideo ? 'VIDEO' : 'IMAGEN'}\n*──────────────────*`;
+                await conn.sendFile(m.chat, media.url, isVideo ? 'instagram.mp4' : 'instagram.jpg', caption, m);
             }
             await m.react('✅');
             return;
@@ -96,11 +95,9 @@ var handler = async (m, { conn, args }) => {
             if (!data) throw new Error("FB_ERROR");
 
             const videoData = data.find(i => i.resolution === "720p (HD)") || data[0];
-            result = {
-                url: videoData.url,
-                filename: 'facebook.mp4',
-                caption: ''
-            };
+            const caption = `*── 「 FACEBOOK 」 ──*\n\n▢ *CALIDAD:* ${videoData.resolution || 'Standard'}\n*──────────────────*`;
+            
+            result = { url: videoData.url, filename: 'facebook.mp4', caption };
         } 
         else {
             await m.react('❌');
@@ -115,11 +112,12 @@ var handler = async (m, { conn, args }) => {
     } catch (error) {
         console.error("Error en Descargador:", error);
         await m.react('❌');
-        return global.design(conn, m, getRandomResponse(errorResponses.general));
+        const errorText = `${getRandomResponse(errorResponses.general)}\n\n*Log:* ${error.message}`;
+        return global.design(conn, m, errorText);
     }
 };
 
-handler.command = ['dl', 'descarga', 'fb', 'ig', 'tiktok'];
+handler.command = ['dl', 'descarga', 'fb', 'ig', 'tiktok', 'tt'];
 handler.register = true;
 
 export default handler;

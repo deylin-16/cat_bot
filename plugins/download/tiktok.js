@@ -1,11 +1,12 @@
 import fetch from "node-fetch"
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (!args[0]) return m.reply(`${emoji} Ingresa un enlace de TikTok.`)
+  if (!args[0]) return m.reply(`*🍪 Ingresa un enlace de TikTok.*`)
   try {
-    let res = await fetch(`https://g-mini-ia.vercel.app/api/tiktok?url=${encodeURIComponent(args[0])}&apikey=by_deylin`)
-    if (!res.ok) throw await res.text()
+    const apikey = "dk_ofical_user"
+    let res = await fetch(`https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(args[0])}&apikey=${apikey}`)
     let data = await res.json()
+    if (!data.success) throw new Error(data.error || "Error API")
 
     let txt = `
 𝗧𝗜𝗞-𝗧𝗢𝗞 𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔𝗦
@@ -22,20 +23,24 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 `.trim()
 
     let sentMsg = await conn.sendMessage(m.chat, {
-      image: { url: data.thumbnail },
-      caption: txt,
-      ...global.rcanal
+      image: { url: data.cover || data.origin_cover },
+      caption: txt
     }, { quoted: m })
 
     conn.tiktokMenu = conn.tiktokMenu || {}
-    conn.tiktokMenu[sentMsg.key.id] = data
+    conn.tiktokMenu[sentMsg.key.id] = { 
+        video_url: data.play || data.wmplay, 
+        audio_url: data.music 
+    }
   } catch (e) {
     console.error(e)
     m.reply("❌ Error al obtener el video de TikTok.")
   }
 }
 
-handler.command = ['tiktok', 'tt'];
+handler.help = ['tiktok', 'tt']
+handler.tags = ['descargas']
+handler.command = ['tiktok', 'tt']
 
 let before = async (m, { conn }) => {
   if (!m.quoted || !conn.tiktokMenu) return

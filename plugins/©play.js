@@ -36,7 +36,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             }
         }
 
-        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*\n\n▢ *TÍTULO:* ${videoInfo.title}\n▢ *CANAL:* ${videoInfo.author?.name || '---'}\n▢ *TIEMPO:* ${videoInfo.timestamp || '---'}\n▢ *TIPO:* ${mediaType.toUpperCase()}\n▢ *ID YT:* ${videoId}\n\n*──────────────────*`;
+        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*\n\n▢ *TÍTULO:* ${videoInfo.title}\n▢ *CANAL:* ${videoInfo.author?.name || '---'}\n▢ *TIEMPO:* ${videoInfo.timestamp || '---'}\n▢ *TIPO:* ${mediaType.toUpperCase()}\n▢ *ID YT:* ${videoId}\n▢ *Link:* ${url}\n\n*──────────────────*`;
 
         const infoMsg = await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
 

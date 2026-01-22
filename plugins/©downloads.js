@@ -1,30 +1,6 @@
 import fetch from 'node-fetch';
 import { igdl } from 'ruhend-scraper';
 
-const processingResponses = [
-    "Procesando solicitud de descarga. Analizando metadatos del recurso web.",
-    "Inicializando protocolo de adquisición de contenido. Esperando respuesta del servidor de origen.",
-    "El sistema está realizando la depuración y estructuración del enlace.",
-    "Estableciendo conexión segura y validando el identificador del recurso.",
-    "Módulo de rastreo activo. Recuperando información del vídeo solicitado."
-];
-
-const errorResponses = {
-    general: [
-        "Fallo de acceso al recurso. Verifique la sintaxis y disponibilidad del enlace.",
-        "Error en la secuencia de depuración de datos.",
-        "Advertencia: Enlace no procesable. Intente con una URL diferente."
-    ],
-    unknown: [
-        "Plataforma no reconocida o enlace inválido.",
-        "Se requiere una URL válida de TikTok, Instagram o Facebook."
-    ]
-};
-
-function getRandomResponse(array) {
-    return array[Math.floor(Math.random() * array.length)];
-}
-
 async function tiktokdl(url) {
     const apikey = "dk_ofical_user";
     const apiEndpoint = `https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(url)}&apikey=${apikey}`;
@@ -57,7 +33,6 @@ var handler = async (m, { conn, args }) => {
 
     try {
         await m.react('⏳');
-        await global.design(conn, m, getRandomResponse(processingResponses));
 
         if (url.includes('tiktok.com')) {
             const data = await tiktokdl(url);
@@ -101,7 +76,6 @@ var handler = async (m, { conn, args }) => {
         } 
         else {
             await m.react('❌');
-            return global.design(conn, m, getRandomResponse(errorResponses.unknown));
         }
 
         if (result && result.url) {
@@ -112,7 +86,7 @@ var handler = async (m, { conn, args }) => {
     } catch (error) {
         console.error("Error en Descargador:", error);
         await m.react('❌');
-        const errorText = `${getRandomResponse(errorResponses.general)}\n\n*Log:* ${error.message}`;
+        const errorText = `*Log:* ${error.message}`;
         return global.design(conn, m, errorText);
     }
 };

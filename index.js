@@ -164,13 +164,21 @@ global.reloadHandler = async function(restatConn) {
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
+
 async function readRecursive(folder) {
   for (const filename of readdirSync(folder)) {
     const file = join(folder, filename);
-    if (statSync(file).isDirectory()) await readRecursive(file);
-    else if (pluginFilter(filename)) {
-      const module = await import(global.__filename(file));
-      global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+    const stat = statSync(file);
+    if (stat.isDirectory()) {
+      await readRecursive(file);
+    } else if (pluginFilter(filename)) {
+      try {
+        const module = await import(pathToFileURL(file).href);
+        const pluginName = path.relative(pluginFolder, file).replace(/\\/g, '/');
+        global.plugins[pluginName] = module.default || module;
+      } catch (e) {
+        console.error(`Error cargando plugin ${file}:`, e);
+      }
     }
   }
 }
@@ -178,9 +186,16 @@ async function readRecursive(folder) {
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
   if (pluginFilter(filename)) {
-    const dir = global.__filename(join(pluginFolder, filename), true);
-    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+    const file = join(pluginFolder, filename);
+    if (existsSync(file)) {
+      try {
+        const module = await import(`${pathToFileURL(file).href}?update=${Date.now()}`);
+        const pluginName = filename.replace(/\\/g, '/');
+        global.plugins[pluginName] = module.default || module;
+      } catch (e) {
+        console.error(`Error recargando plugin ${filename}:`, e);
+      }
+    }
   }
 });
 

@@ -37,7 +37,19 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         }
 const url = 'https://youtube.com/watch?v=' + videoId;
 
-        const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*\n\n▢ *TÍTULO:* ${videoInfo.title}\n▢ *CANAL:* ${videoInfo.author?.name || '---'}\n▢ *TIEMPO:* ${videoInfo.timestamp || '---'}\n▢ *TIPO:* ${mediaType.toUpperCase()}\n▢ *ID YT:* ${videoId}\n▢ *Link:* ${url}\n\n*──────────────────*`;
+const views = videoInfo.views ? new Intl.NumberFormat('es-ES').format(videoInfo.views) : '---';
+
+const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*
+
+▢ *TÍTULO:* ${videoInfo.title}
+▢ *CANAL:* ${videoInfo.author?.name || '---'}
+▢ *TIEMPO:* ${videoInfo.timestamp || '---'}
+▢ *VISTAS:* ${views}
+▢ *PUBLICADO:* ${videoInfo.ago || '---'}
+▢ *ID YT:* ${videoId}
+▢ *LINK:* ${url}
+▢ *ENVIANDO:* ${isAudio ? 'audio' : 'video'}... por favor espere._`;
+
 
         const infoMsg = await conn.sendMessage(m.chat, { image: { url: videoInfo.image || videoInfo.thumbnail }, caption: infoText }, { quoted: m });
 

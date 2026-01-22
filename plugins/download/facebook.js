@@ -4,15 +4,6 @@ import fetch from "node-fetch"
 let handler = async (m, { conn, args }) => {
   if (!args[0]) return conn.reply(m.chat, `*⚠️ Necesitas enviar un enlace de Facebook para descargar.*`, m)
 
-  const resThumb3 = await fetch('https://files.catbox.moe/nbkung.jpg')
-  const thumb24 = Buffer.from(await resThumb3.arrayBuffer())
-
-  const fkontak = {
-    key: { participants: ["0@s.whatsapp.net"], remoteJid: "status@broadcast", fromMe: false, id: "Halo" },
-    message: { locationMessage: { name: `𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔 𝗗𝗘 𝗙𝗔𝗖𝗘𝗕𝗢𝗢Ｋ`, jpegThumbnail: thumb24 } },
-    participant: "0@s.whatsapp.net"
-  }
-
   const regexFacebook = /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.watch)\/[^\s]+$/i
   if (!regexFacebook.test(args[0])) return conn.reply(m.chat, `*🚫 Enlace de Facebook no válido.*`, m)
 
@@ -64,6 +55,14 @@ let before = async (m, { conn }) => {
   if (!m.quoted || !conn.fbMenu) return
   const msgId = m.quoted.id || m.quoted.key?.id
   const data = conn.fbMenu[msgId]
+  const resThumb3 = await fetch('https://files.catbox.moe/nbkung.jpg')
+  const thumb24 = Buffer.from(await resThumb3.arrayBuffer())
+
+  const fkontak = {
+    key: { participants: ["0@s.whatsapp.net"], remoteJid: "status@broadcast", fromMe: false, id: "Halo" },
+    message: { locationMessage: { name: `𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔 𝗗𝗘 𝗙𝗔𝗖𝗘𝗕𝗢𝗢Ｋ`, jpegThumbnail: thumb24 } },
+    participant: "0@s.whatsapp.net"
+  }
   if (!data) return
 
   const choice = m.text.trim()

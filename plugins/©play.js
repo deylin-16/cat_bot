@@ -1,4 +1,4 @@
-import yts from 'yt-search';
+/*import yts from 'yt-search';
 import fetch from 'node-fetch';
 
 const localCache = {};
@@ -99,4 +99,5 @@ const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*
 };
 
 handler.command = /^(play|audio|mp3|video|mp4/play2)$/i;
-export default handler;
+export default handler;*/
+

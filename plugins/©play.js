@@ -98,5 +98,5 @@ const infoText = `*── 「 CONTENIDO MULTIMEDIA 」 ──*
     }
 };
 
-handler.command = /^(play|audio|mp3|video|mp4)$/i;
+handler.command = /^(play|audio|mp3|video|mp4/play2)$/i;
 export default handler;

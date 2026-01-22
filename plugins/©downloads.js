@@ -58,7 +58,7 @@ var handler = async (m, { conn, args }) => {
 
             for (let media of data) {
                 const isVideo = media.url.includes('.mp4');
-                const caption = `*── 「 INSTAGRAM 」 ──*\n\n▢ *TIPO:* ${isVideo ? 'VIDEO' : 'IMAGEN'}\n*──────────────────*`;
+                const caption = `*── 「 INSTAGRAM 」 ──*\n\n▢ *LINK:* ${url}\n*──────────────────*`;
                 await conn.sendFile(m.chat, media.url, isVideo ? 'instagram.mp4' : 'instagram.jpg', caption, m);
             }
             await m.react('✅');

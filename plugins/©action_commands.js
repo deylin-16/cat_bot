@@ -16,14 +16,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let isMenuGrupo = /menu4|menugrupo/i.test(command)
     let thumb = assistantImage
 
-    if (isMenuGrupo && m.isGroup) {
-        try {
-            const profileUrl = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null)
-            if (profileUrl) thumb = profileUrl
-        } catch {
-            thumb = assistantImage
-        }
-    }
 
     if (thumb && typeof thumb === 'string' && thumb.startsWith('http')) {
         try {

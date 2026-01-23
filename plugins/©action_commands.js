@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'url'
 import path from 'path'
 import fs from 'fs'
-import fetch from 'node-fetch'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -15,39 +14,25 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let totalMembers = groupMetadata.participants ? groupMetadata.participants.length : 0
 
     let isMenuGrupo = /menu4|menugrupo/i.test(command)
-    let thumb = assistantImage
-
+        let thumb = assistantImage
     if (isMenuGrupo && m.isGroup) {
         try {
             const profileUrl = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null)
-            if (profileUrl) {
-                const res = await fetch(profileUrl)
-                if (res.ok) thumb = await res.buffer()
-            }
+            thumb = profileUrl ? await (await fetch(profileUrl)).buffer() : assistantImage
         } catch {
             thumb = assistantImage
         }
     }
 
-    if (typeof thumb === 'string' && thumb.startsWith('http')) {
-        try {
-            const res = await fetch(thumb)
-            if (res.ok) thumb = await res.buffer()
-        } catch {
-            thumb = assistantImage 
-        }
-    }
 
     let adReply = {
         contextInfo: {
             externalAdReply: {
                 title: assistantName,
-                body: 'Deylin Team',
                 mediaType: 1,
                 previewType: 0,
                 thumbnail: thumb,
-                renderLargerThumbnail: true,
-                sourceUrl: 'https://deylin.xyz'
+                renderLargerThumbnail: true
             }
         }
     }
@@ -108,7 +93,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
 ❒ *Bot:* ${assistantName}
 ❒ *Versión:* ${_package.version}
-❒ *Subbot:* deylin.xyz/pairing_code
+❒ *Hazte subbot desde: deylin.xyz/pairing_code*
+❒
+❒ *Menús:* \`menu/menu2 ∆/menu3/menu4\`
+
+${rmr}
 
 ${animeCommands}`.trim()
 
@@ -117,19 +106,34 @@ ${animeCommands}`.trim()
 
     if (isMenuGrupo) {
         let groupCommands = `
-┏━⊜  *GRUPO* ⊜━┓
+┏━⊜  *GRUPO*  ⊜━┓
 ┃ 
 ┃ °• cerrar/abrir/open/close
-┃ °• detect (Autodetect)
-┃ °• setwelcome (Bienvenida)
-┃ °• welcome (on/off)
-┃ °• antilink (on/off)
-┃ °• setpp (Imagen)
-┃ °• renombrar (Nombre)
-┃ °• setdesc (Descripción)
-┃ °• kick (Eliminar)
-┃ °• tagall/todos
-┃ °• recordatorio
+┃ 
+┃ °• cerrargrupo/abrirgrupo (Open/clóse: automático)
+┃ 
+┃ °• detect (Apagar/encender autodetect)
+┃ 
+┃ °• setwelcome  (Configurar bienvenida)
+┃ 
+┃ °• welcome (activar/desactivar: bienvenida)
+┃ 
+┃ °• antilink  (activar/desactivar: antilink)
+┃ 
+┃ °• setpp (Cambiar imagen del grupo)
+┃ 
+┃ °• renombrar (Cambiar nombre del grupo)
+┃ 
+┃ °• setdesc (Cambiar descripción del grupo)
+┃ 
+┃ °• kick (Elimina a un usuario)
+┃ 
+┃ °• N/tag (Texto/imagen/vídeo/audio)
+┃ 
+┃ °• tagall/todos (Menciona a todos)
+┃ 
+┃ °• recordatorio (Minutos+veces)
+┃ 
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `
@@ -139,6 +143,11 @@ ${animeCommands}`.trim()
 ❒ *Grupo:* ${groupName}
 ❒ *Miembros:* ${totalMembers}
 ❒ *Versión:* ${_package.version}
+❒ *Hazte subbot desde: deylin.xyz/pairing_code*
+❒ 
+❒ *Menús:* \`menu/menu2/menu3/menu4 ∆\`
+
+${rmr}
 
 ${groupCommands}`.trim()
 
@@ -147,12 +156,16 @@ ${groupCommands}`.trim()
 
     if (/menu3|game|juegos/i.test(command)) {
         let gameCommands = `
-┏━⊜ *JUEGOS* ⊜━┓
+┏━⊜ *JUEGOS = GAME* ⊜━┓
 ┃ °• adivinanza / prueba 
-┃ °• trivia / wordhard
+┃ °• trivia 
+┃ °• wordhard
 ┃
 ┣━━►VERDAD-RETO◄━━━▷
-┃ °• join / start / stop / leave
+┃ °• join  (Unirse)
+┃ °• start (Iniciar)
+┃ °• stop  (Detener)
+┃ °• leave (salir)
 ┗━━━━━━━━━━━━━━━┛`;
 
         let caption = `
@@ -160,36 +173,67 @@ ${groupCommands}`.trim()
 
 ❒ *Bot:* ${assistantName}
 ❒ *Versión:* ${_package.version}
+❒ *Hazte subbot desde: deylin.xyz/pairing_code*
+❒ 
+❒ *Menús:* \`menu/menu2/menu3 ∆/menu4\`
+
+${rmr}
 
 ${gameCommands}`.trim()
 
         return await conn.sendMessage(m.chat, { text: caption, ...adReply, mentions: [m.sender] }, { quoted: m })
     }
 
-    let customCommands = `
-╭━━〔 📂 *CATÁLOGO* 〕━━╮
+        let customCommands = `
+╭━━〔 📂 *CATÁLOGO DE MENÚS* 〕━━╮
 ┃ 
 ┃ 💠 \`Principal\` ➜ .menu
 ┃ ⛩️ \`Animes\` ➜ .menu2
 ┃ 🎮 \`Juegos\` ➜ .menu3
 ┃ ⚙️ \`Gestión\` ➜ .menu4
 ┃
-╰━━━━━━━━━━━━━━━╯
+╰━━━━━━━━━━━━━━━━━━━━╯
+
+╭━━〔  🍪 *SUB-BOT* 〕━━╮
+┃ 
+┣¶╮
+┃  ├° \`seticono\` ➜ cambia el icono
+┃  ├° \`setprefix\` ➜ cambia el prefijo 
+┃  ├° \`resetprefix\` ➜ elimina prefijos 
+┃  ├° \`setimage\` ➜ cambia la imagen del bot
+┃  ╰° \`setname\` ➜ cambia el nombre del bot 
+┃
+╰━━━━━━━━━━━━━━━━━━━━╯
 
 ╭━━〔 🛠️ *HERRAMIENTAS* 〕━━╮
 ┃
 ┃ 📥 *DESCARGAS*
-┃ ├ ◦ fb, ig, tiktok
+┃ ├ ◦ \`fb\` | \`ig\` | \`tiktok\`
+┃ └ ◦ \`descarga\` (Multilink)
 ┃
 ┃ 🔍 *BÚSQUEDA*
-┃ ├ ◦ pin, ytsearch, anime
-┃ └ ◦ play (Música)
+┃ ├ ◦ \`pin\` | \`ttss\`
+┃ ├ ◦ \`ytsearch\`
+┃ ├ ◦ \`gif\`
+┃ ├ ◦ \`anime\`
+┃ ├ ◦ \`meme\` | \`memes\`
+┃ └ ◦ \`play\` | \`play2\` (Música)
 ┃
 ┃ 🎨 *FUNCIONES*
-┃ ├ ◦ s (Sticker), gay
-┃ └ ◦ hd (Enhancer)
+┃ ├ ◦ \`s\` (Sticker) | \`toimg\`
+┃ ├ ◦ \`robar\` | \`tomar\` perfil
+┃ ├ ◦ \`gay\`
+┃ ├ ◦ \`ver\` | \`read\` (ViewOnce)
+┃ └ ◦ \`consejo\` | \`motivacion\`
 ┃
-╰━━━━━━━━━━━━━━━╯`.trim();
+┃ 🧠 *IA & SISTEMA*
+┃ ├ ◦ \`ia\` | \`res\` (Auto-AI)
+┃ ├ ◦ \`imgg\` (Crea una imagen IA)
+┃ └ ◦ \`hd\` (Enhancer)
+┃
+┃
+╰━━━━━━━━━━━━━━━━━━━━╯`.trim();
+
 
     let caption = `
 👋 *HOLA, SOY ${assistantName.toUpperCase()}*
@@ -197,6 +241,11 @@ ${gameCommands}`.trim()
 ❒ *Creador:* ${ownerBot[0]?.name || 'Deylin'}
 ❒ *Versión:* ${_package.version}
 ❒ *Activo:* ${msToDate(process.uptime() * 1000)}
+❒ *Hazte subbot desde: deylin.xyz/pairing_code*
+❒ 
+❒ *Menús:* \`menu ∆/menu2/menu3/menu4\`
+
+${rmr}
 
 ${customCommands}`.trim()
 

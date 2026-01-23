@@ -6,6 +6,7 @@ import NodeCache from 'node-cache'
 import chalk from 'chalk'
 import * as ws from 'ws'
 import { fileURLToPath } from 'url'
+import fetch from 'node-fetch'
 
 const { 
     DisconnectReason, 
@@ -27,38 +28,49 @@ const name = (conn) => global.botname || conn.user?.name || 'Bot'
 
 let handler = async (m, { conn, command }) => {
     const url = 'https://deylin.xyz/pairing_code?v=5'
-    await conn.sendMessage(m.chat, { 
-        text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
-        contextInfo: {
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-                newsletterJid: '120363406846602793@newsletter',
-                newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
-                serverMessageId: 1
-            },
-            externalAdReply: {
-                title: 'VINCULAR SUB-BOT',
-                body: 'dynamic bot pairing code - ',
-                thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
-                mediaType: 1,
-                mediaUrl: url,
-                sourceUrl: url,
-                renderLargerThumbnail: true
-            }
+
+    if (command === 'code') {
+        let userNumber = m.sender.split('@')[0]
+        try {
+            let res = await fetch(`https://deylin.xyz/api/tools?number=${userNumber}`)
+            let json = await res.json()
+            let code = json.code || json.result || json
+
+            await conn.sendMessage(m.chat, { 
+                text: `${code}`,
+                contextInfo: {
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: '120363406846602793@newsletter',
+                        newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
+                        serverMessageId: 1
+                    },
+                    externalAdReply: {
+                        title: 'VINCULAR SUB-BOT',
+                        body: `${name(conn)} pairing code - `,
+                        thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
+                        mediaType: 1,
+                        mediaUrl: url,
+                        sourceUrl: url,
+                        renderLargerThumbnail: true
+                    }
+                }
+            }, { quoted: m })
+            return
+        } catch (e) {
+            return
         }
-    }, { quoted: m })
+    }
 }
 
-handler.help = ['qr', 'code', 'subbot']
-handler.tags = ['serbot']
-handler.command = /^(qr|code|subbot)$/i 
+handler.command = /^(code)$/i 
 
 export default handler 
 
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand, apiCall } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
-    
+
     if (!fs.existsSync(authFolder)) {
         fs.mkdirSync(authFolder, { recursive: true })
     }
@@ -135,7 +147,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            
+
             const sessionDead = [
                 DisconnectReason.loggedOut, 
                 401, 

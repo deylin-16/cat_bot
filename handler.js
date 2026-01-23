@@ -161,11 +161,17 @@ export async function handler(chatUpdate) {
             let str = m.text.trim();
             let usedPrefix = '';
             let command = '';
+            let text = '';
+            let args = [];
+            
             const match = str.match(prefixRegex);
 
             if (match) {
                 usedPrefix = match[1];
-                command = str.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
+                let fullAfterPrefix = str.slice(usedPrefix.length).trim();
+                command = fullAfterPrefix.split(/\s+/)[0].toLowerCase();
+                text = fullAfterPrefix.slice(command.length).trim();
+                args = text ? text.split(/\s+/).filter(v => v) : [];
             } else {
                 continue;
             }
@@ -182,10 +188,7 @@ export async function handler(chatUpdate) {
 
             if (!isAccept) continue;
 
-            const noPrefix = str.slice(usedPrefix.length + command.length).trim();
-            const text = noPrefix;
-            const args = noPrefix ? noPrefix.split(/\s+/).filter(v => v) : [];
-
+            const noPrefix = text;
             m.plugin = name;
 
             if (chat?.isBanned && !isROwner) return;

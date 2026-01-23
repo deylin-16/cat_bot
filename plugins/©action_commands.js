@@ -16,14 +16,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let isMenuGrupo = /menu4|menugrupo/i.test(command)
         let thumb = assistantImage
     if (isMenuGrupo && m.isGroup) {
+            
+    if (thumb && typeof thumb === 'string' && thumb.startsWith('http')) {
         try {
-            const profileUrl = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null)
-            thumb = profileUrl ? await (await fetch(profileUrl)).buffer() : assistantImage
+            const res = await fetch(thumb)
+            if (res.ok) thumb = await res.buffer()
         } catch {
-            thumb = assistantImage
+            
+            thumb = assistantImage 
         }
     }
-
 
     let adReply = {
         contextInfo: {
@@ -31,11 +33,12 @@ let handler = async (m, { conn, usedPrefix, command }) => {
                 title: assistantName,
                 mediaType: 1,
                 previewType: 0,
-                thumbnail: thumb,
+                thumbnail: (Buffer.isBuffer(thumb) || (typeof thumb === 'string' && thumb.startsWith('http'))) ? thumb : assistantImage,
                 renderLargerThumbnail: true
             }
         }
     }
+
 
     if (/menu2|interaccion/i.test(command)) {
         let animeCommands = `

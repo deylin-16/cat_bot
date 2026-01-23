@@ -24,8 +24,6 @@ const __dirname = path.dirname(__filename)
 if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()
 
-const name = (conn) => global.botname || conn.user?.name || 'Bot'
-
 let handler = async (m, { conn, command }) => {
     const url = 'https://deylin.xyz/pairing_code?v=5'
 

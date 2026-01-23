@@ -14,15 +14,24 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let totalMembers = groupMetadata.participants ? groupMetadata.participants.length : 0
 
     let isMenuGrupo = /menu4|menugrupo/i.test(command)
-        let thumb = assistantImage
+    let thumb = assistantImage
+
     if (isMenuGrupo && m.isGroup) {
-            
+        try {
+            const profileUrl = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null)
+            if (profileUrl) thumb = profileUrl
+        } catch {
+            thumb = assistantImage
+        }
+    }
+
     if (thumb && typeof thumb === 'string' && thumb.startsWith('http')) {
         try {
             const res = await fetch(thumb)
-            if (res.ok) thumb = await res.buffer()
+            if (res.ok) {
+                thumb = await res.arrayBuffer().then(buf => Buffer.from(buf))
+            }
         } catch {
-            
             thumb = assistantImage 
         }
     }
@@ -33,11 +42,12 @@ let handler = async (m, { conn, usedPrefix, command }) => {
                 title: assistantName,
                 mediaType: 1,
                 previewType: 0,
-                thumbnail: (Buffer.isBuffer(thumb) || (typeof thumb === 'string' && thumb.startsWith('http'))) ? thumb : assistantImage,
+                thumbnail: thumb,
                 renderLargerThumbnail: true
             }
         }
     }
+
 
 
     if (/menu2|interaccion/i.test(command)) {

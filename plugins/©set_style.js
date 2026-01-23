@@ -78,14 +78,14 @@ const handler = async (m, { conn, text, command }) => {
             m.reply('❌ Error al guardar el icono.')
         }
 
-    } else if (command === 'resetuser') {
+    } else if (command === 'resetsty') {
         configs[botId] = { assistantName: null, assistantImage: null, assistantIcon: null }
         saveConfigs(configs)
         m.reply('🧹 Se han restablecido todos los parámetros del asistente (Nombre, Fondo e Icono).')
     }
 }
 
-handler.command = ['setname', 'setimage', 'seticono', 'resetuser']
+handler.command = ['setname', 'setimage', 'seticono', 'resetsty']
 handler.subBot = true 
 
 export default handler

@@ -6,7 +6,6 @@ import NodeCache from 'node-cache'
 import chalk from 'chalk'
 import * as ws from 'ws'
 import { fileURLToPath } from 'url'
-import fetch from 'node-fetch'
 
 const { 
     DisconnectReason, 
@@ -25,14 +24,15 @@ if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()
 
 let handler = async (m, { conn, command }) => {
-    const url = 'https://deylin.xyz/pairing_code?v=5'
-
     if (command === 'code') {
         let userNumber = m.sender.split('@')[0]
         try {
-            let res = await fetch(`https://deylin.xyz/api/tools?number=${userNumber}`)
-            let json = await res.json()
-            let code = json.code || json.result || json
+            let code = await assistant_accessJadiBot({ 
+                m, 
+                conn, 
+                phoneNumber: userNumber, 
+                fromCommand: true 
+            })
 
             await conn.sendMessage(m.chat, { 
                 text: `${code}`,
@@ -40,33 +40,30 @@ let handler = async (m, { conn, command }) => {
                     isForwarded: true,
                     forwardedNewsletterMessageInfo: {
                         newsletterJid: '120363406846602793@newsletter',
-                        newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
+                        newsletterName: `SIGUE EL CANAL DE: ${conn.getName(conn.user.jid)}`,
                         serverMessageId: 1
                     },
                     externalAdReply: {
                         title: 'VINCULAR SUB-BOT',
-                        body: `${name(conn)} pairing code - `,
+                        body: `Pairing code generado directamente`,
                         thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
                         mediaType: 1,
-                        mediaUrl: url,
-                        sourceUrl: url,
+                        sourceUrl: 'https://deylin.xyz',
                         renderLargerThumbnail: true
                     }
                 }
             }, { quoted: m })
-            return
         } catch (e) {
-            return
+            console.error(e)
         }
     }
 }
 
 handler.command = /^(code)$/i 
-
 export default handler 
 
 export async function assistant_accessJadiBot(options) {
-    let { m, conn, phoneNumber, fromCommand, apiCall } = options
+    let { m, conn, phoneNumber, fromCommand } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
 
     if (!fs.existsSync(authFolder)) {
@@ -96,28 +93,17 @@ export async function assistant_accessJadiBot(options) {
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered) {
-            if (!fromCommand && !apiCall) {
-                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                return
-            }
-
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
                         let code = await sock.requestPairingCode(phoneNumber)
                         code = code?.match(/.{1,4}/g)?.join("-") || code
-
-                        if (fromCommand && m && conn) {
-                            await conn.sendMessage(m.chat, { text: code }, { quoted: m })
-                        }
-
                         setupSubBotEvents(sock, authFolder, m, conn)
                         resolve(code)
                     } catch (err) {
-                        console.error(err)
                         reject(err)
                     }
-                }, 3000)
+                }, 2500)
             })
         } else {
             setupSubBotEvents(sock, authFolder, m, conn)
@@ -136,7 +122,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         const botNumber = path.basename(authFolder)
 
         if (connection === 'open') {
-            console.log(chalk.bold.cyanBright(`\n۝⸺⸺⸺⸺∭ SUB-BOT •\n🍪 +${botNumber} CONECTADO exitosamente.`))
+            console.log(chalk.bold.cyanBright(`\n+${botNumber} CONECTADO.`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
                 global.conns.push(sock)
             }
@@ -145,22 +131,13 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-
-            const sessionDead = [
-                DisconnectReason.loggedOut, 
-                401, 
-                403, 
-                405, 
-                DisconnectReason.badSession
-            ].includes(reason)
+            const sessionDead = [401, 403, 405, DisconnectReason.loggedOut, DisconnectReason.badSession].includes(reason)
 
             if (sessionDead) {
-                console.log(chalk.redBright(`[SISTEMA] Sesión MUERTA para: +${botNumber}. Borrando archivos.`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
             } else {
-                console.log(chalk.yellowBright(`[SISTEMA] Reintentando conexión: +${botNumber}`))
-                assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
+                assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false })
             }
         }
     })
@@ -170,9 +147,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
             try {
                 const { handler } = await import('../handler.js?update=' + Date.now())
                 await handler.call(sock, chatUpdate)
-            } catch (e) {
-                console.error(e)
-            }
+            } catch (e) {}
         })
     })
 }

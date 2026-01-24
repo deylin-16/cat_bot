@@ -16,7 +16,18 @@ let handler = async (m, { conn, args }) => {
     const video = data.url
     const miniatura = data.thumbnail || "https://i.postimg.cc/RV6xwKt9/1760499473884.jpg"
 
-    const caption = `🎥 𝗜𝗡𝗦𝗧𝗔𝗚𝗥𝗔𝗠 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥\n\n💡 Responde a este mensaje con el número:\n\n1️⃣ Vídeo normal 📽️\n2️⃣ Solo audio 🎵\n3️⃣ Nota de vídeo 🕳️`.trim()
+    const caption = `
+🎥 𝗜𝗡𝗦𝗧𝗔𝗚𝗥𝗔𝗠 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥  
+
+🌐 Plataforma: Instagram  
+
+⚙️ Opciones de descarga:  
+1️⃣ Vídeo normal 📽️  
+2️⃣ Solo audio 🎵  
+3️⃣ Nota de vídeo 🕳️  
+
+💡 Responde con el número de tu elección.
+`.trim()
 
     const sentMsg = await conn.sendMessage(m.chat, { 
       image: { url: miniatura }, 

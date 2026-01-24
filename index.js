@@ -9,7 +9,8 @@ import chalk from 'chalk';
 import pino from 'pino';
 import yargs from 'yargs';
 import lodash from 'lodash';
-import { Low, JSONFile } from 'lowdb';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node'; // Cambio crítico aquí
 import { Boom } from '@hapi/boom';
 import { decodeJid } from './lib/message.js';
 import store from './lib/store.js';
@@ -46,7 +47,16 @@ const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
 
-global.db = new Low(new JSONFile('database.json'));
+// Inicialización de base de datos corregida
+const adapter = new JSONFile('database.json');
+global.db = new Low(adapter, {
+    users: {}, 
+    chats: {}, 
+    stats: {}, 
+    msgs: {}, 
+    sticker: {}, 
+    settings: {}
+});
 global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {

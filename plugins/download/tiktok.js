@@ -1,7 +1,7 @@
 import fetch from "node-fetch"
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-    let url = args[0] ? args[0].split('?')[0] : null
+    let url = args[0]
     if (!url || !/tiktok\.com/i.test(url)) {
         return m.reply(`*ஐ Ingresa un enlace válido de TikTok.*`)
     }

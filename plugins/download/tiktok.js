@@ -1,18 +1,24 @@
 import fetch from "node-fetch"
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-    if (!args[0]) return m.reply(`*ஐ Ingresa un enlace de TikTok.*`)
+    let url = args[0] ? args[0].split('?')[0] : null
+    if (!url || !/tiktok\.com/i.test(url)) {
+        return m.reply(`*ஐ Ingresa un enlace válido de TikTok.*`)
+    }
 
     try {
         const apikey = "dk_ofical_user"
-        const res = await fetch(`https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(args[0])}&apikey=${apikey}`)
+        const res = await fetch(`https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(url)}&apikey=${apikey}`)
         const data = await res.json()
 
-        if (!data.success) throw new Error("API Error")
+        if (!data.success && !data.status) throw new Error("API Error")
 
-        const videoUrl = data.play || data.wmplay
-        const title = data.title || "TikTok Video"
-        const nickname = data.author?.nickname || "Usuario"
+        const result = data.result || data
+        const videoUrl = result.play || result.wmplay || result.video
+        const title = result.title || "TikTok Video"
+        const nickname = result.author?.nickname || result.nickname || "Usuario"
+
+        if (!videoUrl) throw new Error("No video URL")
 
         const caption = `
 				𝗧𝗜𝗞-𝗧𝗢𝗞 𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔𝗦
@@ -36,6 +42,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help = ['tiktok', 'tt']
 handler.tags = ['descargas']
-handler.command = ['tiktok', 'tt'] 
+handler.command = ['tiktok', 'tt']
 
 export default handler

@@ -159,13 +159,11 @@ export async function handler(chatUpdate) {
             let command = '';
             const match = str.match(prefixRegex);
 
-            if (match) {
-                usedPrefix = match[0];
-                command = str.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
-            } else {
-                command = str.split(/\s+/)[0].toLowerCase();
-                usedPrefix = '';
-            }
+            if (!match) continue;
+
+            usedPrefix = match[0];
+            let noPrefixText = str.slice(usedPrefix.length).trim();
+            command = noPrefixText.split(/\s+/)[0].toLowerCase();
 
             if (!command) continue;
 
@@ -179,9 +177,9 @@ export async function handler(chatUpdate) {
 
             if (!isAccept) continue;
 
-            const noPrefix = str.slice(usedPrefix.length + command.length).trim();
-            const text = noPrefix;
-            const args = noPrefix ? noPrefix.split(/\s+/).filter(v => v) : [];
+            const text = noPrefixText.slice(command.length).trim();
+            const args = text ? text.split(/\s+/).filter(v => v) : [];
+            const noPrefix = text;
 
             m.plugin = name;
 

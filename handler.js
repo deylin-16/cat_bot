@@ -163,7 +163,9 @@ export async function handler(chatUpdate) {
 
             usedPrefix = match[0];
             let noPrefixText = str.slice(usedPrefix.length).trim();
-            command = noPrefixText.split(/\s+/)[0].toLowerCase();
+            
+            let parts = noPrefixText.split(/\s+/);
+            command = parts[0].toLowerCase();
 
             if (!command) continue;
 
@@ -177,7 +179,7 @@ export async function handler(chatUpdate) {
 
             if (!isAccept) continue;
 
-            const text = noPrefixText.slice(command.length).trim();
+            const text = noPrefixText.substring(command.length).trim();
             const args = text ? text.split(/\s+/).filter(v => v) : [];
             const noPrefix = text;
 

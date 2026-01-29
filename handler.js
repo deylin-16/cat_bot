@@ -38,6 +38,7 @@ export async function handler(chatUpdate) {
 
     const chatJid = m.chat;
     const senderJid = m.sender;
+    let user, chat, plugin;
 
     let usedPrefix, noPrefixText, args, command, text;
     if (isCmd) {
@@ -50,14 +51,14 @@ export async function handler(chatUpdate) {
     }
 
     const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
-    const plugin = global.plugins.get(pluginName);
+    plugin = global.plugins.get(pluginName);
 
     try {
         global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
         global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
         
-        const user = global.db.data.users[senderJid];
-        const chat = global.db.data.chats[chatJid];
+        user = global.db.data.users[senderJid];
+        chat = global.db.data.chats[chatJid];
         const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
         const isOwner = isROwner || m.fromMe;
 

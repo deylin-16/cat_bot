@@ -129,61 +129,22 @@ export async function handler(chatUpdate) {
             isRAdmin = isAdmin = isBotAdmin = false;
         }
 
-        const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), './plugins');
         const prefixRegex = /^[.#\/]/;
+        const match = m.text.trim().match(prefixRegex);
+        if (!match) return;
 
-        for (const name in global.plugins) {
-            const plugin = global.plugins[name];
-            if (!plugin || plugin.disabled) continue;
+        const usedPrefix = match[0];
+        const noPrefixText = m.text.slice(usedPrefix.length).trim();
+        const args = noPrefixText.split(/\s+/).filter(v => v);
+        const command = (args.shift() || '').toLowerCase();
+        const text = args.join(' ');
 
-            const __filename = join(___dirname, name);
+        const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
+        const plugin = global.plugins.get(pluginName);
 
-            if (typeof plugin.all === 'function') {
-                try {
-                    await plugin.all.call(conn, m, { chatUpdate, __dirname: ___dirname, __filename });
-                } catch (e) {
-                    if (!(e instanceof TypeError && e.message.includes('user'))) console.error(e);
-                }
-            }
-
-            if (!opts['restrict'] && plugin.tags && plugin.tags.includes('admin')) continue;
-
-            if (typeof plugin.before === 'function') {
-                if (await plugin.before.call(conn, m, { conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename })) continue;
-            }
-
-            if (typeof plugin !== 'function') continue;
-
-            let str = m.text.trim();
-            let usedPrefix = '';
-            let command = '';
-            const match = str.match(prefixRegex);
-
-            if (!match) continue;
-
-            usedPrefix = match[0];
-            let noPrefixText = str.slice(usedPrefix.length).trim();
-            
-            let parts = noPrefixText.split(/\s+/);
-            command = parts[0].toLowerCase();
-
-            if (!command) continue;
-
-            const isAccept = plugin.command instanceof RegExp ?
-                plugin.command.test(command) :
-                Array.isArray(plugin.command) ?
-                    plugin.command.some(cmd => cmd instanceof RegExp ? cmd.test(command) : cmd === command) :
-                    typeof plugin.command === 'string' ?
-                        plugin.command === command :
-                        false;
-
-            if (!isAccept) continue;
-
-            const text = noPrefixText.substring(command.length).trim();
-            const args = text ? text.split(/\s+/).filter(v => v) : [];
-            const noPrefix = text;
-
-            m.plugin = name;
+        if (plugin) {
+            if (plugin.disabled) return;
+            m.plugin = pluginName;
 
             if (chat?.isBanned && !isROwner) return;
             if (chat?.modoadmin && !isOwner && !isROwner && m.isGroup && !isAdmin) return;
@@ -211,14 +172,15 @@ export async function handler(chatUpdate) {
             m.exp += 'exp' in plugin ? parseInt(plugin.exp) : 10;
 
             try {
-                await plugin.call(conn, m, { usedPrefix, noPrefix, args, command, text, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename });
+                const runFunc = typeof plugin === 'function' ? plugin : plugin.run;
+                await runFunc.call(conn, m, { usedPrefix, noPrefix: text, args, command, text, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate });
             } catch (e) {
                 m.error = e;
                 m.reply(format(e));
             } finally {
                 if (typeof plugin.after === 'function') {
                     try {
-                        await plugin.after.call(conn, m, { usedPrefix, noPrefix, args, command, text, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate, __dirname: ___dirname, __filename });
+                        await plugin.after.call(conn, m, { usedPrefix, noPrefix: text, args, command, text, conn, participants, groupMetadata, user, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isSubAssistant, chatUpdate });
                     } catch (e) { console.error(e) }
                 }
             }

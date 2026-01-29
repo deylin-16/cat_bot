@@ -163,14 +163,19 @@ global.reloadHandler = async function(restatConn) {
 
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
-global.plugins = {};
+global.plugins = new Map();
+global.aliases = new Map();
+
 async function readRecursive(folder) {
   for (const filename of readdirSync(folder)) {
     const file = join(folder, filename);
     if (statSync(file).isDirectory()) await readRecursive(file);
     else if (pluginFilter(filename)) {
       const module = await import(global.__filename(file));
-      global.plugins[file.replace(pluginFolder + '/', '')] = module.default || module;
+      const plugin = module.default || module;
+      const pluginName = plugin.name || filename.replace('.js', '');
+      global.plugins.set(pluginName, plugin);
+      if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
     }
   }
 }
@@ -180,7 +185,10 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
   if (pluginFilter(filename)) {
     const dir = global.__filename(join(pluginFolder, filename), true);
     const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    global.plugins[filename.replace(pluginFolder + '/', '')] = module.default || module;
+    const plugin = module.default || module;
+    const pluginName = plugin.name || filename.replace('.js', '');
+    global.plugins.set(pluginName, plugin);
+    if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
   }
 });
 

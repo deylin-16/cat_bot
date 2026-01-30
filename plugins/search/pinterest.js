@@ -1,38 +1,45 @@
 import axios from 'axios';
 import baileys from '@whiskeysockets/baileys';
-import fetch from 'node-fetch';
 
 const pinterestCommand = {
     name: 'pinterest',
     alias: ['pin'],
     category: 'search',
     run: async (m, { conn, text }) => {
-        if (!text) return conn.reply(m.chat, `🍪 Ingresa un texto para iniciar la búsqueda...`, m);
+        if (!text) return conn.reply(m.chat, `\t\t\t *『 PINTEREST SEARCH 』* }n\n> ✎ Ingresa un texto para iniciar la búsqueda...`, m);
 
         try {
-            m.react('🕒');
+            await m.react('🕒');
 
-            // Búsqueda en Pinterest
-            const res = await axios.get(`https://api.lolhuman.xyz/api/pinterest?apikey=GataDios&query=${encodeURIComponent(text)}`);
-            const results = res.data.result;
+            const { data: res } = await axios.get(`${global.url_api}/api/search/pin?q=${encodeURIComponent(text)}&apikey=${global.key}`);
+            
+            if (!res.success || !res.results || res.results.length === 0) {
+                await m.react('❌');
+                return conn.reply(m.chat, `No se encontraron resultados para "${text}".`, m);
+            }
 
-            if (!results || results.length === 0) return conn.reply(m.chat, `No se encontraron resultados para "${text}".`, m);
-
-            const maxImages = Math.min(results.length, 7);
+            const maxImages = Math.min(res.results.length, 7);
             const medias = [];
+            
+            const randomPick = res.results[Math.floor(Math.random() * maxImages)];
 
             for (let i = 0; i < maxImages; i++) {
                 medias.push({
                     type: 'image',
-                    data: { url: results[i] }
+                    data: { url: res.results[i].url }
                 });
             }
 
-            const caption = `*── 「 PINTEREST ALBUM 」 ──*\n\n▢ *BÚSQUEDA:* ${text}\n▢ *CANTIDAD:* ${maxImages}`;
+            const caption = `*── 「 PINTEREST ALBUM 」 ──*\n\n` +
+                             `▢ *BÚSQUEDA:* ${text}\n` +
+                             `▢ *TÍTULO:* ${randomPick.title}\n` +
+                             `▢ *AUTOR:* ${randomPick.author}\n` +
+                             `▢ *LINK:* ${randomPick.source}\n` +
+                             `▢ *CANTIDAD:* ${maxImages}\n\n`;
 
             await sendAlbum(conn, m.chat, medias, {
                 caption: caption,
-                quoted: fkontak,
+                quoted: m,
                 delay: 500
             });
 
@@ -40,8 +47,8 @@ const pinterestCommand = {
 
         } catch (error) {
             console.error(error);
-            m.react('❌');
-            conn.reply(m.chat, 'Error al obtener imágenes de Pinterest.', m);
+            await m.react('❌');
+            conn.reply(m.chat, 'Error al conectar con la API de Pinterest.', m);
         }
     }
 };

@@ -52,6 +52,8 @@ global.prefix = new RegExp('^[#!./]');
 global.db = new Low(new JSONFile('database.json'));
 global.DATABASE = global.db;
 
+global.conns = [];
+
 global.loadDatabase = async function loadDatabase() {
   if (global.db.READ) {
     return new Promise((resolve) => setInterval(async function() {
@@ -143,21 +145,23 @@ global.reloadHandler = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
 
-
-  conn.handler = async (chatUpdate) => {
-    setImmediate(async () => {
-        try {
-            await handler.handler.call(global.conn, chatUpdate);
-        } catch (e) { console.error(e); }
-    });
+  const setupInstance = (instance) => {
+    instance.handler = async (chatUpdate) => {
+      setImmediate(async () => {
+          try {
+              await handler.handler.call(instance, chatUpdate);
+          } catch (e) { console.error(e); }
+      });
+    };
+    instance.connectionUpdate = connectionUpdate.bind(instance);
+    instance.credsUpdate = saveCreds.bind(instance, true);
+    instance.ev.on('messages.upsert', instance.handler);
+    instance.ev.on('connection.update', instance.connectionUpdate);
+    instance.ev.on('creds.update', instance.credsUpdate);
   };
 
-  conn.connectionUpdate = connectionUpdate.bind(global.conn);
-  conn.credsUpdate = saveCreds.bind(global.conn, true);
-
-  conn.ev.on('messages.upsert', conn.handler);
-  conn.ev.on('connection.update', conn.connectionUpdate);
-  conn.ev.on('creds.update', conn.credsUpdate);
+  setupInstance(global.conn);
+  global.conns.forEach(c => setupInstance(c));
   return true;
 };
 
@@ -198,16 +202,14 @@ async function autostartSubBots() {
     const jadibtsPath = join(process.cwd(), 'jadibts');
     if (existsSync(jadibtsPath)) {
         const folders = readdirSync(jadibtsPath);
-
-        folders.forEach(async (folder) => {
+        for (const folder of folders) {
             if (statSync(join(jadibtsPath, folder)).isDirectory()) {
                 try {
                     const { assistant_accessJadiBot } = await import('./plugins/main/serbot.js');
-
-                    assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
+                    await assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false });
                 } catch (e) {}
             }
-        });
+        }
     }
 }
 autostartSubBots();

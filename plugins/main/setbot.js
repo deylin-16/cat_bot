@@ -1,42 +1,21 @@
-import ws from 'ws'
-
-const prioridad = {
-    name: 'prioridad',
-    alias: ['primary', 'setbot'],
-    category: 'admin',
-    rowner: true,
+const antisubPlugin = {
+    name: 'antisub',
+    alias: ['antisubs'],
+    category: 'group',
+    admin: true,
     group: true,
-    run: async (m, { conn, text, usedPrefix, command }) => {
-        if (text === 'off' || text === 'reset' || text === 'liberar') {
-            global.db.data.chats[m.chat].primaryBot = ''
-            return m.reply(`✅ Grupo liberado. Todos los asistentes pueden responder.`)
+    run: async (m, { conn, text }) => {
+        const chat = global.db.data.chats[m.chat];
+        if (!text) return m.reply(`*¿Deseas activar o desactivar?*\nUso: .antisub on / off`);
+
+        if (text === 'on') {
+            chat.antisub = true;
+            await m.reply(`*MODO ANTISUB ACTIVADO*\n\nAhora los sub-bots ignorarán este grupo y solo responderá el bot principal.`);
+        } else if (text === 'off') {
+            chat.antisub = false;
+            await m.reply(`*MODO ANTISUB DESACTIVADO*\n\nLos sub-bots pueden volver a responder en este grupo.`);
         }
-
-        let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : null
-
-        if (!who) return m.reply(`Menciona al bot que quieres dejar como único asistente.`)
-
-        const cleanNumber = (jid) => jid.split('@')[0].replace(/\D/g, '')
-        const targetNumber = cleanNumber(who)
-
-        const activeBots = (global.conns || []).filter(c => c.user && c.ws?.socket?.readyState === ws.OPEN)
-
-        const onlineNumbers = [
-            cleanNumber(conn.user.jid),
-            ...activeBots.map(v => cleanNumber(v.user.jid))
-        ].filter(Boolean)
-
-        if (!onlineNumbers.includes(targetNumber)) {
-            return m.reply(`❌ El usuario @${targetNumber} no es un asistente activo.\n\nAsistentes: ${onlineNumbers.join(', ')}`, null, { mentions: [who] })
-        }
-
-        global.db.data.chats[m.chat].primaryBot = who
-
-        await conn.sendMessage(m.chat, {
-            text: `✅ *Prioridad Establecida*\n\nSolo el asistente @${targetNumber} tiene permiso para responder en este grupo.`,
-            mentions: [who]
-        }, { quoted: m })
     }
-}
+};
 
-export default prioridad
+export default antisubPlugin;

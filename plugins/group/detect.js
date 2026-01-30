@@ -20,8 +20,7 @@ export async function before(m, { conn, participants }) {
             .replace(/@grupo/g, groupMetadata.subject || 'Sistema')
             .replace(/@total/g, participants.length)
 
-        let pp = 'https://i.ibb.co/jPSF32Pz/9005bfa156f1f56fb2ac661101d748a5.jpg'
-        if (typeof global.img === 'function') pp = global.img()
+        let pp = global.img
         try { pp = await conn.profilePictureUrl(who, 'image') } catch (e) {}
 
         await conn.sendMessage(m.chat, { image: { url: pp }, caption: txt, mentions: [who] })
@@ -66,12 +65,12 @@ export async function before(m, { conn, participants }) {
         } else { return true }
 
         await conn.sendMessage(m.chat, {
-            text: `┏━━━〔 ${icon} ${tipo} 〕━━━┓\n${mensaje}\n┗━━━━━━━━━━━━━━━━━━┛\n\n> 📅 _${global.fecha || new Date().toLocaleDateString()}_`,
+            text: `┏━━━〔 ${tipo} 〕━━━┓\n${mensaje}\n┗━━━━━━━━━━━━━━━━━━┛\n\n> 📅 _${global.fecha || new Date().toLocaleDateString()}_`,
             contextInfo: {
                 mentionedJid: [who],
                 externalAdReply: {
                     title: `ʟᴏɢ: ${tipo}`,
-                    body: `ᴇsᴛᴀᴅᴏ: sɪsᴛᴇᴍᴀ ᴀᴄᴛɪᴠᴏ`,
+                    body: icon,
                     mediaType: 1,
                     thumbnailUrl: thumb,
                     sourceUrl: '',

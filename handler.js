@@ -33,18 +33,19 @@ export async function handler(chatUpdate) {
     const textRaw = (m.message?.conversation || m.message?.extendedTextMessage?.text || m.message?.imageMessage?.caption || '').trim();
     const isPriorityCommand = /^[.#\/](prioridad|primary|setbot)/i.test(textRaw);
 
+    let user, chat, plugin;
+
     if (chatJid.endsWith('@g.us')) {
         global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
-        const chatData = global.db.data.chats[chatJid];
+        chat = global.db.data.chats[chatJid];
         const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
 
-        if (chatData?.primaryBot && chatData.primaryBot !== conn.user.jid) {
+        if (chat?.primaryBot && chat.primaryBot !== conn.user.jid) {
             if (!isROwner && !isPriorityCommand) return;
         }
 
         const mainBotJid = global.conn?.user?.jid;
-        const isSubAssistant = conn.user.jid !== mainBotJid;
-        if (isSubAssistant && !chatData?.primaryBot) {
+        if (conn.user.jid !== mainBotJid && !chat?.primaryBot) {
             const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
             const participants = groupMetadata?.participants || [];
             if (participants.some(p => p.id === mainBotJid)) return;
@@ -57,7 +58,6 @@ export async function handler(chatUpdate) {
 
     m = smsg(conn, m) || m;
     const senderJid = m.sender;
-    let user, chat, plugin;
 
     let usedPrefix, noPrefixText, args, command, text;
     if (isCmd) {
@@ -75,7 +75,7 @@ export async function handler(chatUpdate) {
     try {
         global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
         user = global.db.data.users[senderJid];
-        chat = global.db.data.chats[chatJid];
+        chat ||= global.db.data.chats[chatJid];
 
         const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
         const isOwner = isROwner || m.fromMe;
@@ -152,5 +152,5 @@ global.dfail = (type, m, conn) => {
 let file = global.__filename(import.meta.url, true);
 watchFile(file, async () => {
     unwatchFile(file);
-    console.log(chalk.magentaBright("Handler jerárquico actualizado"));
+    process.send('reset');
 });

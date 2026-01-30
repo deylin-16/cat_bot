@@ -5,7 +5,7 @@ const detectHandler = {
     if (!m.messageStubType || !m.chat.endsWith('@g.us')) return
 
     const chat = global.db?.data?.chats?.[m.chat] || {}
-    if (chat.detect === false) return
+  //  if (chat.detect === false) return
 
     const botname = global.name?.() || 'Deylin Bot'
     const urlapi = global.img?.() || 'https://telegra.ph/file/default.jpg'

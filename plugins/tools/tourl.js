@@ -9,7 +9,7 @@ const imagekit = new ImageKit({
 
 const uploadCommand = {
     name: 'upload',
-    alias: ['tourl', 'ik'],
+    alias: ['tourl', 'ik', 'tourl'],
     category: 'tools',
     run: async (m, { conn, command }) => {
         let q = m.quoted ? m.quoted : m
@@ -24,7 +24,7 @@ const uploadCommand = {
         imagekit.upload({
             file: media,
             fileName: fileName,
-            folder: `/${bot}_by_deylin`
+            folder: `/${name}_by_deylin`
         }, async (err, result) => {
             if (err) {
                 await m.react('❌')

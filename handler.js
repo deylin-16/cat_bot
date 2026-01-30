@@ -24,21 +24,26 @@ export async function handler(chatUpdate) {
     const currentNumber = (conn.user.jid || '').replace(/[^0-9]/g, '');
     const isMainBot = currentNumber === MAIN_NUMBER;
 
+    global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, detect: true, antisub: false };
+    const chat = global.db.data.chats[chatJid];
+
     if (chatJid.endsWith('@g.us')) {
+        if (!isMainBot && chat.antisub) return;
+
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         const participants = groupMetadata?.participants || [];
-        
-        if (isMainBot) {
+
+        if (isMainBot && !chat.antisub) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
                 .map(c => (c.user.jid || '').replace(/[^0-9]/g, ''));
-            
+
             const isAnySubPresent = participants.some(p => {
                 const pNumber = p.id.replace(/[^0-9]/g, '');
                 return activeSubBots.includes(pNumber);
             });
             if (isAnySubPresent) return;
-        } else {
+        } else if (!isMainBot && !chat.antisub) {
             const isMainPresent = participants.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER);
             if (isMainPresent) return;
         }
@@ -47,14 +52,11 @@ export async function handler(chatUpdate) {
     m = smsg(conn, m) || m;
     if (!m || m.isBaileys) return;
 
-    let user, chat, plugin;
+    let user, plugin;
     const senderJid = m.sender;
 
     global.db.data.users[senderJid] ||= { exp: 0, muto: false };
-    global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, detect: true };
-
     user = global.db.data.users[senderJid];
-    chat = global.db.data.chats[chatJid];
 
     const prefixRegex = /^[.#\/]/;
     const textRaw = m.text || '';

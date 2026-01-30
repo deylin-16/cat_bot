@@ -40,32 +40,38 @@ export async function handler(chatUpdate) {
     const senderJid = m.sender;
     let user, chat, plugin;
 
-    let usedPrefix, noPrefixText, args, command, text;
-    if (isCmd) {
-        const match = str.match(prefixRegex);
-        usedPrefix = match[0];
-        noPrefixText = str.slice(usedPrefix.length).trim();
-        args = noPrefixText.split(/\s+/).filter(v => v);
-        command = (args.shift() || '').toLowerCase();
-        text = args.join(' ');
-    }
-
-    const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
-    plugin = global.plugins.get(pluginName);
-
     try {
         global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
         global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
-        
+
         user = global.db.data.users[senderJid];
         chat = global.db.data.chats[chatJid];
+        
         const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
         const isOwner = isROwner || m.fromMe;
+
+        if (chat.primaryBot && chat.primaryBot !== conn.user.jid && !isROwner) {
+            const isPriorityCommand = /^(prioridad|primary|setbot)/i.test(str.slice(1).trim());
+            if (!isPriorityCommand) return;
+        }
+
+        let usedPrefix, noPrefixText, args, command, text;
+        if (isCmd) {
+            const match = str.match(prefixRegex);
+            usedPrefix = match[0];
+            noPrefixText = str.slice(usedPrefix.length).trim();
+            args = noPrefixText.split(/\s+/).filter(v => v);
+            command = (args.shift() || '').toLowerCase();
+            text = args.join(' ');
+        }
+
+        const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
+        plugin = global.plugins.get(pluginName);
 
         if (plugin && isCmd) {
             if (plugin.disabled) return;
             if (chat.isBanned && !isROwner) return;
-            
+
             let isAdmin = false, isBotAdmin = false;
             if (m.isGroup && (plugin.admin || plugin.botAdmin)) {
                 const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
@@ -112,7 +118,7 @@ export async function handler(chatUpdate) {
         console.error(e);
         if (m) m.reply(format(e));
     } finally {
-        if (m.isCommand && user) {
+        if (m && m.isCommand && user) {
             user.exp += plugin?.exp || 10;
             global.db.data.stats[m.plugin] ||= { total: 0, success: 0 };
             global.db.data.stats[m.plugin].total++;

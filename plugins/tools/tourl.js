@@ -24,7 +24,7 @@ const uploadCommand = {
         imagekit.upload({
             file: media,
             fileName: fileName,
-            folder: `/${name}_by_deylin`
+            folder: `/bot_by_deylin`
         }, async (err, result) => {
             if (err) {
                 await m.react('❌')

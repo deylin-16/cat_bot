@@ -53,8 +53,8 @@ global.jadi = conf.sessions.sub
 global.url = conf.sessions.pairing
 global.ch = { ch1: conf.social.channel }
 
-global.name = () => global.botNames[Math.floor(Math.random() * global.botNames.length)]
-global.img = () => global.botImages[Math.floor(Math.random() * global.botImages.length)]
+global.name = global.botNames[Math.floor(Math.random() * global.botNames.length)]
+global.img = global.botImages[Math.floor(Math.random() * global.botImages.length)]
 
 global.getBuffer = async (url, options = {}) => {
   try {

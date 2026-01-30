@@ -76,14 +76,14 @@ export async function handler(chatUpdate) {
         global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
         user = global.db.data.users[senderJid];
         chat = global.db.data.chats[chatJid];
-        
+
         const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
         const isOwner = isROwner || m.fromMe;
 
         if (plugin && isCmd) {
             if (plugin.disabled) return;
             if (chat?.isBanned && !isROwner) return;
-            
+
             let isAdmin = false, isBotAdmin = false;
             if (m.isGroup) {
                 const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
@@ -128,7 +128,7 @@ export async function handler(chatUpdate) {
         console.error(e);
         if (m) m.reply(format(e));
     } finally {
-        if (m.isCommand && user) {
+        if (m && m.isCommand && user && pluginName) {
             user.exp += plugin?.exp || 10;
             global.db.data.stats[pluginName] ||= { total: 0, success: 0 };
             global.db.data.stats[pluginName].total++;

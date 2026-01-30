@@ -1,71 +1,51 @@
 import { WAMessageStubType } from '@whiskeysockets/baileys'
 
-const detectHandler = {
-  async before(m, { conn, participants }) {
-    if (!m.messageStubType || !m.chat.endsWith('@g.us')) return
+export async function before(m, { conn, participants }) {
+    if (!m.messageStubType || !m.chat.endsWith('@g.us')) return true
 
-    const chat = global.db?.data?.chats?.[m.chat] || {}
-  //  if (chat.detect === false) return
-
-    const botname = global.name || 'Deylin Bot'
-    const urlapi = global.img || 'https://telegra.ph/file/default.jpg'
-
-    let emisor = m.sender || m.messageStubParameters?.[0] || '0@s.whatsapp.net'
-    let usuario = `@${emisor.split`@`[0]}`
-    let tipo = '', mensaje = '', icon = '🛡️', descFinal = ''
-    let thumb = urlapi
+    const chat = global.db.data.chats[m.chat]
+    if (!chat) return true
 
     const st = m.messageStubType
     const param = m.messageStubParameters || []
+    const who = param[0] || m.sender
+    const userTag = `@${who.split('@')[0]}`
+    
+    if (chat.welcome && (st === 27 || st === 31 || st === WAMessageStubType.GROUP_PARTICIPANT_ADD)) {
+        const groupMetadata = await conn.groupMetadata(m.chat).catch(_ => ({}))
+        const txt = (chat.customWelcome || `┏━━━〔 *ᴡᴇʟᴄᴏᴍᴇ* 〕━━━┓\n┃ ✎ ʜᴇʟʟᴏ: @user\n┃ ✎ ɢʀᴏᴜᴘ: @grupo\n┃ ✎ ɴᴏᴅᴇs: @total\n┗━━━━━━━━━━━━━━━━━━┛`)
+            .replace(/@user/g, userTag)
+            .replace(/@grupo/g, groupMetadata.subject || 'System')
+            .replace(/@total/g, participants.length)
 
-    if (st == WAMessageStubType.GROUP_CHANGE_SUBJECT) {
-      icon = '📝'; tipo = 'NOMBRE ACTUALIZADO'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Nuevo:* ${param[0]}\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-    } else if (st == WAMessageStubType.GROUP_CHANGE_ICON) {
-      icon = '🖼️'; tipo = 'IMAGEN DEL GRUPO'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Estado:* Actualizada\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-      thumb = await conn.profilePictureUrl(m.chat, 'image').catch(_ => urlapi)
-    } else if (st == WAMessageStubType.GROUP_CHANGE_DESCRIPTION) {
-      icon = '📜'; tipo = 'DESCRIPCIÓN'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Acción:* Modificada\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-      descFinal = `\n\n*📝 Descripción:* ${param[0] || 'Actualizada'}`
-    } else if (st == WAMessageStubType.GROUP_CHANGE_INVITE_LINK) {
-      icon = '🔗'; tipo = 'ENLACE DE GRUPO'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Acción:* Restablecido\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-    } else if (st == WAMessageStubType.GROUP_CHANGE_RESTRICT) {
-      icon = '⚙️'; tipo = 'CONFIGURACIÓN'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Permisos:* ${param[0] == 'on' ? 'Solo Admins' : 'Todos'}\n┃ 👤 *Editor:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-    } else if (st == WAMessageStubType.GROUP_PROMOTE_ADMIN) {
-      icon = '⚡'; tipo = 'NUEVO ADMINISTRADOR'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *User:* @${param[0]?.split('@')[0]}\n┃ 👤 *Acción por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-    } else if (st == WAMessageStubType.GROUP_DEMOTE_ADMIN) {
-      icon = '❌'; tipo = 'ADMIN DEGRADADO'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *User:* @${param[0]?.split('@')[0]}\n┃ 👤 *Acción por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-    } else if (st == 21 || st == 28 || st == 32) {
-      icon = '⏳'; tipo = 'MENSAJES TEMPORALES'
-      mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Tiempo:* ${param[0] == '0' ? 'Off' : param[0] + 's'}\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-    } else {
-      return
+        let pp = global.img
+        try { pp = await conn.profilePictureUrl(who, 'image') } catch {}
+
+        await conn.sendMessage(m.chat, { image: { url: pp }, caption: txt, mentions: [who] })
+        return true
     }
 
-    const subject = (await conn.groupMetadata(m.chat).catch(_ => ({}))).subject || 'Grupo'
+    if (chat.detect) {
+        let tipo = '', icon = '🛡️', mensaje = ''
+        
+        if (st === 29 || st === WAMessageStubType.GROUP_PROMOTE_ADMIN) {
+            tipo = 'ᴘʀᴏᴍᴏᴛᴇ'; icon = '⚡'
+            mensaje = `┃ ✎ ᴜsᴇʀ: ${userTag}\n┃ ✎ sᴛᴀᴛᴜs: ɴᴇᴡ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ`
+        } else if (st === 30 || st === WAMessageStubType.GROUP_DEMOTE_ADMIN) {
+            tipo = 'ᴅᴇᴍᴏᴛᴇ'; icon = '❌'
+            mensaje = `┃ ✎ ᴜsᴇʀ: ${userTag}\n┃ ✎ sᴛᴀᴛᴜs: ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴀᴅᴍɪɴs`
+        } else if (st === 21 || st === WAMessageStubType.GROUP_CHANGE_SUBJECT) {
+            tipo = 'sʏsᴛᴇᴍ'; icon = '📝'
+            mensaje = `┃ ✎ ᴄʜᴀɴɢᴇ: ɴᴇᴡ sᴜʙᴊᴇᴄᴛ\n┃ ✎ ᴠᴀʟᴜᴇ: ${param[0]}`
+        } else if (st === 22 || st === WAMessageStubType.GROUP_CHANGE_ICON) {
+            tipo = 'sʏsᴛᴇᴍ'; icon = '🖼️'
+            mensaje = `┃ ✎ ᴄʜᴀɴɢᴇ: ɢʀᴏᴜᴘ ɪᴄᴏɴ ᴜᴘᴅᴀᴛᴇᴅ`
+        } else { return true }
 
-    await conn.sendMessage(m.chat, {
-      text: `${mensaje}\n\n> 📅 _${global.fecha || new Date().toLocaleDateString()}_${descFinal}`,
-      contextInfo: {
-        mentionedJid: [emisor, ...(param[0] ? [param[0]] : [])],
-        externalAdReply: {
-          title: `LOG: ${tipo}`,
-          body: subject,
-          mediaType: 1,
-          thumbnailUrl: thumb,
-          sourceUrl: '',
-          renderLargerThumbnail: false
-        }
-      }
-    })
+        await conn.sendMessage(m.chat, {
+            text: `┏━━━〔 ${tipo} 〕━━━┓\n${mensaje}\n┗━━━━━━━━━━━━━━━━━━┛`,
+            contextInfo: { mentionedJid: [who] }
+        })
+    }
     return true
-  }
 }
-
-export default detectHandler

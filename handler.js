@@ -26,21 +26,23 @@ export async function handler(chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.key.remoteJid;
+    let user, chat, plugin;
+
     if (chatJid.endsWith('@g.us')) {
         global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
-        const chatData = global.db.data.chats[chatJid];
+        chat = global.db.data.chats[chatJid];
         const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
         const textCommand = (m.message?.conversation || m.message?.extendedTextMessage?.text || '').toLowerCase();
         const isPriorityCommand = /^(prioridad|primary|setbot)/i.test(textCommand.trim().slice(1));
 
-        if (chatData?.primaryBot && chatData.primaryBot !== conn.user.jid) {
+        if (chat?.primaryBot && chat.primaryBot !== conn.user.jid) {
             if (!isROwner && !isPriorityCommand) return;
         }
 
         const mainBotJid = global.conn?.user?.jid;
         const isSubAssistant = conn.user.jid !== mainBotJid;
 
-        if (isSubAssistant && !chatData?.primaryBot) {
+        if (isSubAssistant && !chat?.primaryBot) {
             const groupMetadata = await conn.groupMetadata(chatJid).catch(() => null);
             const participants = groupMetadata?.participants || [];
             if (participants.some(p => p.id === mainBotJid)) return;
@@ -52,20 +54,20 @@ export async function handler(chatUpdate) {
 
     const senderJid = m.sender;
     global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
-    const user = global.db.data.users[senderJid];
-    const chat = global.db.data.chats[chatJid];
+    user = global.db.data.users[senderJid];
+    chat ||= global.db.data.chats[chatJid];
 
     const prefixRegex = /^[.#\/]/;
     const textRaw = m.text || '';
     const isCmd = prefixRegex.test(textRaw);
 
     if (!isCmd) {
-        for (const plugin of Object.values(global.plugins)) {
-            if (plugin.before && typeof plugin.before === 'function') {
-                if (await plugin.before.call(conn, m, { conn, chatUpdate })) return;
+        for (const p of Object.values(global.plugins)) {
+            if (p.before && typeof p.before === 'function') {
+                if (await p.before.call(conn, m, { conn, chatUpdate })) return;
             }
-            if (plugin.all && typeof plugin.all === 'function') {
-                await plugin.all.call(conn, m, { chatUpdate });
+            if (p.all && typeof p.all === 'function') {
+                await p.all.call(conn, m, { chatUpdate });
             }
         }
         return;
@@ -79,7 +81,7 @@ export async function handler(chatUpdate) {
     const text = args.join(' ');
 
     const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
-    const plugin = global.plugins.get(pluginName);
+    plugin = global.plugins.get(pluginName);
 
     if (plugin) {
         if (plugin.disabled) return;

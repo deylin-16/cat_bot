@@ -202,7 +202,7 @@ async function autostartSubBots() {
         folders.forEach(async (folder) => {
             if (statSync(join(jadibtsPath, folder)).isDirectory()) {
                 try {
-                    const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+                    const { assistant_accessJadiBot } = await import('./plugins/main/serbot.js');
 
                     assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false }).catch(() => {});
                 } catch (e) {}
@@ -229,7 +229,7 @@ app.get('/api/get-pairing-code', async (req, res) => {
     if (!number) return res.status(400).send({ error: "Número requerido" });
     try {
         const num = number.replace(/\D/g, '');
-        const { assistant_accessJadiBot } = await import('./plugins/©acceso.js');
+        const { assistant_accessJadiBot } = await import('./plugins/main/serbot.js');
         const code = await assistant_accessJadiBot({ 
             m: null, 
             conn: global.conn, 

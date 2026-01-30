@@ -7,14 +7,17 @@ const menuCommand = {
     category: 'main',
     run: async (m, { conn, usedPrefix }) => {
         try {
-            const allPlugins = Object.values(global.plugins);
+            const allPlugins = Array.from(global.plugins.values());
             const categories = {};
 
             allPlugins.forEach(plugin => {
                 if (!plugin || plugin.disabled) return;
                 const cat = plugin.category || 'otros';
                 if (!categories[cat]) categories[cat] = [];
-                categories[cat].push(plugin.name);
+                
+                if (!categories[cat].includes(plugin.name)) {
+                    categories[cat].push(plugin.name);
+                }
             });
 
             let menuText = `*── 「 ${global.botname || 'DYNAMIC BOT'} 」 ──*\n\n`;
@@ -23,16 +26,20 @@ const menuCommand = {
             menuText += `*──────────────────*\n\n`;
 
             const keys = Object.keys(categories).sort();
-            for (const key of keys) {
-                menuText += `*┌── 「 ${key.toUpperCase()} 」*\n`;
-                for (const cmd of categories[key].sort()) {
-                    menuText += `│ ▢ ${usedPrefix}${cmd}\n`;
+            
+            if (keys.length === 0) {
+                menuText += `_No se encontraron comandos cargados._\n\n`;
+            } else {
+                for (const key of keys) {
+                    menuText += `*┌── 「 ${key.toUpperCase()} 」*\n`;
+                    for (const cmd of categories[key].sort()) {
+                        menuText += `│ ▢ ${usedPrefix}${cmd}\n`;
+                    }
+                    menuText += `*└──────────────*\n\n`;
                 }
-                menuText += `*└──────────────*\n\n`;
             }
 
-            
-   
+            menuText += `_Dynamic Bot by Deylin_`;
 
             await conn.sendMessage(m.chat, { 
                 text: menuText,
@@ -51,6 +58,7 @@ const menuCommand = {
             await m.react('📜');
 
         } catch (error) {
+            console.error(error);
             conn.reply(m.chat, 'Error al generar el menú.', m);
         }
     }

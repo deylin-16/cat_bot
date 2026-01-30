@@ -20,40 +20,31 @@ export async function handler(chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.key.remoteJid;
-    let user, chat, plugin;
-
     const mainBotJid = global.conn?.user?.jid;
     const isSubAssistant = conn.user.jid !== mainBotJid;
 
-    if (chatJid.endsWith('@g.us')) {
-        global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
-        chat = global.db.data.chats[chatJid];
-        
-        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
-        const textRaw = (m.message?.conversation || m.message?.extendedTextMessage?.text || m.message?.imageMessage?.caption || '').trim();
-        const isPriorityCommand = /^[.#\/](prioridad|primary|setbot)/i.test(textRaw);
-
-        if (chat?.primaryBot && chat.primaryBot !== conn.user.jid) {
-            if (!isROwner && !isPriorityCommand) return;
-        }
-
-        if (isSubAssistant && !chat?.primaryBot) {
-            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
-            const participants = groupMetadata?.participants || [];
-            if (participants.some(p => p.id === mainBotJid)) return;
-        }
+    if (chatJid.endsWith('@g.us') && isSubAssistant) {
+        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+        const participants = groupMetadata?.participants || [];
+        const isMainBotPresent = participants.some(p => p.id === mainBotJid);
+        if (isMainBotPresent) return;
     }
 
     m = smsg(conn, m) || m;
     if (!m || m.isBaileys) return;
 
+    let user, chat, plugin;
     const senderJid = m.sender;
+
     global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
+    global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true };
+    
     user = global.db.data.users[senderJid];
-    chat ||= global.db.data.chats[chatJid];
+    chat = global.db.data.chats[chatJid];
 
     const prefixRegex = /^[.#\/]/;
-    const isCmd = prefixRegex.test(m.text || '');
+    const textRaw = m.text || '';
+    const isCmd = prefixRegex.test(textRaw);
 
     if (!isCmd) {
         for (const p of Object.values(global.plugins)) {
@@ -67,9 +58,9 @@ export async function handler(chatUpdate) {
         return;
     }
 
-    const match = m.text.trim().match(prefixRegex);
+    const match = textRaw.match(prefixRegex);
     const usedPrefix = match[0];
-    const noPrefixText = m.text.slice(usedPrefix.length).trim();
+    const noPrefixText = textRaw.slice(usedPrefix.length).trim();
     const args = noPrefixText.split(/\s+/).filter(v => v);
     const command = (args.shift() || '').toLowerCase();
     const text = args.join(' ');

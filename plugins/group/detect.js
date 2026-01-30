@@ -13,52 +13,71 @@ export async function before(m, { conn, participants }) {
 
     if (chat.welcome && (st === 27 || st === 31 || st === WAMessageStubType.GROUP_PARTICIPANT_ADD)) {
         const groupMetadata = await conn.groupMetadata(m.chat).catch(_ => ({}))
-        
-        const baseTxt = `┏━━━〔 *ᴡᴇʟᴄᴏᴍᴇ* 〕━━━┓\n┃ ✎ ʜᴇʟʟᴏ: @user\n┃ ✎ ɢʀᴏᴜᴘ: @grupo\n┃ ✎ ɴᴏᴅᴇs: @total\n┗━━━━━━━━━━━━━━━━━━┛`
+        const baseTxt = `┏━━━〔 *ᴡᴇʟᴄᴏᴍᴇ* 〕━━━┓\n┃ ✎ ʜᴏʟᴀ: @user\n┃ ✎ ɢʀᴜᴘᴏ: @grupo\n┃ ✎ ɴᴏᴅᴏs: @total\n┗━━━━━━━━━━━━━━━━━━┛`
         const customPart = chat.customWelcome ? `\n\n➠ ${chat.customWelcome}` : ''
-        
         const txt = (baseTxt + customPart)
             .replace(/@user/g, userTag)
-            .replace(/@grupo/g, groupMetadata.subject || 'System')
+            .replace(/@grupo/g, groupMetadata.subject || 'Sistema')
             .replace(/@total/g, participants.length)
 
         let pp = 'https://i.ibb.co/jPSF32Pz/9005bfa156f1f56fb2ac661101d748a5.jpg'
         if (typeof global.img === 'function') pp = global.img()
-        
-        try { 
-            pp = await conn.profilePictureUrl(who, 'image') 
-        } catch (e) {}
+        try { pp = await conn.profilePictureUrl(who, 'image') } catch (e) {}
 
-        await conn.sendMessage(m.chat, { 
-            image: { url: pp }, 
-            caption: txt, 
-            mentions: [who] 
-        })
+        await conn.sendMessage(m.chat, { image: { url: pp }, caption: txt, mentions: [who] })
         return true
     }
 
     if (chat.detect) {
-        let tipo = '', icon = '🛡️', mensaje = ''
+        let tipo = '', icon = '🛡️', mensaje = '', thumb = 'https://i.ibb.co/jPSF32Pz/9005bfa156f1f56fb2ac661101d748a5.jpg'
+        if (typeof global.img === 'function') thumb = global.img()
 
         if (st === 29 || st === WAMessageStubType.GROUP_PROMOTE_ADMIN) {
-            tipo = 'ᴘʀᴏᴍᴏᴛᴇ'; icon = '⚡'
-            mensaje = `┃ ✎ ᴜsᴇʀ: ${userTag}\n┃ ✎ sᴛᴀᴛᴜs: ɴᴇᴡ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ`
+            tipo = 'ᴀsᴄᴇɴsᴏ'; icon = '⚡'
+            mensaje = `┃ ✎ ᴜsᴜᴀʀɪᴏ: ${userTag}\n┃ ✎ ᴇsᴛᴀᴅᴏ: ɴᴜᴇᴠᴏ ᴀᴅᴍɪɴɪsᴛʀᴀᴅᴏʀ`
         } else if (st === 30 || st === WAMessageStubType.GROUP_DEMOTE_ADMIN) {
-            tipo = 'ᴅᴇᴍᴏᴛᴇ'; icon = '❌'
-            mensaje = `┃ ✎ ᴜsᴇʀ: ${userTag}\n┃ ✎ sᴛᴀᴛᴜs: ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴀᴅᴍɪɴs`
+            tipo = 'ᴅᴇɢʀᴀᴅᴀᴄɪᴏɴ'; icon = '❌'
+            mensaje = `┃ ✎ ᴜsᴜᴀʀɪᴏ: ${userTag}\n┃ ✎ ᴇsᴛᴀᴅᴏ: ʏᴀ ɴᴏ ᴇs ᴀᴅᴍɪɴ`
         } else if (st === 21 || st === WAMessageStubType.GROUP_CHANGE_SUBJECT) {
-            tipo = 'sʏsᴛᴇᴍ'; icon = '📝'
-            mensaje = `┃ ✎ ᴄʜᴀɴɢᴇ: ɴᴇᴡ sᴜʙᴊᴇᴄᴛ\n┃ ✎ ᴠᴀʟᴜᴇ: ${param[0]}`
+            tipo = 'ɴᴏᴍʙʀᴇ'; icon = '📝'
+            mensaje = `┃ ✎ ᴄᴀᴍʙɪᴏ: ɴᴜᴇᴠᴏ ᴛɪᴛᴜʟᴏ\n┃ ✎ ᴠᴀʟᴏʀ: ${param[0]}`
         } else if (st === 22 || st === WAMessageStubType.GROUP_CHANGE_ICON) {
-            tipo = 'sʏsᴛᴇᴍ'; icon = '🖼️'
-            mensaje = `┃ ✎ ᴄʜᴀɴɢᴇ: ɢʀᴏᴜᴘ ɪᴄᴏɴ ᴜᴘᴅᴀᴛᴇᴅ`
-        } else { 
-            return true 
-        }
+            tipo = 'ɪᴄᴏɴᴏ'; icon = '🖼️'
+            mensaje = `┃ ✎ ᴄᴀᴍʙɪᴏ: ɪᴍᴀɢᴇɴ ᴀᴄᴛᴜᴀʟɪᴢᴀᴅᴀ`
+            try { thumb = await conn.profilePictureUrl(m.chat, 'image') } catch (e) {}
+        } else if (st === 23 || st === WAMessageStubType.GROUP_CHANGE_INVITE_LINK) {
+            tipo = 'ᴇɴʟᴀᴄᴇ'; icon = '🔗'
+            mensaje = `┃ ✎ ᴀᴄᴄɪᴏɴ: ᴇɴʟᴀᴄᴇ ʀᴇsᴛABLECIDO`
+        } else if (st === 24 || st === WAMessageStubType.GROUP_CHANGE_DESCRIPTION) {
+            tipo = 'ɪɴғᴏ'; icon = '📜'
+            mensaje = `┃ ✎ ᴄᴀᴍʙɪᴏ: ɴᴜᴇᴠᴀ ᴅᴇsᴄʀɪᴘᴄɪᴏɴ`
+        } else if (st === 25 || st === WAMessageStubType.GROUP_CHANGE_RESTRICT) {
+            tipo = 'ᴘᴇʀᴍɪsᴏs'; icon = '⚙️'
+            mensaje = `┃ ✎ ᴇᴅɪᴄɪᴏɴ: ${param[0] === 'on' ? 'sᴏʟᴏ ᴀᴅᴍɪɴs' : 'ᴛᴏᴅᴏs'}`
+        } else if (st === 26 || st === WAMessageStubType.GROUP_CHANGE_ANNOUNCE) {
+            tipo = 'ᴄʜᴀᴛ'; icon = '🔒'
+            mensaje = `┃ ✎ ᴇsᴛᴀᴅᴏ: ${param[0] === 'on' ? 'ᴄᴇʀʀᴀᴅᴏ' : 'ᴀʙɪᴇʀᴛᴏ'}`
+        } else if (st === 28 || st === WAMessageStubType.GROUP_PARTICIPANT_LEAVE) {
+            tipo = 'sᴀʟɪᴅᴀ'; icon = '👋'
+            mensaje = `┃ ✎ ᴜsᴜᴀʀɪᴏ: ${userTag}\n┃ ✎ ᴀᴄᴄɪᴏɴ: ᴀʙᴀɴᴅᴏɴᴏ ᴇʟ ɢʀᴜᴘᴏ`
+        } else if (st === 32 || st === WAMessageStubType.BIZ_PRIVACY_MODE_INITIATED) {
+            tipo = 'ᴇғɪᴍᴇʀᴏ'; icon = '⏳'
+            mensaje = `┃ ✎ ᴛɪᴇᴍᴘᴏ: ${param[0] === '0' ? 'ᴅᴇsᴀᴄᴛɪᴠᴀᴅᴏ' : param[0]}`
+        } else { return true }
 
         await conn.sendMessage(m.chat, {
-            text: `┏━━━〔 ${tipo} 〕━━━┓\n${mensaje}\n┗━━━━━━━━━━━━━━━━━━┛`,
-            contextInfo: { mentionedJid: [who] }
+            text: `┏━━━〔 ${icon} ${tipo} 〕━━━┓\n${mensaje}\n┗━━━━━━━━━━━━━━━━━━┛\n\n> 📅 _${global.fecha || new Date().toLocaleDateString()}_`,
+            contextInfo: {
+                mentionedJid: [who],
+                externalAdReply: {
+                    title: `ʟᴏɢ: ${tipo}`,
+                    body: `ᴇsᴛᴀᴅᴏ: sɪsᴛᴇᴍᴀ ᴀᴄᴛɪᴠᴏ`,
+                    mediaType: 1,
+                    thumbnailUrl: thumb,
+                    sourceUrl: '',
+                    renderLargerThumbnail: false
+                }
+            }
         })
     }
     return true

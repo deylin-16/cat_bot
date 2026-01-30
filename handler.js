@@ -27,53 +27,65 @@ export async function handler(chatUpdate) {
     let m = chatUpdate.messages[chatUpdate.messages.length - 1];
     if (!m || m.isBaileys) return;
 
-    const str = (m.message?.conversation || m.message?.extendedTextMessage?.text || m.message?.imageMessage?.caption || '').trim();
-    const prefixRegex = /^[.#\/]/;
-    const isCmd = prefixRegex.test(str);
+    if (global.db.data == null) await global.loadDatabase();
 
+    const chatJid = m.key.remoteJid;
+    const textRaw = (m.message?.conversation || m.message?.extendedTextMessage?.text || m.message?.imageMessage?.caption || '').trim();
+    const isPriorityCommand = /^[.#\/](prioridad|primary|setbot)/i.test(textRaw);
+
+    if (chatJid.endsWith('@g.us')) {
+        global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
+        const chatData = global.db.data.chats[chatJid];
+        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
+
+        if (chatData?.primaryBot && chatData.primaryBot !== conn.user.jid) {
+            if (!isROwner && !isPriorityCommand) return;
+        }
+
+        const mainBotJid = global.conn?.user?.jid;
+        const isSubAssistant = conn.user.jid !== mainBotJid;
+        if (isSubAssistant && !chatData?.primaryBot) {
+            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+            const participants = groupMetadata?.participants || [];
+            if (participants.some(p => p.id === mainBotJid)) return;
+        }
+    }
+
+    const prefixRegex = /^[.#\/]/;
+    const isCmd = prefixRegex.test(textRaw);
     if (!isCmd && !Object.values(global.plugins).some(p => p.all || p.before)) return;
 
-    if (global.db.data == null) await global.loadDatabase();
     m = smsg(conn, m) || m;
-
-    const chatJid = m.chat;
     const senderJid = m.sender;
     let user, chat, plugin;
 
-    try {
-        global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
-        global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
+    let usedPrefix, noPrefixText, args, command, text;
+    if (isCmd) {
+        const match = textRaw.match(prefixRegex);
+        usedPrefix = match[0];
+        noPrefixText = textRaw.slice(usedPrefix.length).trim();
+        args = noPrefixText.split(/\s+/).filter(v => v);
+        command = (args.shift() || '').toLowerCase();
+        text = args.join(' ');
+    }
 
+    const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
+    plugin = global.plugins.get(pluginName);
+
+    try {
+        global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
         user = global.db.data.users[senderJid];
         chat = global.db.data.chats[chatJid];
         
         const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
         const isOwner = isROwner || m.fromMe;
 
-        if (chat.primaryBot && chat.primaryBot !== conn.user.jid && !isROwner) {
-            const isPriorityCommand = /^(prioridad|primary|setbot)/i.test(str.slice(1).trim());
-            if (!isPriorityCommand) return;
-        }
-
-        let usedPrefix, noPrefixText, args, command, text;
-        if (isCmd) {
-            const match = str.match(prefixRegex);
-            usedPrefix = match[0];
-            noPrefixText = str.slice(usedPrefix.length).trim();
-            args = noPrefixText.split(/\s+/).filter(v => v);
-            command = (args.shift() || '').toLowerCase();
-            text = args.join(' ');
-        }
-
-        const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
-        plugin = global.plugins.get(pluginName);
-
         if (plugin && isCmd) {
             if (plugin.disabled) return;
-            if (chat.isBanned && !isROwner) return;
-
+            if (chat?.isBanned && !isROwner) return;
+            
             let isAdmin = false, isBotAdmin = false;
-            if (m.isGroup && (plugin.admin || plugin.botAdmin)) {
+            if (m.isGroup) {
                 const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
                 const participants = groupMetadata.participants || [];
                 const botJid = conn.user.jid;
@@ -96,8 +108,6 @@ export async function handler(chatUpdate) {
             }
 
             m.isCommand = true;
-            m.plugin = pluginName;
-
             const runFunc = typeof plugin === 'function' ? plugin : plugin.run;
             await runFunc.call(conn, m, { 
                 usedPrefix, noPrefix: text, args, command, text, 
@@ -118,11 +128,11 @@ export async function handler(chatUpdate) {
         console.error(e);
         if (m) m.reply(format(e));
     } finally {
-        if (m && m.isCommand && user) {
+        if (m.isCommand && user) {
             user.exp += plugin?.exp || 10;
-            global.db.data.stats[m.plugin] ||= { total: 0, success: 0 };
-            global.db.data.stats[m.plugin].total++;
-            if (!m.error) global.db.data.stats[m.plugin].success++;
+            global.db.data.stats[pluginName] ||= { total: 0, success: 0 };
+            global.db.data.stats[pluginName].total++;
+            if (!m.error) global.db.data.stats[pluginName].success++;
         }
     }
 }
@@ -142,5 +152,5 @@ global.dfail = (type, m, conn) => {
 let file = global.__filename(import.meta.url, true);
 watchFile(file, async () => {
     unwatchFile(file);
-    console.log(chalk.magentaBright("Handler updated"));
+    console.log(chalk.magentaBright("Handler jerárquico actualizado"));
 });

@@ -35,24 +35,7 @@ const serbot = {
 
             if (typeof code === 'string' && code !== "Conectado") {
                 await conn.sendMessage(m.chat, { 
-                    text: `${code}`,
-                    contextInfo: {
-                        isForwarded: true,
-                        forwardedNewsletterMessageInfo: {
-                            newsletterJid: '120363406846602793@newsletter',
-                            newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
-                            serverMessageId: 1
-                        },
-                        externalAdReply: {
-                            title: 'VINCULAR SUB-BOT',
-                            body: `${name(conn)} pairing code`,
-                            thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
-                            mediaType: 1,
-                            mediaUrl: url,
-                            sourceUrl: url,
-                            renderLargerThumbnail: true
-                        }
-                    }
+                    text: `${code}`
                 }, { quoted: m })
             }
             return

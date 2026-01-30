@@ -9,14 +9,10 @@ import fetch from 'node-fetch';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 
-const lidCache = new Map();
 async function getLidFromJid(id, connection) {
     if (id.endsWith('@lid')) return id;
-    if (lidCache.has(id)) return lidCache.get(id);
     const res = await connection.onWhatsApp(id).catch(() => []);
-    const lid = res[0]?.lid || id;
-    lidCache.set(id, lid);
-    return lid;
+    return res[0]?.lid || id;
 }
 
 export async function handler(chatUpdate) {
@@ -25,114 +21,100 @@ export async function handler(chatUpdate) {
 
     if (!chatUpdate?.messages?.[0]) return;
     let m = chatUpdate.messages[chatUpdate.messages.length - 1];
-    if (!m || m.isBaileys) return;
+    if (!m) return;
 
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.key.remoteJid;
-    const textRaw = (m.message?.conversation || m.message?.extendedTextMessage?.text || m.message?.imageMessage?.caption || '').trim();
-    const isPriorityCommand = /^[.#\/](prioridad|primary|setbot)/i.test(textRaw);
-
-    let user, chat, plugin;
-
     if (chatJid.endsWith('@g.us')) {
         global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
-        chat = global.db.data.chats[chatJid];
-        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
+        const chatData = global.db.data.chats[chatJid];
+        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
+        const textCommand = (m.message?.conversation || m.message?.extendedTextMessage?.text || '').toLowerCase();
+        const isPriorityCommand = /^(prioridad|primary|setbot)/i.test(textCommand.trim().slice(1));
 
-        if (chat?.primaryBot && chat.primaryBot !== conn.user.jid) {
+        if (chatData?.primaryBot && chatData.primaryBot !== conn.user.jid) {
             if (!isROwner && !isPriorityCommand) return;
         }
 
         const mainBotJid = global.conn?.user?.jid;
-        if (conn.user.jid !== mainBotJid && !chat?.primaryBot) {
-            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+        const isSubAssistant = conn.user.jid !== mainBotJid;
+
+        if (isSubAssistant && !chatData?.primaryBot) {
+            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => null);
             const participants = groupMetadata?.participants || [];
             if (participants.some(p => p.id === mainBotJid)) return;
         }
     }
 
-    const prefixRegex = /^[.#\/]/;
-    const isCmd = prefixRegex.test(textRaw);
-    if (!isCmd && !Object.values(global.plugins).some(p => p.all || p.before)) return;
-
     m = smsg(conn, m) || m;
-    const senderJid = m.sender;
+    if (!m || m.isBaileys) return;
 
-    let usedPrefix, noPrefixText, args, command, text;
-    if (isCmd) {
-        const match = textRaw.match(prefixRegex);
-        usedPrefix = match[0];
-        noPrefixText = textRaw.slice(usedPrefix.length).trim();
-        args = noPrefixText.split(/\s+/).filter(v => v);
-        command = (args.shift() || '').toLowerCase();
-        text = args.join(' ');
+    const senderJid = m.sender;
+    global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
+    const user = global.db.data.users[senderJid];
+    const chat = global.db.data.chats[chatJid];
+
+    const prefixRegex = /^[.#\/]/;
+    const textRaw = m.text || '';
+    const isCmd = prefixRegex.test(textRaw);
+
+    if (!isCmd) {
+        for (const plugin of Object.values(global.plugins)) {
+            if (plugin.before && typeof plugin.before === 'function') {
+                if (await plugin.before.call(conn, m, { conn, chatUpdate })) return;
+            }
+            if (plugin.all && typeof plugin.all === 'function') {
+                await plugin.all.call(conn, m, { chatUpdate });
+            }
+        }
+        return;
     }
 
+    const match = textRaw.match(prefixRegex);
+    const usedPrefix = match[0];
+    const noPrefixText = textRaw.slice(usedPrefix.length).trim();
+    const args = noPrefixText.split(/\s+/).filter(v => v);
+    const command = (args.shift() || '').toLowerCase();
+    const text = args.join(' ');
+
     const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
-    plugin = global.plugins.get(pluginName);
+    const plugin = global.plugins.get(pluginName);
 
-    try {
-        global.db.data.users[senderJid] ||= { exp: 0, bitcoins: 0, muto: false };
-        user = global.db.data.users[senderJid];
-        chat ||= global.db.data.chats[chatJid];
-
-        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
+    if (plugin) {
+        if (plugin.disabled) return;
+        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(senderJid);
         const isOwner = isROwner || m.fromMe;
+        
+        let isAdmin = false, isBotAdmin = false;
+        if (m.isGroup) {
+            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+            const participants = groupMetadata.participants || [];
+            const user2 = participants.find(p => p.id === senderJid) || {};
+            const bot = participants.find(p => p.id === conn.user.jid) || {};
+            isAdmin = user2?.admin || false;
+            isBotAdmin = bot?.admin || false;
+        }
 
-        if (plugin && isCmd) {
-            if (plugin.disabled) return;
-            if (chat?.isBanned && !isROwner) return;
+        const checkPermissions = (perm) => ({
+            rowner: isROwner, owner: isOwner, group: m.isGroup, 
+            botAdmin: isBotAdmin, admin: isAdmin, private: !m.isGroup
+        }[perm]);
 
-            let isAdmin = false, isBotAdmin = false;
-            if (m.isGroup) {
-                const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
-                const participants = groupMetadata.participants || [];
-                const botJid = conn.user.jid;
-                const userAdmin = participants.find(p => p.id === senderJid);
-                const botAdmin = participants.find(p => p.id === botJid);
-                isAdmin = userAdmin?.admin || false;
-                isBotAdmin = botAdmin?.admin || false;
+        for (const perm of ['rowner', 'owner', 'group', 'botAdmin', 'admin', 'private']) {
+            if (plugin[perm] && !checkPermissions(perm)) {
+                global.dfail(perm, m, conn);
+                return;
             }
+        }
 
-            const checkPermissions = (perm) => ({
-                rowner: isROwner, owner: isOwner, group: m.isGroup, 
-                botAdmin: isBotAdmin, admin: isAdmin, private: !m.isGroup
-            }[perm]);
-
-            for (const perm of ['rowner', 'owner', 'group', 'botAdmin', 'admin', 'private']) {
-                if (plugin[perm] && !checkPermissions(perm)) {
-                    global.dfail(perm, m, conn);
-                    return;
-                }
-            }
-
-            m.isCommand = true;
+        m.isCommand = true;
+        try {
             const runFunc = typeof plugin === 'function' ? plugin : plugin.run;
-            await runFunc.call(conn, m, { 
-                usedPrefix, noPrefix: text, args, command, text, 
-                conn, user, chat, isROwner, isOwner, isAdmin, isBotAdmin, chatUpdate 
-            });
-        }
-
-        for (const p of Object.values(global.plugins)) {
-            if (p.before && typeof p.before === 'function') {
-                if (await p.before.call(conn, m, { conn, isROwner, isOwner, chatUpdate })) continue;
-            }
-            if (p.all && typeof p.all === 'function') {
-                await p.all.call(conn, m, { chatUpdate });
-            }
-        }
-
-    } catch (e) {
-        console.error(e);
-        if (m) m.reply(format(e));
-    } finally {
-        if (m && m.isCommand && user && pluginName) {
-            user.exp += plugin?.exp || 10;
-            global.db.data.stats[pluginName] ||= { total: 0, success: 0 };
-            global.db.data.stats[pluginName].total++;
-            if (!m.error) global.db.data.stats[pluginName].success++;
+            await runFunc.call(conn, m, { usedPrefix, noPrefix: text, args, command, text, conn, user, chat, isROwner, isOwner, isAdmin, isBotAdmin, chatUpdate });
+        } catch (e) {
+            console.error(e);
+            m.reply(format(e));
         }
     }
 }
@@ -152,5 +134,9 @@ global.dfail = (type, m, conn) => {
 let file = global.__filename(import.meta.url, true);
 watchFile(file, async () => {
     unwatchFile(file);
-    process.send('reset');
+    if (global.conns) {
+        for (const u of global.conns.filter(c => c.user && c.ws?.readyState === ws.OPEN)) {
+            if (u.subreloadHandler) u.subreloadHandler(false);
+        }
+    }
 });

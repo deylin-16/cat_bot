@@ -20,9 +20,9 @@ export async function handler(chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.key.remoteJid;
-    const MAIN_BOT_JID = '50432569059@s.whatsapp.net';
-    const currentBotJid = conn.user.jid.split(':')[0].split('@')[0] + '@s.whatsapp.net';
-    const isMainBot = currentBotJid === MAIN_BOT_JID;
+    const MAIN_NUMBER = '50432569059';
+    const currentNumber = (conn.user.jid || '').replace(/[^0-9]/g, '');
+    const isMainBot = currentNumber === MAIN_NUMBER;
 
     if (chatJid.endsWith('@g.us')) {
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
@@ -31,12 +31,15 @@ export async function handler(chatUpdate) {
         if (isMainBot) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
-                .map(c => c.user.jid.split(':')[0].split('@')[0] + '@s.whatsapp.net');
+                .map(c => (c.user.jid || '').replace(/[^0-9]/g, ''));
             
-            const isAnySubPresent = participants.some(p => activeSubBots.includes(p.id.split(':')[0].split('@')[0] + '@s.whatsapp.net'));
+            const isAnySubPresent = participants.some(p => {
+                const pNumber = p.id.replace(/[^0-9]/g, '');
+                return activeSubBots.includes(pNumber);
+            });
             if (isAnySubPresent) return;
         } else {
-            const isMainPresent = participants.some(p => (p.id.split(':')[0].split('@')[0] + '@s.whatsapp.net') === MAIN_BOT_JID);
+            const isMainPresent = participants.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER);
             if (isMainPresent) return;
         }
     }
@@ -86,7 +89,7 @@ export async function handler(chatUpdate) {
             const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
             const participants = groupMetadata.participants || [];
             isAdmin = participants.find(p => p.id === senderJid)?.admin || false;
-            isBotAdmin = participants.find(p => p.id === currentBotJid)?.admin || false;
+            isBotAdmin = participants.some(p => p.id.replace(/[^0-9]/g, '') === currentNumber && p.admin);
         }
 
         const checkPermissions = (perm) => ({

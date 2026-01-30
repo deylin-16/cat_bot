@@ -168,6 +168,20 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
+            const msg = chatUpdate.messages[0]
+            if (!msg || msg.key.fromMe || msg.isBaileys) return
+
+            const chatJid = msg.key.remoteJid
+            const MAIN_BOT_JID = '50432569059@s.whatsapp.net'
+
+            if (chatJid.endsWith('@g.us')) {
+                const groupMetadata = await sock.groupMetadata(chatJid).catch(() => ({}))
+                const participants = groupMetadata?.participants || []
+                const isMainPresent = participants.some(p => p.id === MAIN_BOT_JID)
+                
+                if (isMainPresent) return
+            }
+
             const handlerPath = path.join(process.cwd(), 'handler.js')
             const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
             await handler.call(sock, chatUpdate)

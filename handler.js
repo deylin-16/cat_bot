@@ -9,6 +9,13 @@ import fetch from 'node-fetch';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 
+async function getLidFromJid(id, connection) {
+    if (!id) return '';
+    if (id.endsWith('@lid')) return id;
+    const res = await connection.onWhatsApp(id).catch(() => []);
+    return res[0]?.lid || id;
+}
+
 export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now();
     const conn = this;
@@ -21,7 +28,8 @@ export async function handler(chatUpdate) {
 
     const chatJid = m.key.remoteJid;
     const MAIN_NUMBER = '50432569059';
-    const currentNumber = (conn.user.jid || '').replace(/[^0-9]/g, '');
+    const currentJid = conn.user.jid;
+    const currentNumber = currentJid.replace(/[^0-9]/g, '');
     const isMainBot = currentNumber === MAIN_NUMBER;
 
     global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, detect: true, antisub: false };
@@ -36,12 +44,9 @@ export async function handler(chatUpdate) {
         if (isMainBot && !chat.antisub) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
-                .map(c => (c.user.jid || '').replace(/[^0-9]/g, ''));
+                .map(c => c.user.jid.replace(/[^0-9]/g, ''));
 
-            const isAnySubPresent = participants.some(p => {
-                const pNumber = p.id.replace(/[^0-9]/g, '');
-                return activeSubBots.includes(pNumber);
-            });
+            const isAnySubPresent = participants.some(p => activeSubBots.includes(p.id.replace(/[^0-9]/g, '')));
             if (isAnySubPresent) return;
         } else if (!isMainBot && !chat.antisub) {
             const isMainPresent = participants.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER);
@@ -54,9 +59,28 @@ export async function handler(chatUpdate) {
 
     let user, plugin;
     const senderJid = m.sender;
-
     global.db.data.users[senderJid] ||= { exp: 0, muto: false };
     user = global.db.data.users[senderJid];
+
+    const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + (senderJid.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(senderJid);
+    const isOwner = isROwner || m.fromMe;
+
+    let isAdmin = false, isBotAdmin = false, participants = [];
+    if (m.isGroup) {
+        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+        participants = groupMetadata.participants || [];
+        
+        const [senderLid, botLid] = await Promise.all([
+            getLidFromJid(senderJid, conn),
+            getLidFromJid(currentJid, conn)
+        ]);
+
+        const userInGroup = participants.find(p => p.id === senderLid || p.id === senderJid) || {};
+        const botInGroup = participants.find(p => p.id === botLid || p.id === currentJid) || {};
+
+        isAdmin = userInGroup?.admin === 'admin' || userInGroup?.admin === 'superadmin';
+        isBotAdmin = !!botInGroup?.admin;
+    }
 
     const prefixRegex = /^[.#\/]/;
     const textRaw = m.text || '';
@@ -65,7 +89,7 @@ export async function handler(chatUpdate) {
     if (!isCmd) {
         for (const p of Array.from(global.plugins.values())) {
             if (p.before && typeof p.before === 'function') {
-                if (await p.before.call(conn, m, { conn, chatUpdate })) return;
+                if (await p.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin })) return;
             }
         }
         return;
@@ -83,16 +107,7 @@ export async function handler(chatUpdate) {
 
     if (plugin) {
         if (plugin.disabled) return;
-        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
-        const isOwner = isROwner || m.fromMe;
-
-        let isAdmin = false, isBotAdmin = false;
-        if (m.isGroup) {
-            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
-            const participants = groupMetadata.participants || [];
-            isAdmin = participants.find(p => p.id === senderJid)?.admin || false;
-            isBotAdmin = participants.some(p => p.id.replace(/[^0-9]/g, '') === currentNumber && p.admin);
-        }
+        if (chat?.isBanned && !isROwner) return;
 
         const checkPermissions = (perm) => ({
             rowner: isROwner,
@@ -115,8 +130,7 @@ export async function handler(chatUpdate) {
             await plugin.run.call(conn, m, { 
                 usedPrefix, noPrefix: text, args, command, text, 
                 conn, user, chat, isROwner, isOwner, isAdmin, 
-                isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, 
-                participants: m.isGroup ? (await conn.groupMetadata(chatJid)).participants : []
+                isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
             });
         } catch (e) {
             console.error(e);

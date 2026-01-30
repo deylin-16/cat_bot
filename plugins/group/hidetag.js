@@ -1,6 +1,6 @@
 const hidetagCommand = {
     name: 'hidetag',
-    alias: ['tag', 'n', 'notificar'],
+    alias: ['tag', 'n', 'notificar', 'hidetag'],
     category: 'group',
     admin: true,
     group: true,
@@ -8,25 +8,31 @@ const hidetagCommand = {
         const users = participants.map(u => u.id)
         const q = m.quoted ? m.quoted : m
         const mime = (q.msg || q).mimetype || ''
-        const tagText = text || (m.quoted && m.quoted.text ? m.quoted.text : "")
+        const tagText = text || (m.quoted && m.quoted.text ? m.quoted.text : "" || `*Hola*`)
 
         try {
-            if (/image|video|sticker|audio/.test(mime)) {
+            if (m.quoted && /image|video|sticker|audio/.test(mime)) {
+                await conn.copyNForward(m.chat, m.quoted.fakeObj, false, { 
+                    contextInfo: { mentionedJid: users },
+                    caption: tagText 
+                })
+            } else if (/image|video|sticker|audio/.test(mime)) {
                 const media = await q.download()
-                let msg = {}
-
-                if (/image/.test(mime)) msg = { image: media, caption: tagText, mentions: users }
-                else if (/video/.test(mime)) msg = { video: media, caption: tagText, mentions: users }
-                else if (/audio/.test(mime)) msg = { audio: media, mimetype: 'audio/mp4', ptt: mime.includes('audio'), mentions: users }
-                else if (/sticker/.test(mime)) msg = { sticker: media, mentions: users }
-
-                await conn.sendMessage(m.chat, msg)
+                await conn.sendMessage(m.chat, { 
+                    [mime.split('/')[0]]: media, 
+                    caption: tagText, 
+                    mentions: users 
+                }, { quoted: m })
             } else {
-                await conn.sendMessage(m.chat, { text: tagText, mentions: users })
+                await conn.sendMessage(m.chat, { 
+                    text: tagText, 
+                    mentions: users 
+                }, { quoted: m })
             }
             await m.react('✅')
         } catch (e) {
-            await conn.sendMessage(m.chat, { text: tagText, mentions: users })
+            console.error(e)
+            await conn.sendMessage(m.chat, { text: tagText, mentions: users }, { quoted: m })
         }
     }
 }

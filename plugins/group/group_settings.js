@@ -56,9 +56,9 @@ const groupConfig = {
         }
 
         if (/elimina|kick|ban|echar|sacar/i.test(command)) {
-            if (!isBotAdmin) return m.reply('┃ ✎ ᴇʀʀᴏʀ: ɴᴇᴄᴇsɪᴛᴏ sᴇʀ ᴀᴅᴍɪɴ.')
+            if (!isBotAdmin) return m.reply('> ✎ ᴇʀʀᴏʀ: ɴᴇᴄᴇsɪᴛᴏ sᴇʀ ᴀᴅᴍɪɴ.')
             let users = m.mentionedJid.concat(m.quoted ? [m.quoted.sender] : []).filter(u => u !== conn.user.jid)
-            if (users.length === 0) return m.reply('┃ ✎ ɪɴғᴏ: ᴇᴛɪǫᴜᴇᴛᴀ ᴀ ᴀʟɢᴜɪᴇɴ.')
+            if (users.length === 0) return m.reply('> ✎ ɪɴғᴏ: ᴇᴛɪǫᴜᴇᴛᴀ ᴀ ᴀʟɢᴜɪᴇɴ.')
             for (let user of users) {
                 await conn.groupParticipantsUpdate(m.chat, [user], 'remove')
                 m.reply(`┏━━━〔 ᴇxᴛᴇʀᴍɪɴᴀᴛᴇ 〕━━━┓\n┃ ✎ ᴜsᴇʀ: @${user.split('@')[0]}\n┃ ✎ sᴛᴀᴛᴜs: ʀᴇᴍᴏᴠᴇᴅ\n┗━━━━━━━━━━━━━━━━━━┛`, null, { mentions: [user] })

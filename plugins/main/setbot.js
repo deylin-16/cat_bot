@@ -2,8 +2,7 @@ const antisubPlugin = {
     name: 'antisub',
     alias: ['antisubs'],
     category: 'group',
-    admin: true,
-    group: true,
+    rowner: true,
     run: async (m, { conn, text }) => {
         const chat = global.db.data.chats[m.chat];
         if (!text) return m.reply(`*¿Deseas activar o desactivar?*\nUso: .antisub on / off`);

@@ -7,14 +7,14 @@ const menuCommand = {
     category: 'main',
     run: async (m, { conn, usedPrefix }) => {
         try {
-            const plugins = Object.values(global.plugins);
-            const menuData = {};
+            const allPlugins = Object.values(global.plugins);
+            const categories = {};
 
-            plugins.forEach(plugin => {
-                if (plugin.disabled) return;
-                const category = plugin.category || 'otros';
-                if (!menuData[category]) menuData[category] = [];
-                menuData[category].push(plugin);
+            allPlugins.forEach(plugin => {
+                if (!plugin || plugin.disabled) return;
+                const cat = plugin.category || 'otros';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push(plugin.name);
             });
 
             let menuText = `*── 「 ${global.botname || 'DYNAMIC BOT'} 」 ──*\n\n`;
@@ -22,17 +22,17 @@ const menuCommand = {
             menuText += `▢ *PREFIX:* [ ${usedPrefix} ]\n`;
             menuText += `*──────────────────*\n\n`;
 
-            const sortedCategories = Object.keys(menuData).sort();
-            
-            for (const category of sortedCategories) {
-                menuText += `*┌── 「 ${category.toUpperCase()} 」*\n`;
-                const categoryCommands = menuData[category]
-                    .map(p => `│ ▢ ${usedPrefix}${p.name}`)
-                    .join('\n');
-                menuText += categoryCommands + `\n*└──────────────*\n\n`;
+            const keys = Object.keys(categories).sort();
+            for (const key of keys) {
+                menuText += `*┌── 「 ${key.toUpperCase()} 」*\n`;
+                for (const cmd of categories[key].sort()) {
+                    menuText += `│ ▢ ${usedPrefix}${cmd}\n`;
+                }
+                menuText += `*└──────────────*\n\n`;
             }
 
-            menuText += `_Dynamic Bot by Deylin_`;
+            
+   
 
             await conn.sendMessage(m.chat, { 
                 text: menuText,

@@ -28,9 +28,7 @@ export async function before(m, { conn, participants }) {
     }
 
     if (chat.detect) {
-        let tipo = '', icon = '🛡️', mensaje = '', thumb = 'https://i.ibb.co/jPSF32Pz/9005bfa156f1f56fb2ac661101d748a5.jpg'
-        if (typeof global.img === 'function') thumb = global.img
-
+        let tipo = '', icon = '🛡️', mensaje = '', thumb = global.img
         if (st === 29 || st === WAMessageStubType.GROUP_PROMOTE_ADMIN) {
             tipo = 'ᴀsᴄᴇɴsᴏ'; icon = '⚡'
             mensaje = `> ┃ ✎ ᴜsᴜᴀʀɪᴏ: ${userTag}\n> ┃ ✎ ᴇsᴛᴀᴅᴏ: ɴᴜᴇᴠᴏ ᴀᴅᴍɪɴɪsᴛʀᴀᴅᴏʀ`

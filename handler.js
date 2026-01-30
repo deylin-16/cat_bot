@@ -32,24 +32,33 @@ export async function handler(chatUpdate) {
     const currentNumber = currentJid.replace(/[^0-9]/g, '');
     const isMainBot = currentNumber === MAIN_NUMBER;
 
-    global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, detect: true, antisub: false };
+    global.db.data.chats[chatJid] ||= { 
+        isBanned: false, 
+        welcome: true, 
+        detect: true, 
+        antisub: false,
+        customWelcome: '' 
+    };
+    
     const chat = global.db.data.chats[chatJid];
+    if (!('welcome' in chat)) chat.welcome = true;
+    if (!('detect' in chat)) chat.detect = true;
 
     if (chatJid.endsWith('@g.us')) {
         if (!isMainBot && chat.antisub) return;
 
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
-        const participants = groupMetadata?.participants || [];
+        const participantsList = groupMetadata?.participants || [];
 
         if (isMainBot && !chat.antisub) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
                 .map(c => c.user.jid.replace(/[^0-9]/g, ''));
 
-            const isAnySubPresent = participants.some(p => activeSubBots.includes(p.id.replace(/[^0-9]/g, '')));
+            const isAnySubPresent = participantsList.some(p => activeSubBots.includes(p.id.replace(/[^0-9]/g, '')));
             if (isAnySubPresent) return;
         } else if (!isMainBot && !chat.antisub) {
-            const isMainPresent = participants.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER);
+            const isMainPresent = participantsList.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER);
             if (isMainPresent) return;
         }
     }
@@ -59,7 +68,7 @@ export async function handler(chatUpdate) {
 
     let user, plugin;
     const senderJid = m.sender;
-    global.db.data.users[senderJid] ||= { exp: 0, muto: false };
+    global.db.data.users[senderJid] ||= { exp: 0, muto: false, warnAntiLink: 0 };
     user = global.db.data.users[senderJid];
 
     const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + (senderJid.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(senderJid);
@@ -69,7 +78,7 @@ export async function handler(chatUpdate) {
     if (m.isGroup) {
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         participants = groupMetadata.participants || [];
-        
+
         const [senderLid, botLid] = await Promise.all([
             getLidFromJid(senderJid, conn),
             getLidFromJid(currentJid, conn)
@@ -86,14 +95,14 @@ export async function handler(chatUpdate) {
     const textRaw = m.text || '';
     const isCmd = prefixRegex.test(textRaw);
 
-    if (!isCmd) {
-        for (const p of Array.from(global.plugins.values())) {
-            if (p.before && typeof p.before === 'function') {
-                if (await p.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin })) return;
-            }
+    // Ejecución de plugins .before (Mensajes de sistema y filtros)
+    for (const p of Array.from(global.plugins.values())) {
+        if (p.before && typeof p.before === 'function') {
+            if (await p.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin, chat })) continue;
         }
-        return;
     }
+
+    if (!isCmd) return;
 
     const match = textRaw.match(prefixRegex);
     const usedPrefix = match[0];
@@ -127,11 +136,15 @@ export async function handler(chatUpdate) {
 
         m.isCommand = true;
         try {
-            await plugin.run.call(conn, m, { 
-                usedPrefix, noPrefix: text, args, command, text, 
-                conn, user, chat, isROwner, isOwner, isAdmin, 
-                isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
-            });
+            // Fix del error .call verificando que sea función
+            const runMethod = plugin.run || plugin.default || plugin;
+            if (typeof runMethod === 'function') {
+                await runMethod.call(conn, m, { 
+                    usedPrefix, noPrefix: text, args, command, text, 
+                    conn, user, chat, isROwner, isOwner, isAdmin, 
+                    isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
+                });
+            }
         } catch (e) {
             console.error(e);
             m.reply(format(e));

@@ -20,13 +20,14 @@ export async function handler(chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.key.remoteJid;
-    const mainBotJid = global.conn?.user?.jid;
-    const isSubAssistant = conn.user.jid !== mainBotJid;
+    const MAIN_BOT_NUMBER = '50432569059@s.whatsapp.net'; 
+    const isSubAssistant = conn.user.jid !== MAIN_BOT_NUMBER;
 
     if (chatJid.endsWith('@g.us') && isSubAssistant) {
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         const participants = groupMetadata?.participants || [];
-        const isMainBotPresent = participants.some(p => p.id === mainBotJid);
+        const isMainBotPresent = participants.some(p => p.id === MAIN_BOT_NUMBER);
+        
         if (isMainBotPresent) return;
     }
 

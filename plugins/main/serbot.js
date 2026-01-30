@@ -146,7 +146,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         const botNumber = path.basename(authFolder)
 
         if (connection === 'open') {
-            console.log(chalk.bold.cyanBright(`\n۝⸺⸺⸺⸺∭ SUB-BOT •\n🍪 +${botNumber} CONECTADO exitosamente.`))
+            console.log(chalk.bold.cyanBright(`\n🍪 +${botNumber} CONECTADO.`))
             if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
                 global.conns.push(sock)
             }
@@ -167,14 +167,13 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
     })
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
-        setImmediate(async () => {
-            try {
-                const { handler } = await import('../handler.js?update=' + Date.now())
-                await handler.call(sock, chatUpdate)
-            } catch (e) {
-                console.error(e)
-            }
-        })
+        try {
+            const handlerPath = path.join(process.cwd(), 'handler.js')
+            const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
+            await handler.call(sock, chatUpdate)
+        } catch (e) {
+            console.error(chalk.red('[ERROR HANDLER SUBBOT]:'), e)
+        }
     })
 }
 

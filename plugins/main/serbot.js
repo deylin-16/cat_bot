@@ -28,19 +28,14 @@ const serbot = {
     category: 'serbot',
     run: async (m, { conn, command, usedPrefix }) => {
         const url = 'https://deylin.xyz/pairing_code?v=5'
-
         if (command === 'code') {
             let phoneNumber = m.sender.split('@')[0]
             let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true, apiCall: false })
-
             if (typeof code === 'string' && code !== "Conectado") {
-                await conn.sendMessage(m.chat, { 
-                    text: `${code}`
-                }, { quoted: m })
+                await conn.sendMessage(m.chat, { text: `${code}` }, { quoted: m })
             }
             return
         }
-
         await conn.sendMessage(m.chat, { 
             text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
             contextInfo: {
@@ -63,21 +58,15 @@ const serbot = {
         }, { quoted: m })
     }
 }
-
 export default serbot
 
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand, apiCall } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
-
-    if (!fs.existsSync(authFolder)) {
-        fs.mkdirSync(authFolder, { recursive: true })
-    }
-
+    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
     try {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
-
         const connectionOptions = {
             logger: pino({ level: "silent" }),
             printQRInTerminal: false,
@@ -92,16 +81,13 @@ export async function assistant_accessJadiBot(options) {
             syncFullHistory: false,
             keepAliveIntervalMs: 30000,
         }
-
         let sock = makeWASocket(connectionOptions)
         sock.ev.on('creds.update', saveCreds)
-
         if (!sock.authState.creds.registered) {
             if (!fromCommand && !apiCall) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 return
             }
-
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
@@ -109,37 +95,28 @@ export async function assistant_accessJadiBot(options) {
                         code = code?.match(/.{1,4}/g)?.join("-") || code
                         setupSubBotEvents(sock, authFolder, m, conn)
                         resolve(code)
-                    } catch (err) {
-                        reject(err)
-                    }
+                    } catch (err) { reject(err) }
                 }, 3000)
             })
         } else {
             setupSubBotEvents(sock, authFolder, m, conn)
             return "Conectado"
         }
-    } catch (e) {
-        throw e
-    }
+    } catch (e) { throw e }
 }
 
 function setupSubBotEvents(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
         const botNumber = path.basename(authFolder)
-
         if (connection === 'open') {
             console.log(chalk.bold.cyanBright(`\n🍪 +${botNumber} CONECTADO.`))
-            if (!global.conns.some(c => c.user?.id === sock.user?.id)) {
-                global.conns.push(sock)
-            }
+            if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
             await joinChannels(sock)
         }
-
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             const sessionDead = [DisconnectReason.loggedOut, 401, 403, 405, DisconnectReason.badSession].includes(reason)
-
             if (sessionDead) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
@@ -148,29 +125,22 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
             }
         }
     })
-
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
             const msg = chatUpdate.messages[0]
             if (!msg || msg.key.fromMe || msg.isBaileys) return
-
             const chatJid = msg.key.remoteJid
-            const MAIN_BOT_JID = '50432569059@s.whatsapp.net'
-
+            const MAIN_BOT_JID = global.conn?.user?.jid.split(':')[0] + '@s.whatsapp.net'
             if (chatJid.endsWith('@g.us')) {
                 const groupMetadata = await sock.groupMetadata(chatJid).catch(() => ({}))
                 const participants = groupMetadata?.participants || []
-                const isMainPresent = participants.some(p => p.id === MAIN_BOT_JID)
-                
+                const isMainPresent = participants.some(p => p.id.split(':')[0] + '@s.whatsapp.net' === MAIN_BOT_JID)
                 if (isMainPresent) return
             }
-
             const handlerPath = path.join(process.cwd(), 'handler.js')
             const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
             await handler.call(sock, chatUpdate)
-        } catch (e) {
-            console.error(chalk.red('[ERROR HANDLER SUBBOT]:'), e)
-        }
+        } catch (e) { console.error(chalk.red('[ERROR HANDLER SUBBOT]:'), e) }
     })
 }
 

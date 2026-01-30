@@ -7,8 +7,8 @@ const detectHandler = {
     const chat = global.db?.data?.chats?.[m.chat] || {}
   //  if (chat.detect === false) return
 
-    const botname = global.name?.() || 'Deylin Bot'
-    const urlapi = global.img?.() || 'https://telegra.ph/file/default.jpg'
+    const botname = global.name || 'Deylin Bot'
+    const urlapi = global.img || 'https://telegra.ph/file/default.jpg'
 
     let emisor = m.sender || m.messageStubParameters?.[0] || '0@s.whatsapp.net'
     let usuario = `@${emisor.split`@`[0]}`

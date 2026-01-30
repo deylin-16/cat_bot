@@ -2,31 +2,29 @@ import fetch from "node-fetch"
 
 const tiktok = {
     name: 'tiktok',
-    alias: ['tt', 'tk', 'tiktokdl'],
+    alias: ['tt', 'tiktokdl'],
     category: 'descargas',
     run: async (m, { conn, args }) => {
-        const url = args[0]
-        if (!url || !/tiktok\.com/i.test(url)) {
-            return m.reply(`*ஐ Ingresa un enlace válido de TikTok.*`)
-        }
+        if (!args[0]) return m.reply(`*ஐ Ingresa un enlace de TikTok.*`)
 
         try {
+            if (m.react) await m.react("⏳")
+            
             const apikey = "dk_ofical_user"
-            const res = await fetch(`https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(url)}&apikey=${apikey}`)
+            const res = await fetch(`https://api.deylin.xyz/api/download/tiktok?url=${encodeURIComponent(args[0])}&apikey=${apikey}`)
             const data = await res.json()
 
-            const result = data.success ? (data.result || data) : null
-            if (!result) throw new Error("API_ERROR")
+            if (!data.success) throw new Error("API Error")
 
-            const videoUrl = result.play || result.wmplay || result.video
-            if (!videoUrl) throw new Error("NO_VIDEO_URL")
+            const videoUrl = data.play || data.wmplay
+            const title = data.title || "TikTok Video"
+            const nickname = data.author?.nickname || "Usuario"
 
-            const caption = `
-                                𝗧𝗜𝗞-𝗧𝗢𝗞 𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔𝗦
+            const caption = `\t\t\t𝗧𝗜𝗞-𝗧𝗢𝗞 𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔𝗦
 
-> ღ *Autor:* ➜ ${result.author?.nickname || "Usuario"}
-> ✎ *Título:* ➜ ${result.title || "TikTok Video"}
-`.trim()
+> ღ *Autor:* ➜ ${nickname}
+> ✎ *Título:* ➜ ${title}
+`
 
             await conn.sendMessage(m.chat, { 
                 video: { url: videoUrl }, 
@@ -35,9 +33,10 @@ const tiktok = {
                 mimetype: 'video/mp4'
             }, { quoted: m })
 
+            if (m.react) await m.react("✅")
         } catch (e) {
             console.error(e)
-            m.reply("ஐ Error al procesar el enlace. Asegúrate de que sea un video válido.")
+            m.reply("ஐ Error al procesar el enlace.")
         }
     }
 }

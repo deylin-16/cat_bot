@@ -24,6 +24,8 @@ const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, make
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
+if (!existsSync('./tmp')) mkdirSync('./tmp');
+
 let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
 console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM INITATING...      │'));

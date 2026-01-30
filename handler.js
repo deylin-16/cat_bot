@@ -20,16 +20,25 @@ export async function handler(chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.key.remoteJid;
-    const MAIN_BOT_JID = global.conn?.user?.jid || '';
-    const MAIN_BOT_NUMBER = MAIN_BOT_JID.split('@')[0];
-    const currentBotJid = conn.user.jid;
-    const isSubAssistant = currentBotJid !== MAIN_BOT_JID;
+    const MAIN_BOT_JID = '50432569059@s.whatsapp.net';
+    const currentBotJid = conn.user.jid.split(':')[0].split('@')[0] + '@s.whatsapp.net';
+    const isMainBot = currentBotJid === MAIN_BOT_JID;
 
-    if (m.key.remoteJid.endsWith('@g.us') && isSubAssistant) {
+    if (chatJid.endsWith('@g.us')) {
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         const participants = groupMetadata?.participants || [];
-        const isMainBotPresent = participants.some(p => p.id === MAIN_BOT_JID);
-        if (isMainBotPresent) return;
+        
+        if (isMainBot) {
+            const activeSubBots = (global.conns || [])
+                .filter(c => c.user && c.ws?.readyState === ws.OPEN)
+                .map(c => c.user.jid.split(':')[0].split('@')[0] + '@s.whatsapp.net');
+            
+            const isAnySubPresent = participants.some(p => activeSubBots.includes(p.id.split(':')[0].split('@')[0] + '@s.whatsapp.net'));
+            if (isAnySubPresent) return;
+        } else {
+            const isMainPresent = participants.some(p => (p.id.split(':')[0].split('@')[0] + '@s.whatsapp.net') === MAIN_BOT_JID);
+            if (isMainPresent) return;
+        }
     }
 
     m = smsg(conn, m) || m;
@@ -76,10 +85,8 @@ export async function handler(chatUpdate) {
         if (m.isGroup) {
             const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
             const participants = groupMetadata.participants || [];
-            const user2 = participants.find(p => p.id === senderJid) || {};
-            const bot = participants.find(p => p.id === currentBotJid) || {};
-            isAdmin = user2?.admin || false;
-            isBotAdmin = bot?.admin || false;
+            isAdmin = participants.find(p => p.id === senderJid)?.admin || false;
+            isBotAdmin = participants.find(p => p.id === currentBotJid)?.admin || false;
         }
 
         const checkPermissions = (perm) => ({
@@ -103,7 +110,8 @@ export async function handler(chatUpdate) {
             await plugin.run.call(conn, m, { 
                 usedPrefix, noPrefix: text, args, command, text, 
                 conn, user, chat, isROwner, isOwner, isAdmin, 
-                isBotAdmin, isSubAssistant, chatUpdate, participants: m.isGroup ? (await conn.groupMetadata(chatJid)).participants : []
+                isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, 
+                participants: m.isGroup ? (await conn.groupMetadata(chatJid)).participants : []
             });
         } catch (e) {
             console.error(e);

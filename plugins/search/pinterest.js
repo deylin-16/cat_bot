@@ -6,7 +6,7 @@ const pinterestCommand = {
     alias: ['pin'],
     category: 'search',
     run: async (m, { conn, text }) => {
-        if (!text) return conn.reply(m.chat, `\t\t\t *『 PINTEREST SEARCH 』* }n\n> ✎ Ingresa un texto para iniciar la búsqueda...`, m);
+        if (!text) return conn.reply(m.chat, `\t\t\t *『 PINTEREST SEARCH 』* \n\n> ✎ Ingresa un texto para iniciar la búsqueda...`, m);
 
         try {
             await m.react('🕒');
@@ -30,7 +30,7 @@ const pinterestCommand = {
                 });
             }
 
-            const caption = `*── 「 PINTEREST ALBUM 」 ──*\n\n` +
+            const caption = `\t\t*── 「 PINTEREST ALBUM 」 ──*\n\n` +
                              `▢ *BÚSQUEDA:* ${text}\n` +
                              `▢ *TÍTULO:* ${randomPick.title}\n` +
                              `▢ *AUTOR:* ${randomPick.author}\n` +

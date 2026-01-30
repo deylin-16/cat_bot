@@ -1,14 +1,14 @@
 import { WAMessageStubType } from '@whiskeysockets/baileys'
 
 const detectHandler = {
-  async before(m, { conn, groupMetadata }) {
-    if (!m.messageStubType || !m.isGroup) return
+  async before(m, { conn, participants }) {
+    if (!m.messageStubType || !m.chat.endsWith('@g.us')) return
 
     const chat = global.db?.data?.chats?.[m.chat] || {}
     if (chat.detect === false) return
 
-    const botname = global.name()
-    const urlapi = global.img()
+    const botname = global.name?.() || 'Deylin Bot'
+    const urlapi = global.img?.() || 'https://telegra.ph/file/default.jpg'
 
     let emisor = m.sender || m.messageStubParameters?.[0] || '0@s.whatsapp.net'
     let usuario = `@${emisor.split`@`[0]}`
@@ -41,26 +41,30 @@ const detectHandler = {
     } else if (st == WAMessageStubType.GROUP_DEMOTE_ADMIN) {
       icon = '❌'; tipo = 'ADMIN DEGRADADO'
       mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *User:* @${param[0]?.split('@')[0]}\n┃ 👤 *Acción por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
-    } else if (st == WAMessageStubType.BIZ_PRIVACY_MODE_INITIATED) {
+    } else if (st == 21 || st == 28 || st == 32) {
       icon = '⏳'; tipo = 'MENSAJES TEMPORALES'
       mensaje = `┏━━━━━━━━━━━━━━━━━━┓\n┃ ${icon} *Tiempo:* ${param[0] == '0' ? 'Off' : param[0] + 's'}\n┃ 👤 *Por:* ${usuario}\n┗━━━━━━━━━━━━━━━━━━┛`
     } else {
       return
     }
 
+    const subject = (await conn.groupMetadata(m.chat).catch(_ => ({}))).subject || 'Grupo'
+
     await conn.sendMessage(m.chat, {
-      text: `${mensaje}\n\n> 📅 _${global.fecha}_${descFinal}`,
+      text: `${mensaje}\n\n> 📅 _${global.fecha || new Date().toLocaleDateString()}_${descFinal}`,
       contextInfo: {
-        mentionedJid: [emisor, ...param],
+        mentionedJid: [emisor, ...(param[0] ? [param[0]] : [])],
         externalAdReply: {
           title: `LOG: ${tipo}`,
-          body: groupMetadata?.subject || botname,
+          body: subject,
           mediaType: 1,
           thumbnailUrl: thumb,
+          sourceUrl: '',
           renderLargerThumbnail: false
         }
       }
-    }, { quoted: null })
+    })
+    return true
   }
 }
 

@@ -9,12 +9,6 @@ import fetch from 'node-fetch';
 
 const isNumber = x => typeof x === 'number' && !isNaN(x);
 
-async function getLidFromJid(id, connection) {
-    if (id.endsWith('@lid')) return id;
-    const res = await connection.onWhatsApp(id).catch(() => []);
-    return res[0]?.lid || id;
-}
-
 export async function handler(chatUpdate) {
     this.uptime = this.uptime || Date.now();
     const conn = this;
@@ -28,22 +22,23 @@ export async function handler(chatUpdate) {
     const chatJid = m.key.remoteJid;
     let user, chat, plugin;
 
+    const mainBotJid = global.conn?.user?.jid;
+    const isSubAssistant = conn.user.jid !== mainBotJid;
+
     if (chatJid.endsWith('@g.us')) {
         global.db.data.chats[chatJid] ||= { isBanned: false, welcome: true, primaryBot: '' };
         chat = global.db.data.chats[chatJid];
-        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
-        const textCommand = (m.message?.conversation || m.message?.extendedTextMessage?.text || '').toLowerCase();
-        const isPriorityCommand = /^(prioridad|primary|setbot)/i.test(textCommand.trim().slice(1));
+        
+        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender || m.key.participant);
+        const textRaw = (m.message?.conversation || m.message?.extendedTextMessage?.text || m.message?.imageMessage?.caption || '').trim();
+        const isPriorityCommand = /^[.#\/](prioridad|primary|setbot)/i.test(textRaw);
 
         if (chat?.primaryBot && chat.primaryBot !== conn.user.jid) {
             if (!isROwner && !isPriorityCommand) return;
         }
 
-        const mainBotJid = global.conn?.user?.jid;
-        const isSubAssistant = conn.user.jid !== mainBotJid;
-
         if (isSubAssistant && !chat?.primaryBot) {
-            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => null);
+            const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
             const participants = groupMetadata?.participants || [];
             if (participants.some(p => p.id === mainBotJid)) return;
         }
@@ -58,8 +53,7 @@ export async function handler(chatUpdate) {
     chat ||= global.db.data.chats[chatJid];
 
     const prefixRegex = /^[.#\/]/;
-    const textRaw = m.text || '';
-    const isCmd = prefixRegex.test(textRaw);
+    const isCmd = prefixRegex.test(m.text || '');
 
     if (!isCmd) {
         for (const p of Object.values(global.plugins)) {
@@ -73,9 +67,9 @@ export async function handler(chatUpdate) {
         return;
     }
 
-    const match = textRaw.match(prefixRegex);
+    const match = m.text.trim().match(prefixRegex);
     const usedPrefix = match[0];
-    const noPrefixText = textRaw.slice(usedPrefix.length).trim();
+    const noPrefixText = m.text.slice(usedPrefix.length).trim();
     const args = noPrefixText.split(/\s+/).filter(v => v);
     const command = (args.shift() || '').toLowerCase();
     const text = args.join(' ');
@@ -85,7 +79,7 @@ export async function handler(chatUpdate) {
 
     if (plugin) {
         if (plugin.disabled) return;
-        const isROwner = global.owner.map(([number]) => number.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(senderJid);
+        const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(senderJid);
         const isOwner = isROwner || m.fromMe;
         
         let isAdmin = false, isBotAdmin = false;
@@ -113,7 +107,7 @@ export async function handler(chatUpdate) {
         m.isCommand = true;
         try {
             const runFunc = typeof plugin === 'function' ? plugin : plugin.run;
-            await runFunc.call(conn, m, { usedPrefix, noPrefix: text, args, command, text, conn, user, chat, isROwner, isOwner, isAdmin, isBotAdmin, chatUpdate });
+            await runFunc.call(conn, m, { usedPrefix, noPrefix: text, args, command, text, conn, user, chat, isROwner, isOwner, isAdmin, isBotAdmin, isSubAssistant, chatUpdate });
         } catch (e) {
             console.error(e);
             m.reply(format(e));

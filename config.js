@@ -11,16 +11,16 @@ import path from 'path'
 global.owner = [['50432955554', 'Eliac', true]]
 
 global.botNames = [
-  'DYNAMIC BOT - V2',
-  'JIJI - ASSISTANT',
-  'DEYLIN - TECH',
-  'MINIMALIST BOT'
+  'ɢᴀᴛᴏ ʙᴏᴛ',
+  '𝚌𝚊𝚝 𝚋𝚘𝚝',
+  'gαтσ вσт',
+  'ꉔꋬ꓄ ꃳꄲ꓄'
 ]
 
 global.botImages = [
-  'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
-  'https://i.ibb.co/g8PsK57/IMG-20251224-WA0617.jpg',
-  'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1768372124872_Wl9aOex7E.jpeg'
+  'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1769752227174_vN72W6kT-.jpeg',
+  'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1769752227174_vN72W6kT-.jpeg',
+  'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1769752227174_vN72W6kT-.jpeg'
 ]
 
 const conf = {

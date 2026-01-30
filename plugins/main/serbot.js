@@ -15,7 +15,7 @@ const {
     useMultiFileAuthState 
 } = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
-const { makeWASocket } = await import('../lib/simple.js')
+const { makeWASocket } = await import('../../lib/simple.js')
 
 if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()

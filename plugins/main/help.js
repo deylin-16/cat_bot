@@ -18,7 +18,7 @@ const menuCommand = {
                 )
             )];
 
-            let menuText = `╭━〘 ${name} ☆ 〙━⌬
+            let menuText = `╭━〘 ${name()} ☆ 〙━⌬
 ┃ ✎ Nombre: @${userId.split('@')[0]}
 ┃ ✎ Tipo: ${(conn.user.jid == global.conn?.user?.jid ? 'Principal 🅥' : 'Prem Bot 🅑')}
 ┃ ✎ Usuarios: ${totalreg}
@@ -127,7 +127,7 @@ const menuCommand = {
                     externalAdReply: {
                         title: 'SISTEMA DE COMANDOS',
                         body: 'Minimalist Structure',
-                        thumbnailUrl: global.img || '', 
+                        thumbnailUrl: global.img() || '', 
                         mediaType: 1,
                         renderLargerThumbnail: true
                     }

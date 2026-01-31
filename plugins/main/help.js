@@ -7,13 +7,32 @@ const menuCommand = {
     category: 'main',
     run: async (m, { conn, usedPrefix }) => {
         try {
-            let menuText = `*── 「 ${global.botname || 'DYNAMIC BOT'} 」 ──*\n\n`;
-            menuText += `▢ *USUARIO:* @${m.sender.split('@')[0]}\n`;
-            menuText += `▢ *PREFIX:* [ ${usedPrefix} ]\n`;
-            menuText += `*──────────────────*\n\n`;
-            menuText += `
-${rmr} 
-*┏━━ 『 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 』*
+            // Variables de datos
+            let userId = m.sender;
+            let botname = global.botname || 'DYNAMIC BOT';
+            let mode = global.opts['self'] ? 'Privado' : 'Público';
+            let totalCommands = Object.keys(global.plugins || {}).length;
+            let totalreg = Object.keys(global.db?.data?.users || {}).length;
+            let uptime = clockString(process.uptime() * 1000);
+            
+            // Lógica de Sub-Bots
+            const users = [...new Set(
+                (global.conns || []).filter(c => 
+                    c.user && c.ws?.socket?.readyState !== 3 // 3 = CLOSED
+                )
+            )];
+
+            let menuText = `╭━〘 ${name} ☆ 〙━⌬
+┃ ✎ Nombre: @${userId.split('@')[0]}
+┃ ✎ Tipo: ${(conn.user.jid == global.conn?.user?.jid ? 'Principal 🅥' : 'Prem Bot 🅑')}
+┃ ✎ Modo: ${mode}
+┃ ✎ Usuarios: ${totalreg}
+┃ ✎ Uptime: ${uptime}
+┃ ✎ Comandos: ${totalCommands}
+┃ ✎ Sub-Bots: ${users.length}
+╰━━━━━━━━━━━━━━━━━━━━━⌬\n\n`;
+
+            menuText += `${rmr} \n*┏━━ 『 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 』*
 *┃ ▣* .facebook
 *┃ ▣* .instagram
 *┃ ▣* .tiktok
@@ -37,10 +56,12 @@ ${rmr}
 *┃ ▣* .handler
 *┃ ▣* .undefined
 *┗━━━━━━━━━━━━━*
+
 *┏━━ 『 𝐎𝐖𝐍𝐄𝐑 』*
 *┃ ▣* .eval
 *┃ ▣* .restart
 *┗━━━━━━━━━━━━━*
+
 *┏━━ 『 𝐒𝐄𝐀𝐑𝐂𝐇 』*
 *┃   ▣* .pinterest 
 *┃   ▣*.tiktokalbum
@@ -102,17 +123,16 @@ ${rmr}
 *┃▣*.Soccer/Basketball/Swim
 *┃▣*.Spank/Beso_mano
 *┃▣*.Beso_frente/Pillowfight
-*┗━━━━━━━━━━━━━━━*
-`;
+*┗━━━━━━━━━━━━━━━*`;
 
             await conn.sendMessage(m.chat, { 
                 text: menuText,
                 contextInfo: {
-                    mentionedJid: [m.sender],
+                    mentionedJid: [userId],
                     externalAdReply: {
                         title: 'SISTEMA DE COMANDOS',
                         body: 'Minimalist Structure',
-                        thumbnailUrl: img,
+                        thumbnailUrl: global.img || '', 
                         mediaType: 1,
                         renderLargerThumbnail: true
                     }
@@ -129,3 +149,11 @@ ${rmr}
 };
 
 export default menuCommand;
+
+// Función auxiliar para el tiempo de actividad
+function clockString(ms) {
+    let h = Math.floor(ms / 3600000);
+    let m = Math.floor(ms / 60000) % 60;
+    let s = Math.floor(ms / 1000) % 60;
+    return [h, m, s].map(v => v.toString().padStart(2, 0)).join(':');
+}

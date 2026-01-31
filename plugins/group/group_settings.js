@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 
 const groupConfig = {
     name: 'config_group',
-    alias: ['welcome', 'detect', 'setwelcome', 'delwelcome', 'renombrar', 'setnombre', 'desc', 'setdesc', 'setfoto', 'setpp', 'elimina', 'kick', 'ban', 'echar', 'sacar', 'tagall', 'todos', 'anuncio'],
+    alias: ['welcome', 'detect', 'setwelcome', 'delwelcome', 'renombrar', 'setnombre', 'setname', 'desc', 'setdesc', 'setfoto', 'setpp', 'elimina', 'kick', 'ban', 'echar', 'sacar', 'tagall', 'todos', 'anuncio'],
     category: 'group',
     admin: true,
     group: true,
@@ -30,7 +30,7 @@ const groupConfig = {
             m.reply(`┏━━━〔 sɪsᴛᴇᴍᴀ 〕━━━┓\n┃ ✎ ᴄᴏɴғɪɢ: ᴡᴇʟᴄᴏᴍᴇ ʀᴇsᴇᴛ\n┗━━━━━━━━━━━━━━━━━━┛`)
         }
 
-        if (/renombrar|setnombre/i.test(command)) {
+        if (/renombrar|setnombre|setname/i.test(command)) {
             if (!isBotAdmin) return m.reply('┃ ✎ ᴇʀʀᴏʀ: ɴᴇᴄᴇsɪᴛᴏ sᴇʀ ᴀᴅᴍɪɴ.')
             if (!text) return m.reply('┃ ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ɴᴏᴍʙʀᴇ.')
             await conn.groupUpdateSubject(m.chat, text)

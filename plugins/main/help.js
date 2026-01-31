@@ -7,25 +7,20 @@ const menuCommand = {
     category: 'main',
     run: async (m, { conn, usedPrefix }) => {
         try {
-            // Variables de datos
             let userId = m.sender;
-            let botname = global.botname || 'DYNAMIC BOT';
-            let mode = global.opts['self'] ? 'Privado' : 'Público';
             let totalCommands = Object.keys(global.plugins || {}).length;
             let totalreg = Object.keys(global.db?.data?.users || {}).length;
             let uptime = clockString(process.uptime() * 1000);
             
-            // Lógica de Sub-Bots
             const users = [...new Set(
                 (global.conns || []).filter(c => 
-                    c.user && c.ws?.socket?.readyState !== 3 // 3 = CLOSED
+                    c.user && c.ws?.socket?.readyState !== 3 
                 )
             )];
 
             let menuText = `╭━〘 ${name} ☆ 〙━⌬
 ┃ ✎ Nombre: @${userId.split('@')[0]}
 ┃ ✎ Tipo: ${(conn.user.jid == global.conn?.user?.jid ? 'Principal 🅥' : 'Prem Bot 🅑')}
-┃ ✎ Modo: ${mode}
 ┃ ✎ Usuarios: ${totalreg}
 ┃ ✎ Uptime: ${uptime}
 ┃ ✎ Comandos: ${totalCommands}

@@ -44,7 +44,7 @@ const conf = {
     channel: '120363406846602793@newsletter'
   }
 }
-
+var more = String.fromCharCode(8206)
 Object.assign(global, conf.utils)
 global.url_api = conf.api.url
 global.key = conf.api.key
@@ -52,9 +52,9 @@ global.sessions = conf.sessions.main
 global.jadi = conf.sessions.sub
 global.url = conf.sessions.pairing
 global.ch = { ch1: conf.social.channel }
-
-global.name = global.botNames[Math.floor(Math.random() * global.botNames.length)]
-global.img = global.botImages[Math.floor(Math.random() * global.botImages.length)]
+global.rmr = more.repeat(850)
+global.name = () => global.botNames[Math.floor(Math.random() * global.botNames.length)]
+global.img = () => global.botImages[Math.floor(Math.random() * global.botImages.length)]
 
 global.getBuffer = async (url, options = {}) => {
   try {

@@ -5,12 +5,12 @@ const animeCommand = {
     name: 'anime',
     alias: ['animes'],
     category: 'fun',
-    run: async (m, { conn, usedPrefix }) => {
+    run: async (m, { conn }) => {
         const sendAlbumMessage = async (conn, jid, medias, options = {}) => {
             if (typeof jid !== "string") throw new TypeError("jid must be string")
             const caption = options.text || options.caption || ""
             const delay = !isNaN(options.delay) ? options.delay : 500
-            
+
             const album = baileys.generateWAMessageFromContent(
                 jid,
                 {
@@ -53,13 +53,13 @@ const animeCommand = {
         }
 
         try {
-            const res = await fetch(`${url_api}/api/search/anime?apikey=400klob`)
+            const res = await fetch(`https://api.deylin.xyz/api/search/anime?apikey=400klob`)
             const json = await res.json()
 
-            if (!json.result || !Array.isArray(json.result)) throw new Error()
+            if (!json.status || !json.images || !Array.isArray(json.images)) throw new Error()
 
-            const maxImgs = Math.min(json.result.length, 10)
-            const medias = json.result.slice(0, maxImgs).map(url => ({
+            const maxImgs = Math.min(json.images.length, 10)
+            const medias = json.images.slice(0, maxImgs).map(url => ({
                 type: 'image',
                 data: { url }
             }))

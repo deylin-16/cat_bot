@@ -3,43 +3,107 @@ import { join } from 'path';
 
 const menuCommand = {
     name: 'menu',
-    alias: ['help', 'h', 'comandos'],
+    alias: ['help', 'menu', 'comandos'],
     category: 'main',
     run: async (m, { conn, usedPrefix }) => {
         try {
-            const allPlugins = Array.from(global.plugins.values());
-            const categories = {};
-
-            allPlugins.forEach(plugin => {
-                if (!plugin || plugin.disabled) return;
-                const cat = plugin.category || 'otros';
-                if (!categories[cat]) categories[cat] = [];
-                
-                if (!categories[cat].includes(plugin.name)) {
-                    categories[cat].push(plugin.name);
-                }
-            });
-
             let menuText = `*── 「 ${global.botname || 'DYNAMIC BOT'} 」 ──*\n\n`;
             menuText += `▢ *USUARIO:* @${m.sender.split('@')[0]}\n`;
             menuText += `▢ *PREFIX:* [ ${usedPrefix} ]\n`;
             menuText += `*──────────────────*\n\n`;
+            menuText += `
+${rmr} 
+*┏━━ 『 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 』*
+*┃ ▣* .facebook
+*┃ ▣* .instagram
+*┃ ▣* .tiktok
+*┗━━━━━━━━━━━━━*
 
-            const keys = Object.keys(categories).sort();
-            
-            if (keys.length === 0) {
-                menuText += `_No se encontraron comandos cargados._\n\n`;
-            } else {
-                for (const key of keys) {
-                    menuText += `*┌── 「 ${key.toUpperCase()} 」*\n`;
-                    for (const cmd of categories[key].sort()) {
-                        menuText += `│ ▢ ${usedPrefix}${cmd}\n`;
-                    }
-                    menuText += `*└──────────────*\n\n`;
-                }
-            }
+*┏━━『 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 』*
+*┃ ▣* .youtube_play
+*┗━━━━━━━━━━━━━*
 
-            menuText += `_Dynamic Bot by Deylin_`;
+*┏━━『 𝐆𝐑𝐎𝐔𝐏 』*
+*┃ ▣* .antisub
+*┃ ▣* .config_group
+*┃ ▣* .hidetag
+*┗━━━━━━━━━━━━━*
+
+*┏━━『 𝐌𝐀𝐈𝐍 』*
+*┃ ▣* .menu
+*┗━━━━━━━━━━━━━*
+
+*┏━━『 𝐎𝐓𝐑𝐎𝐒 』*
+*┃ ▣* .handler
+*┃ ▣* .undefined
+*┗━━━━━━━━━━━━━*
+*┏━━ 『 𝐎𝐖𝐍𝐄𝐑 』*
+*┃ ▣* .eval
+*┃ ▣* .restart
+*┗━━━━━━━━━━━━━*
+*┏━━ 『 𝐒𝐄𝐀𝐑𝐂𝐇 』*
+*┃   ▣* .pinterest 
+*┃   ▣*.tiktokalbum
+*┗━━━━━━━━━━━━━*
+
+*┏━━  『 𝐒𝐄𝐑𝐁𝐎𝐓 』*
+*┃ ▣* .serbot
+*┗━━━━━━━━━━━━━*
+
+*┏━━ 『 𝐓𝐎𝐎𝐋𝐒 』*
+*┃ ▣* .get
+*┃ ▣*.sticker
+*┃ ▣*.upload 
+*┗━━━━━━━━━━━━━*
+
+*┏━━━ 『 𝐈𝐍𝐓𝐄𝐑𝐀𝐂𝐂𝐈𝐎𝐍𝐄𝐒 』*
+*┃▣*.Kiss/Kiss2/Kiss3
+*┃▣*.Beso/Beso2/Beso3
+*┃▣*.Hug/Hug2/Abrazo
+*┃▣*.Slap/Golpe/Cachetada
+*┃▣*.Kill/Matar/Disparar
+*┃▣*.Pat/Acariciar/Mimar
+*┃▣*.Dance/Bailar/Twerk
+*┃▣*.Kick2/Patada/Boxeo
+*┃▣*.Laugh/Reir/Llorar_risa
+*┃▣*.Wave/Saludo/Desprecio
+*┃▣*.Bite/Morder/Lamer
+*┃▣*.Sleep/Dormir/Despertar
+*┃▣*.Eat/Comer/Ramen/
+*┃▣*.Pizza/Burger/Tacos
+*┃▣*.Icecream
+*┃▣*.Drink/Beber/Coffe/Tea
+*┃▣*.Soda/Juice/Water/Beer
+*┃▣*.Scare/Asustar/Fear/Beg
+*┃▣*.Run/Correr/Viajar/Stare
+*┃▣*.Wow/Asombro/Smug/Blush
+*┃▣*.Think/Pensar/Confundido
+*┃▣*.Smoke/Fumar/Vapear/Candy
+*┃▣*.Play/Jugar/Pc/TV/Music
+*┃▣*.Hide/Esconderse/Stalk
+*┃▣*.Suicide/Suicidio/Lie
+*┃▣*.Ignore/Ignorar/Bored
+*┃▣*.Clap/Aplaudir/Excited
+*┃▣*.Vomit/Vomitar/Sick/Curar
+*┃▣*.Cook/Cocinar/Clean/Shop
+*┃▣*.Marry/Casar/Divorce
+*┃▣*.Study/Estudiar/Write/Read
+*┃▣*.Work/Trabajar/Money
+*┃▣*.Workout/Ejercicio/Gym
+*┃▣*.Shower/Bañarse/Dress
+*┃▣*.Fly/Volar/Teleport
+*┃▣*.Explode/Burn/Freeze
+*┃▣*.Lightning/Summon/Morph
+*┃▣*.Heal/Sanar/Protect/Fall
+*┃▣*.Fish/Garden/Yoga/Gamble
+*┃▣*.Steal/Photo/Record/Stake
+*┃▣*.Surf/Ski/Camp/Guitar
+*┃▣*.Piano/Sing/Draw/Bike
+*┃▣*.Soccer/Basketball/Swim
+*┃▣*.Spank/Beso_mano
+*┃▣*.Beso_frente/Pillowfight
+*┗━━━━━━━━━━━━━━━*
+`;
 
             await conn.sendMessage(m.chat, { 
                 text: menuText,

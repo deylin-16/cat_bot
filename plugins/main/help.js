@@ -125,8 +125,7 @@ const menuCommand = {
                 contextInfo: {
                     mentionedJid: [userId],
                     externalAdReply: {
-                        title: 'SISTEMA DE COMANDOS',
-                        body: 'Minimalist Structure',
+                        title: name(),
                         thumbnailUrl: global.img() || '', 
                         mediaType: 1,
                         renderLargerThumbnail: true
@@ -145,7 +144,6 @@ const menuCommand = {
 
 export default menuCommand;
 
-// Función auxiliar para el tiempo de actividad
 function clockString(ms) {
     let h = Math.floor(ms / 3600000);
     let m = Math.floor(ms / 60000) % 60;

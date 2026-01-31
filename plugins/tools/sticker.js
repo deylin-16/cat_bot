@@ -8,7 +8,7 @@ const stickerCommand = {
     category: 'tools',
     run: async (m, { conn, args }) => {
         let stiker = false
-        let texto1 = `BOT: ${name}`
+        let texto1 = `BOT: ${name()}`
         let texto2 = `USER: ${m.pushName || 'User'}`
 
         try {

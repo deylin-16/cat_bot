@@ -53,7 +53,7 @@ const animeCommand = {
         }
 
         try {
-            const res = await fetch(`${api_url}/api/search/anime?apikey=400klob`)
+            const res = await fetch(`${global.url_api}/api/search/anime?apikey=400klob`)
             const json = await res.json()
 
             if (!json.result || !Array.isArray(json.result)) throw new Error()

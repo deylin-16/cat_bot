@@ -17,7 +17,7 @@ const getCommand = {
                 if (/text|json|javascript|html|css|xml/.test(mime)) {
                     let txt = buffer.toString('utf-8')
                     try { txt = format(JSON.parse(txt)) } catch {}
-                    
+
                     await conn.sendMessage(m.chat, { 
                         text: `${txt.slice(0, 4000)}` 
                     }, { quoted: m })
@@ -40,25 +40,29 @@ const getCommand = {
 
             const res = await fetch(text)
             const type = res.headers.get('content-type') || ''
+            const buffer = await res.buffer() // Descargamos el buffer siempre
 
-            if (!/text|json|javascript/.test(type)) {
-                await conn.sendFile(m.chat, text, 'downloaded_file', text, m)
-                return m.react('📡')
+            // Si es texto, lo formateamos
+            if (/text|json|javascript/.test(type)) {
+                let txt = buffer.toString('utf-8')
+                try { txt = format(JSON.parse(txt)) } catch {}
+                await conn.sendMessage(m.chat, { text: txt.slice(0, 4000) }, { quoted: m })
+                return m.react('✅')
             }
 
-            let body = await res.buffer()
-            let txt = body.toString('utf-8')
-            try { txt = format(JSON.parse(txt)) } catch {}
-
+            // Si es binario (imagen, audio, video), enviamos el buffer directamente
             await conn.sendMessage(m.chat, { 
-                text: `${txt.slice(0, 4000)}` 
+                document: buffer, 
+                mimetype: type, 
+                fileName: 'downloaded_file' 
             }, { quoted: m })
-            await m.react('✅')
+            
+            await m.react('📡')
 
         } catch (err) {
             await m.react('❌')
             await conn.sendMessage(m.chat, { 
-                text: `┏━━━〔 ғᴀᴛᴀʟ ᴇʀʀᴏʀ 〕━━━┓\n┃ ✎ ᴍsɢ: ${err.message || err}\n┗━━━━━━━━━━━━━━━━━━┛` 
+                text: `┏━━━〔 ғᴀᴛᴀʟ ᴇʀʀᴏʀ 〕━━━┓\n┃ ✎ ᴍsɢ: ${err.message}\n┗━━━━━━━━━━━━━━━━━━┛` 
             }, { quoted: m })
         }
     }

@@ -2,10 +2,8 @@ import axios from 'axios'
 
 const reaction = {
     emoji: '😘',
-    txt_solo: '> ❒ @user1 se dio un beso a si mismo/a....
-> ▓▓▓▒▒▒░░░░',
-    txt_mencion: '> ❏ @user1 le dió un beso a @user2 😘
-> ▓▓▓▒▒▒░░░░',
+    txt_solo: '> ❒ @user1 se dio un beso a si mismo/a....',
+    txt_mencion: '> ❏ @user1 le dió un beso a @user2 😘',
     links: [
 'https://media.tenor.com/kmxEaVuW8AoAAAPo/kiss-gentle-kiss.mp4',
 'https://media.tenor.com/_8oadF3hZwIAAAPo/kiss.mp4',

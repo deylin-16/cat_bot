@@ -35,7 +35,6 @@ const gayCommand = {
             await conn.sendMessage(m.chat, {
                 audio: audioBufferCache,
                 mimetype: 'audio/mp4', 
-                ptt: true,
                 mentions: [who]
             }, { quoted: m });
 

@@ -29,10 +29,10 @@ const tiktok = {
 > ♫ *Música:* ${music_info?.title || 'Original'}
 > ×͜× *Creador:* ${music_info?.author || '---'}
 \t\t\t*ム ESTADÍSTICAS:*
-> 𖤍 *Vistas:* ${formatter.format(stats?.play_count || 0)}
-> ♡ *Likes:* ${formatter.format(stats?.digg_count || 0)}
-> ♛ *Comments:* ${formatter.format(stats?.comment_count || 0)}
-> ★ *Shares:* ${formatter.format(stats?.share_count || 0)}`
+> 𖤍 *Vistas:* ${formatter.format(play_count || 0)}
+> ♡ *Likes:* ${formatter.format(digg_count || 0)}
+> ♛ *Comments:* ${formatter.format(comment_count || 0)}
+> ★ *Shares:* ${formatter.format(share_count || 0)}`;
 
             await conn.sendMessage(m.chat, { 
                 video: { url: videoUrl }, 

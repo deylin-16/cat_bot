@@ -1,4 +1,6 @@
-let audioCache = null;
+import axios from 'axios';
+
+let audioBufferCache = null;
 
 const gayCommand = {
     name: 'gay',
@@ -18,18 +20,20 @@ const gayCommand = {
                 mentions: [who]
             }, { quoted: m });
 
-            const audioPayload = audioCache 
-                ? { audio: audioCache, mimetype: 'audio/mpeg', ptt: true, mentions: [who] }
-                : { audio: { url: audioUrl }, mimetype: 'audio/mpeg', ptt: true, mentions: [who] };
-
-            const response = await conn.sendMessage(m.chat, audioPayload, { quoted: m });
-
-            if (!audioCache && response) {
-                audioCache = response.message?.audioMessage || response;
+            if (!audioBufferCache) {
+                const response = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+                audioBufferCache = Buffer.from(response.data);
             }
 
+            await conn.sendMessage(m.chat, {
+                audio: audioBufferCache,
+                mimetype: 'audio/mpeg',
+                ptt: true,
+                mentions: [who]
+            }, { quoted: m });
+
         } catch (error) {
-            console.error(error);
+            console.error('Error en gayCommand:', error);
         }
     }
 };

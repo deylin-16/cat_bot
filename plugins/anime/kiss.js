@@ -2,21 +2,23 @@ import axios from 'axios'
 
 const reaction = {
     emoji: '😘',
-    txt_solo: '❏ @user1 se dió un beso a si mismo...',
-    txt_mencion: '❏ @user1 le dio un beso a @user2.',
+    txt_solo: '> ❒ @user1 se dio un beso a si mismo/a....
+> ▓▓▓▒▒▒░░░░',
+    txt_mencion: '> ❏ @user1 le dió un beso a @user2 😘
+> ▓▓▓▒▒▒░░░░',
     links: [
 'https://media.tenor.com/kmxEaVuW8AoAAAPo/kiss-gentle-kiss.mp4',
-'https://media.tenor.com/cQzRWAWrN6kAAAPo/ichigo-hiro.mp4',
-'https://media.tenor.com/lJPu85pBQLEAAAPo/kiss.mp4',
-'https://media.tenor.com/BZyWzw2d5tAAAAPo/hyakkano-100-girlfriends.mp4',
-'https://media.tenor.com/SJhcVWsxgEkAAAPo/anime-kiss-anime.mp4',
+'https://media.tenor.com/_8oadF3hZwIAAAPo/kiss.mp4',
+'https://media.tenor.com/sbMBW4a-VN4AAAPo/anime-kiss.mp4',
+'https://media.tenor.com/YHxJ9NvLYKsAAAPo/anime-kiss.mp4',
+'https://media.tenor.com/9u2vmryDP-cAAAPo/horimiya-animes.mp4',
 'https://media.tenor.com/xDCr6DNYcZEAAAPo/sealyx-frieren-beyond-journey%27s-end.mp4'
 ]
 }
 
 const kiss = {
     name: 'kiss',
-    alias: ['kiss', 'beso'],
+    alias: ['beso', 'kiss'],
     category: 'interacciones',
     run: async (m, { conn }) => {
         if (!reaction.links.length) return
@@ -34,7 +36,6 @@ const kiss = {
         }
         try {
             if (m.react) await m.react(reaction.emoji)
-            await conn.sendMessage(m.chat, { react: { text: reaction.emoji, key: m.key } })
             const videoUrl = reaction.links[Math.floor(Math.random() * reaction.links.length)]
             await conn.sendMessage(m.chat, {
                 video: { url: videoUrl },

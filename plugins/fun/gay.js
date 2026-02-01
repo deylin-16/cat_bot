@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 let audioBufferCache = null;
 
 const gayCommand = {
@@ -14,6 +12,7 @@ const gayCommand = {
             const avatarUrl = await conn.profilePictureUrl(who, 'image').catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png');
             const processedImageUrl = `https://some-random-api.com/canvas/gay?avatar=${encodeURIComponent(avatarUrl)}`;
 
+            
             await conn.sendMessage(m.chat, {
                 image: { url: processedImageUrl },
                 caption: '🏳️‍🌈 𝑴𝒊𝒓𝒆𝒏 𝒂 𝒆𝒔𝒕𝒆 𝑮𝒂𝒚 🏳️‍🌈',
@@ -21,19 +20,29 @@ const gayCommand = {
             }, { quoted: m });
 
             if (!audioBufferCache) {
-                const response = await axios.get(audioUrl, { responseType: 'arraybuffer' });
-                audioBufferCache = Buffer.from(response.data);
+                const response = await fetch(audioUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+                    }
+                });
+                
+                if (!response.ok) throw new Error(`Error al descargar: ${response.statusText}`);
+                
+                const arrayBuffer = await response.arrayBuffer();
+                audioBufferCache = Buffer.from(arrayBuffer);
             }
 
             await conn.sendMessage(m.chat, {
                 audio: audioBufferCache,
-                mimetype: 'audio/mpeg',
+                mimetype: 'audio/mp4', 
                 ptt: true,
                 mentions: [who]
             }, { quoted: m });
 
         } catch (error) {
             console.error('Error en gayCommand:', error);
+            // Si falla la descarga, avisamos al chat (opcional)
+            // await conn.sendMessage(m.chat, { text: 'No pude cargar el audio, intenta más tarde.' }, { quoted: m });
         }
     }
 };

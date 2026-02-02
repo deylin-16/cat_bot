@@ -72,6 +72,10 @@ const menuCommand = {
 *┃ ▣* .welcome on/off 
 *┃ ▣* .detect on/off
 *┃ ▣* .kick 
+*┃ ▣* .cerrargrupo/cerrargrupo
+*┃ ▣* .open/close 
+*┃ ▣* .abrir/cerrar
+*┃ ▣* .recordatorio 
 *┗━━━━━━━━━━━━━*
 
 *┏━━『 𝐒𝐓𝐈𝐂𝐊𝐄𝐑𝐒 』*

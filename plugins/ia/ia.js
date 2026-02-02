@@ -15,13 +15,7 @@ const geminiCommand = {
     },
     all: async function (m) {
         if (!m.text || m.fromMe || m.isBaileys) return;
-        const botJid = this.user.jid;
-        const isOrBot = /(bot|gato)/i.test(m.text);
-        const isReply = m.quoted && m.quoted.sender === botJid;
-        const isMention = m.mentionedJid && m.mentionedJid.includes(botJid);
-
-        if (!(isOrBot || isReply || isMention)) return;
-
+        
         let queryLower = m.text.toLowerCase().trim();
         if (respuestasPredefinidas[queryLower]) {
             return await this.sendMessage(m.chat, { text: respuestasPredefinidas[queryLower] }, { quoted: m });
@@ -32,8 +26,7 @@ const geminiCommand = {
 };
 
 async function chatAI(m, conn, query) {
-    let { key } = await conn.sendMessage(m.chat, { text: '*Pensando...*' }, { quoted: m });
-    let assistantName = global.name?.(conn) || 'Gemini';
+    let assistantName = global.name() || 'Gemini';
     let username = m.pushName || 'Usuario';
     let prompt = `Eres ${assistantName}. Serio, directo y con autoridad. No uses (**), usa (*). Si ${username} te insulta, responde con la misma agresividad. Responde: ${query}`;
 

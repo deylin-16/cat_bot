@@ -20,7 +20,7 @@ export async function before(m, { conn, participants }) {
             .replace(/@grupo/g, groupMetadata.subject || 'Sistema')
             .replace(/@total/g, participants.length)
 
-        let pp = global.img
+        let pp = global.img()
         try { pp = await conn.profilePictureUrl(who, 'image') } catch (e) {}
 
         await conn.sendMessage(m.chat, { image: { url: pp }, caption: txt, mentions: [who] })
@@ -28,7 +28,7 @@ export async function before(m, { conn, participants }) {
     }
 
     if (chat.detect) {
-        let tipo = '', icon = '🛡️', mensaje = '', thumb = global.img
+        let tipo = '', icon = '🛡️', mensaje = '', thumb = global.img()
         if (st === 29 || st === WAMessageStubType.GROUP_PROMOTE_ADMIN) {
             tipo = 'ᴀsᴄᴇɴsᴏ'; icon = '⚡'
             mensaje = `> ┃ ✎ ᴜsᴜᴀʀɪᴏ: ${userTag}\n> ┃ ✎ ᴇsᴛᴀᴅᴏ: ɴᴜᴇᴠᴏ ᴀᴅᴍɪɴɪsᴛʀᴀᴅᴏʀ`

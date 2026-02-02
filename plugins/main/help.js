@@ -39,6 +39,16 @@ const menuCommand = {
 
 *┏━━『 𝐀𝐍𝐈𝐌𝐄 』*
 *┃ ▣* .anime
+*┃ ▣* .kill/matar 
+*┃ ▣* .kiss/beso
+*┃ ▣* .kiss2/beso2
+*┃ ▣* .hug/abrazo
+*┃ ▣* .hello/hola/hi
+*┃ ▣* .coffee/café
+*┃ ▣* .angry/enojado
+*┃ ▣* .happy/feliz 
+*┃ ▣* .das/triste
+*┃ ▣* .
 *┗━━━━━━━━━━━━━*
 
 *┏━━『 𝐆𝐑𝐎𝐔𝐏 』*
@@ -84,56 +94,10 @@ const menuCommand = {
 *┃ ▣* .sticker
 *┃ ▣* .upload 
 *┃ ▣* .meme
-*┃ ▣* .whatmusic 
+*┃ ▣* .whatmusic
+*┃ ▣* .pfp 
 *┗━━━━━━━━━━━━━*
-
-*┏━━━ 『 𝐈𝐍𝐓𝐄𝐑𝐀𝐂𝐂𝐈𝐎𝐍𝐄𝐒 』*
-*┃▣* .Kiss/Kiss2/Kiss3
-*┃▣* .Beso/Beso2/Beso3
-*┃▣* .Hug/Hug2/Abrazo
-*┃▣* .Slap/Golpe/Cachetada
-*┃▣* .Kill/Matar/Disparar
-*┃▣* .Pat/Acariciar/Mimar
-*┃▣* .Dance/Bailar/Twerk
-*┃▣* .Kick2/Patada/Boxeo
-*┃▣* .Laugh/Reir/Llorar_risa
-*┃▣* .Wave/Saludo/Desprecio
-*┃▣* .Bite/Morder/Lamer
-*┃▣* .Sleep/Dormir/Despertar
-*┃▣* .Eat/Comer/Ramen/
-*┃▣* .Pizza/Burger/Tacos
-*┃▣* .Icecream
-*┃▣* .Drink/Beber/Coffe/Tea
-*┃▣* .Soda/Juice/Water/Beer
-*┃▣* .Scare/Asustar/Fear/Beg
-*┃▣* .Run/Correr/Viajar/Stare
-*┃▣* .Wow/Asombro/Smug/Blush
-*┃▣* .Think/Pensar/Confundido
-*┃▣* .Smoke/Fumar/Vapear/Candy
-*┃▣* .Play/Jugar/Pc/TV/Music
-*┃▣* .Hide/Esconderse/Stalk
-*┃▣* .Suicide/Suicidio/Lie
-*┃▣* .Ignore/Ignorar/Bored
-*┃▣* .Clap/Aplaudir/Excited
-*┃▣* .Vomit/Vomitar/Sick/Curar
-*┃▣* .Cook/Cocinar/Clean/Shop
-*┃▣* .Marry/Casar/Divorce
-*┃▣* .Study/Estudiar/Write/Read
-*┃▣* .Work/Trabajar/Money
-*┃▣* .Workout/Ejercicio/Gym
-*┃▣* .Shower/Bañarse/Dress
-*┃▣* .Fly/Volar/Teleport
-*┃▣* .Explode/Burn/Freeze
-*┃▣* .Lightning/Summon/Morph
-*┃▣* .Heal/Sanar/Protect/Fall
-*┃▣* .Fish/Garden/Yoga/Gamble
-*┃▣* .Steal/Photo/Record/Stake
-*┃▣* .Surf/Ski/Camp/Guitar
-*┃▣* .Piano/Sing/Draw/Bike
-*┃▣* .Soccer/Basketball/Swim
-*┃▣* .Spank/Beso_mano
-*┃▣* .Beso_frente/Pillowfight
-*┗━━━━━━━━━━━━━━━*`;
+`;
 
             await conn.sendMessage(m.chat, { 
                 text: menuText,

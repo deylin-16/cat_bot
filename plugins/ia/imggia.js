@@ -10,29 +10,44 @@ const aimgCommand = {
 
         await m.react('⏳');
 
+        const setup = {
+            cipher: 'hbMcgZLlzvghRlLbPcTbCpfcQKM0PcU0zhPcTlOFMxBZ1oLmruzlVp9remPgi0QWP0QW',
+            shiftValue: 3,
+            dec(text, shift) {
+                return [...text].map(c => /[a-z]/.test(c)
+                    ? String.fromCharCode((c.charCodeAt(0) - 97 - shift + 26) % 26 + 97)
+                    : /[A-Z]/.test(c)
+                        ? String.fromCharCode((c.charCodeAt(0) - 65 - shift + 26) % 26 + 65)
+                        : c).join('');
+            }
+        };
+
         try {
-            
-            const token = 'eyJzaWduYXR1cmUiOiJmOTQwZTRmNzI0MTM0MjQ0YmY0ZWM2ZGEzZDMxZDMxMiJ9'; 
-            
+            const token = setup.dec(setup.cipher, setup.shiftValue);
+            const headers = {
+                'user-agent': 'NB Android/1.0.0',
+                'accept-encoding': 'gzip',
+                'content-type': 'application/json',
+                'authorization': token
+            };
+
             const form = new FormData();
             form.append('prompt', text);
             form.append('token', token);
 
-            const { data } = await axios.post('https://text2video.aritek.app/text2img', form, {
-                headers: {
-                    'user-agent': 'NB Android/1.0.0',
-                    'authorization': token,
-                    ...form.getHeaders()
-                }
+            const res = await axios.post('https://text2video.aritek.app/text2img', form, { 
+                headers: { ...headers, ...form.getHeaders() } 
             });
 
-            if (data.code !== 0 || !data.url) throw new Error('API Error');
+            const { code, url: imageUrl } = res.data;
 
-            const imageRes = await axios.get(data.url.trim(), { responseType: 'arraybuffer' });
-            const buffer = Buffer.from(imageRes.data, 'binary');
+            if (code !== 0 || !imageUrl) throw new Error();
+
+            const response = await axios.get(imageUrl.trim(), { responseType: 'arraybuffer' });
+            const imageBuffer = Buffer.from(response.data, 'binary');
 
             await conn.sendMessage(m.chat, {
-                image: buffer,
+                image: imageBuffer,
                 caption: `>  *♛ Imagen generada con éxito 𝗜𝗔 𝗖𝗔𝗧 𝗕𝗢𝗧*`
             }, { quoted: m });
 
@@ -40,7 +55,7 @@ const aimgCommand = {
 
         } catch (err) {
             await m.react('❌');
-            console.error('Error en aimg:', err.message);
+            console.error(err);
         }
     }
 };

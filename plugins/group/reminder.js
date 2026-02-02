@@ -8,8 +8,8 @@ const recordatorioCommand = {
     category: 'group',
     group: true,
     admin: true,
+    botAdmin: true,
     run: async (m, { conn, args, command, participants }) => {
-        if (!m.isGroup || !m.admin) return;
         const chatId = m.chat;
 
         if (command === 'cancelarrecordatorio') {

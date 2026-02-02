@@ -38,7 +38,7 @@ const ytSearchCommand = {
                         title: "𝗬𝗢𝗨𝗧𝗨𝗕𝗘 𝗦𝗘𝗔𝗥𝗖𝗛",
                         body: `Resultados para: ${text}`,
                         mediaType: 1,
-                        thumbnailUrl: "https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1768838597942_CHk6Hpv5C.jpeg",
+                        thumbnailUrl: "https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770066962767_D7Usn5pDF.jpeg",
                         renderLargerThumbnail: false,
                         sourceUrl: "https://www.youtube.com"
                     }

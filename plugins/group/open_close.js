@@ -52,6 +52,7 @@ const groupControlCommand = {
     name: 'grupo',
     alias: ['cerrargrupo', 'abrirgrupo', 'abrir', 'cerrar', 'open', 'close'],
     category: 'admin',
+    group: true,
     run: async (m, { conn, args, command, groupMetadata }) => {
         if (!m.isGroup) return;
         const isAdmin = m.admin || m.isOwner;

@@ -5,8 +5,8 @@ const linkCommand = {
     alias: ['enlace', 'link'],
     category: 'group',
     group: true,
+    botAdmin: true,
     run: async (m, { conn }) => {
-        if (!m.isGroup || !m.botAdmin) return;
         try {
             const groupMetadata = await conn.groupMetadata(m.chat);
             const inviteCode = await conn.groupInviteCode(m.chat);

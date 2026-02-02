@@ -2,7 +2,7 @@ import fetch from "node-fetch"
 
 const tiktok = {
     name: 'tiktok',
-    alias: ['tt', 'tiktokdl'],
+    alias: ['tt', 'tiktok'],
     category: 'descargas',
     run: async (m, { conn, args }) => {
         if (!args[0]) return m.reply(`*ஐ Ingresa un enlace de TikTok.*`)
@@ -16,8 +16,11 @@ const tiktok = {
 
             if (!data.success) throw new Error("API_ERROR")
 
-            const { title, play, duration, music_info, stats, author } = data
-            const videoUrl = play 
+            // Extraemos los datos directamente del nivel principal de 'data'
+            const { 
+                title, play, duration, music_info, author,
+                play_count, digg_count, comment_count, share_count 
+            } = data
             
             const formatter = new Intl.NumberFormat('es-ES')
             
@@ -32,10 +35,10 @@ const tiktok = {
 > 𖤍 *Vistas:* ${formatter.format(play_count || 0)}
 > ♡ *Likes:* ${formatter.format(digg_count || 0)}
 > ♛ *Comments:* ${formatter.format(comment_count || 0)}
-> ★ *Shares:* ${formatter.format(share_count || 0)}`;
+> ★ *Shares:* ${formatter.format(share_count || 0)}`
 
             await conn.sendMessage(m.chat, { 
-                video: { url: videoUrl }, 
+                video: { url: play }, // Usamos 'play' directamente
                 caption: caption,
                 fileName: `tiktok_hd.mp4`,
                 mimetype: 'video/mp4'

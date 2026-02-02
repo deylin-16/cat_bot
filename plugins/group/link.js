@@ -4,6 +4,7 @@ const linkCommand = {
     name: 'link',
     alias: ['enlace', 'link'],
     category: 'group',
+    group: true,
     run: async (m, { conn }) => {
         if (!m.isGroup || !m.botAdmin) return;
         try {

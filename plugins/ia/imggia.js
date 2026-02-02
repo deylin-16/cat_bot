@@ -11,7 +11,9 @@ const aimgCommand = {
         await m.react('⏳');
 
         try {
-            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'; 
+            
+            const token = 'eyJzaWduYXR1cmUiOiJmOTQwZTRmNzI0MTM0MjQ0YmY0ZWM2ZGEzZDMxZDMxMiJ9'; 
+            
             const form = new FormData();
             form.append('prompt', text);
             form.append('token', token);
@@ -24,7 +26,7 @@ const aimgCommand = {
                 }
             });
 
-            if (data.code !== 0 || !data.url) throw new Error();
+            if (data.code !== 0 || !data.url) throw new Error('API Error');
 
             const imageRes = await axios.get(data.url.trim(), { responseType: 'arraybuffer' });
             const buffer = Buffer.from(imageRes.data, 'binary');
@@ -38,7 +40,7 @@ const aimgCommand = {
 
         } catch (err) {
             await m.react('❌');
-            console.error(err);
+            console.error('Error en aimg:', err.message);
         }
     }
 };

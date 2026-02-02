@@ -29,9 +29,10 @@ function parseTiempo(entrada, tz) {
     entrada = entrada.toLowerCase().replace(/\s/g, '');
     const ahora = moment().tz(tz);
     if (/^\d{1,2}:\d{2}(am|pm)?$/.test(entrada)) {
-        let [full, h, m, p] = entrada.match(/^(\d{1,2}):(\d{2})(am|pm)?$/);
-        let horas = parseInt(h);
-        const minutos = parseInt(m);
+        let match = entrada.match(/^(\d{1,2}):(\d{2})(am|pm)?$/);
+        let horas = parseInt(match[1]);
+        const minutos = parseInt(match[2]);
+        const p = match[3];
         if (p === 'pm' && horas < 12) horas += 12;
         if (p === 'am' && horas === 12) horas = 0;
         let objetivo = moment.tz(tz).set({ hour: horas, minute: minutos, second: 0, millisecond: 0 });
@@ -55,19 +56,26 @@ const groupControlCommand = {
     group: true,
     admin: true,
     botAdmin: true,
-    run: async (m, { conn, args, command, groupMetadata }) => {
+    run: async (m, { conn, args, command }) => {
+        if (!m.isGroup) return;
 
         const chatId = m.chat;
+        
+        // --- SOLUCIÓN AL ERROR ---
+        // Si groupMetadata no viene del handler, la obtenemos aquí mismo.
+        const groupMetadata = await conn.groupMetadata(chatId).catch(e => ({}));
+        const isAnnounce = groupMetadata.announce;
+        // -------------------------
+
         const tz = getTz(m.sender);
         const horaActual = moment().tz(tz).format('hh:mm A');
-        const isAnnounce = groupMetadata.announce;
 
         const adReply = {
             externalAdReply: {
                 title: "𝗦𝗬𝗦𝗧𝗘𝗠 𝗔𝗨𝗧𝗢𝗠𝗔𝗧𝗜𝗢𝗡",
                 body: `Zona Horaria: ${tz}`,
                 mediaType: 1,
-                thumbnailUrl: "https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767146401111_3j2wTlRTQ8.jpeg",
+                thumbnailUrl: img(),
                 renderLargerThumbnail: false
             }
         };
@@ -79,7 +87,7 @@ const groupControlCommand = {
         }
 
         if (command === 'abrir' || command === 'open') {
-            if (!isAnnounce) return m.reply(`* ⚠✰ *AVISO:* El grupo ya se encuentra *ABIERTO*.\n> Todos participan.`);
+            if (!isAnnounce && isAnnounce !== undefined) return m.reply(`* ⚠✰ *AVISO:* El grupo ya se encuentra *ABIERTO*.\n> Todos participan.`);
             await conn.groupSettingUpdate(chatId, 'not_announcement');
             return conn.sendMessage(chatId, { text: `✰ *GRUPO CONFIGURADO*\n\nAcción: Apertura inmediata\nEstado: Todos\nHora: ${horaActual} (${tz})`, contextInfo: adReply });
         }

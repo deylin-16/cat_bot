@@ -54,11 +54,8 @@ const groupControlCommand = {
     category: 'admin',
     group: true,
     admin: true,
+    botAdmin: true,
     run: async (m, { conn, args, command, groupMetadata }) => {
-        if (!m.isGroup) return;
-        const isAdmin = m.admin || m.isOwner;
-        if (!isAdmin) return;
-        if (!m.botAdmin) return;
 
         const chatId = m.chat;
         const tz = getTz(m.sender);

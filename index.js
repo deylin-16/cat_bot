@@ -4,7 +4,7 @@ import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import path, { join } from 'path';
-import fs, { existsSync, readdirSync, statSync, watch, mkdirSync } from 'fs';
+import fs, { existsSync, readdirSync, statSync, watch } from 'fs';
 import chalk from 'chalk';
 import pino from 'pino';
 import yargs from 'yargs';
@@ -15,12 +15,14 @@ import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import store from './lib/store.js';
 import NodeCache from 'node-cache';
 import readline from 'readline';
+import express from 'express';
+import cors from 'cors';
 import cfonts from 'cfonts';
-import Z from './lib/Z.js';
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 
 const { chain } = lodash;
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 if (!existsSync('./tmp')) mkdirSync('./tmp');
 
@@ -130,19 +132,12 @@ if (global.db) setInterval(async () => { if (global.db.data) await global.db.wri
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
-
-  if (connection === 'open') {
-    Z(conn);
-  }
-
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
 }
 
 process.on('uncaughtException', console.error);
-
-global.plugins = new Map();
 
 global.reloadHandler = async function(restatConn) {
   let handler = await import(`./handler.js?update=${Date.now()}`);
@@ -174,6 +169,8 @@ global.reloadHandler = async function(restatConn) {
 
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
+global.plugins = new Map();
+global.aliases = new Map();
 
 async function readRecursive(folder) {
   for (const filename of readdirSync(folder)) {
@@ -184,6 +181,7 @@ async function readRecursive(folder) {
       const plugin = module.default || module;
       const pluginName = plugin.name || filename.replace('.js', '');
       global.plugins.set(pluginName, plugin);
+      if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
     }
   }
 }
@@ -196,6 +194,7 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
     const plugin = module.default || module;
     const pluginName = plugin.name || filename.replace('.js', '');
     global.plugins.set(pluginName, plugin);
+    if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
   }
 });
 
@@ -224,3 +223,30 @@ function redefineConsoleMethod(methodName, filterStrings) {
     original.apply(console, arguments);
   };
 }
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.get('/api/get-pairing-code', async (req, res) => {
+    let { number } = req.query; 
+    if (!number) return res.status(400).send({ error: "Número requerido" });
+    try {
+        const num = number.replace(/\D/g, '');
+        const { assistant_accessJadiBot } = await import('./plugins/main/serbot.js');
+        const code = await assistant_accessJadiBot({ 
+            m: null, 
+            conn: global.conn, 
+            phoneNumber: num, 
+            fromCommand: false,
+            apiCall: true
+        }); 
+        res.status(200).send({ code });
+    } catch (e) {
+        res.status(500).send({ error: e.message });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
+});

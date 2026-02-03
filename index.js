@@ -15,14 +15,12 @@ import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import store from './lib/store.js';
 import NodeCache from 'node-cache';
 import readline from 'readline';
-import express from 'express';
-import cors from 'cors';
 import cfonts from 'cfonts';
+import Z from './lib/Z.js';
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 
 const { chain } = lodash;
-const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 if (!existsSync('./tmp')) mkdirSync('./tmp');
 
@@ -132,6 +130,11 @@ if (global.db) setInterval(async () => { if (global.db.data) await global.db.wri
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update;
   if (isNewLogin) conn.isInit = true;
+
+  if (connection === 'open') {
+    Z(conn);
+  }
+
   if (connection === 'close') {
     if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
   }
@@ -140,21 +143,6 @@ async function connectionUpdate(update) {
 process.on('uncaughtException', console.error);
 
 global.plugins = new Map();
-const commandMap = {
-    '/reportar': async (sock, m, args) => {
-        if (!args[0]) return await sock.sendMessage(m.key.remoteJid, { text: '❌ Ingrese el número.' });
-        const numero = args[0].replace(/[^0-9]/g, '');
-        const jid = `${numero}@s.whatsapp.net`;
-        try {
-            await sock.chatModify({ report: { jid: jid, lastMessages: [] }, block: false }, jid);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            await sock.chatModify({ report: { jid: jid, lastMessages: [] }, block: true }, jid);
-            await sock.sendMessage(m.key.remoteJid, { text: `✅ ${numero} reportado y bloqueado.` });
-        } catch (err) {
-            await sock.sendMessage(m.key.remoteJid, { text: '❌ Error.' });
-        }
-    }
-};
 
 global.reloadHandler = async function(restatConn) {
   let handler = await import(`./handler.js?update=${Date.now()}`);
@@ -168,16 +156,7 @@ global.reloadHandler = async function(restatConn) {
     instance.handler = async (chatUpdate) => {
       setImmediate(async () => {
           try {
-              const m = chatUpdate.messages[0];
-              if (!m.message || m.key.fromMe) return;
-              const text = m.message.conversation || m.message.extendedTextMessage?.text || '';
-              const args = text.trim().split(/ +/);
-              const command = args.shift().toLowerCase();
-              if (commandMap[command]) {
-                  await commandMap[command](instance, m, args);
-              } else {
-                  await handler.handler.call(instance, chatUpdate);
-              }
+              await handler.handler.call(instance, chatUpdate);
           } catch (e) { console.error(e); }
       });
     };
@@ -245,25 +224,3 @@ function redefineConsoleMethod(methodName, filterStrings) {
     original.apply(console, arguments);
   };
 }
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.post('/api/report-block', async (req, res) => {
-    const { number } = req.body;
-    if (!number) return res.status(400).send({ error: "Número requerido" });
-    const jid = `${number.replace(/\D/g, '')}@s.whatsapp.net`;
-    try {
-        await global.conn.chatModify({ report: { jid: jid, lastMessages: [] }, block: false }, jid);
-        await new Promise(r => setTimeout(r, 1500));
-        await global.conn.chatModify({ report: { jid: jid, lastMessages: [] }, block: true }, jid);
-        res.status(200).send({ success: true });
-    } catch (e) {
-        res.status(500).send({ error: e.message });
-    }
-});
-
-app.listen(PORT, () => {
-    console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
-});

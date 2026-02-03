@@ -40,12 +40,27 @@
 
 <hr>
 
-<h2>📦 INSTALACIÓN (TERMUX)</h2>
-<p>Ejecute el motor principal <code>engine.sh</code> para desplegar el sistema:</p>
+<h2>📦 INSTALACIÓN PASO A PASO (TERMUX)</h2>
 
-<pre style="background-color: #f6f8fa; padding: 15px; border-radius: 5px;"><code>git clone https://github.com/deylin-16/cat_bot && cd gato-bot
-chmod +x engine.sh
-./engine.sh</code></pre>
+<h3>1. Preparación del Entorno</h3>
+<p>Antes de clonar el repositorio, es obligatorio actualizar Termux e instalar las herramientas base:</p>
+
+<pre><code>pkg update -y && pkg upgrade -y</code></pre>
+<pre><code>pkg install git nodejs-lts ffmpeg -y</code></pre>
+
+<h3>2. Clonación y Acceso</h3>
+<p>Descargue el código fuente oficial de la Red Z:</p>
+
+<pre><code>git clone https://github.com/deylin-16/cat_bot</code></pre>
+<pre><code>cd cat_bot</code></pre>
+
+<h3>3. Ejecución del Motor Principal</h3>
+<p>Otorgue permisos y encienda el Engine:</p>
+
+<pre><code>chmod +x engine.sh</code></pre>
+<pre><code>./engine.sh</code></pre>
+
+<hr>
 
 <h3>📲 PROTOCOLO DE VINCULACIÓN</h3>
 <ol>
@@ -57,16 +72,11 @@ chmod +x engine.sh
 <hr>
 
 <h2>🔋 MANTENIMIENTO 24/7</h2>
-<p>Utilice el gestor de procesos <strong>PM2</strong> para asegurar estabilidad permanente:</p>
+<p>Para asegurar estabilidad permanente, utilice <strong>PM2</strong>:</p>
 
-<pre style="background-color: #f6f8fa; padding: 15px; border-radius: 5px;"><code># Iniciar el motor
-pm2 start index.js --name "cat-bot"
-
-# Monitorear logs
-pm2 logs cat-bot
-
-# Reiniciar
-pm2 restart cat-bot</code></pre>
+<pre><code>npm install -g pm2</code></pre>
+<pre><code>pm2 start index.js --name "cat-bot"</code></pre>
+<pre><code>pm2 logs cat-bot</code></pre>
 
 <hr>
 
@@ -80,7 +90,12 @@ pm2 restart cat-bot</code></pre>
 <hr>
 
 <div align="center">
-  <h2>🌐 CONÉCTATE CON EL DESARROLLADOR</h2>
+  <h2>🌐 PERFIL DEL CREADOR</h2>
+  <img src="https://github.com/deylin-16.png" width="150" style="border-radius: 50%; border: 3px solid #000;">
+  <br>
+  <h3>Deylin Eliac</h3>
+  <p>Software Architecture & Automation Expert</p>
+  
   <a href="https://www.instagram.com/deylin_eliac/">
     <img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" alt="Instagram">
   </a>

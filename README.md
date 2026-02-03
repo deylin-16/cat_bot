@@ -43,7 +43,7 @@
 <h2>📦 INSTALACIÓN (TERMUX)</h2>
 <p>Ejecute el motor principal <code>engine.sh</code> para desplegar el sistema:</p>
 
-<pre style="background-color: #f6f8fa; padding: 15px; border-radius: 5px;"><code>git clone [URL_DE_TU_REPOSITORIO] && cd gato-bot
+<pre style="background-color: #f6f8fa; padding: 15px; border-radius: 5px;"><code>git clone https://github.com/deylin-16/cat_bot && cd gato-bot
 chmod +x engine.sh
 ./engine.sh</code></pre>
 

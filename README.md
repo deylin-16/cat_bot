@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767394087660_68Xj11pPo.jpeg" width="100%" style="border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+  <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770157236468_HFypRNHeu.jpeg" width="100%" style="border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 
   <hr>
 

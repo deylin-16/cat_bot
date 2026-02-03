@@ -25,6 +25,7 @@
     "@hapi/boom": "^10.0.1",
     "@vitalets/google-translate-api": "^8.0.0",
     "@whiskeysockets/baileys": "github:gatanina-li/baileys",
+    "social-media-scraper": "github:deylin-16/slink"
     "acrcloud": "^1.4.0",
     "aptoide-scraper": "github:DIEGO-OFC/dv-aptoide-scraper",
     "awesome-phonenumber": "^3.4.0",

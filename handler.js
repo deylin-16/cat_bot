@@ -95,7 +95,6 @@ export async function handler(chatUpdate) {
     const textRaw = m.text || '';
     const isCmd = prefixRegex.test(textRaw);
 
-    // Ejecución de plugins .before (Mensajes de sistema y filtros)
     for (const p of Array.from(global.plugins.values())) {
         if (p.before && typeof p.before === 'function') {
             if (await p.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin, chat })) continue;

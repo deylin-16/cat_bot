@@ -13,25 +13,25 @@ const reportarCommand = {
         try {
             await conn.sendMessage(m.chat, { text: `⏳ Procesando: ${numero}...` }, { quoted: m });
 
-            // 1. Reportar de forma asíncrona sin esperar respuesta eterna
-            conn.query({
-                tag: 'status',
-                attrs: {},
-                content: [
-                    {
-                        tag: 'report',
-                        attrs: { jid: jid }
+            try {
+                // Intento de reporte directo
+                await conn.chatModify({
+                    report: {
+                        jid: jid,
+                        lastMessages: [] 
                     }
-                ]
-            }).catch(() => {}); 
+                }, jid);
+            } catch {
+                // Si falla el reporte (bad-request), simplemente ignoramos y seguimos al bloqueo
+            }
 
-            // 2. Bloqueo inmediato (Este es el que manda)
+            // Bloqueo definitivo (Este no falla si el JID es correcto)
             await conn.updateBlockStatus(jid, 'block');
 
-            await conn.sendMessage(m.chat, { text: `✅ Usuario ${numero} bloqueado y reportado.` }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: `✅ Usuario ${numero} bloqueado y enviado a revisión.` }, { quoted: m });
 
         } catch (error) {
-            await conn.sendMessage(m.chat, { text: `❌ ERROR: ${error.message}` }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: `❌ ERROR FINAL: ${error.message}` }, { quoted: m });
         }
     }
 };

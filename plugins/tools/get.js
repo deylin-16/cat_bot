@@ -19,7 +19,7 @@ const getCommand = {
                     try { txt = format(JSON.parse(txt)) } catch {}
 
                     await conn.sendMessage(m.chat, { 
-                        text: `${txt.slice(0, 4000)}` 
+                        text: `${txt.slice(0, 90000000000000000)}` 
                     }, { quoted: m })
                     return m.react('📜')
                 }

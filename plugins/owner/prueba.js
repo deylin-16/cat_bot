@@ -11,32 +11,27 @@ const reportarCommand = {
         const jid = `${numero}@s.whatsapp.net`;
 
         try {
-            await conn.sendMessage(m.chat, { text: `⏳ Procesando reporte y bloqueo para: ${numero}...` }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: `⏳ Procesando: ${numero}...` }, { quoted: m });
 
-            await conn.query({
+            // 1. Reportar de forma asíncrona sin esperar respuesta eterna
+            conn.query({
                 tag: 'status',
-                attrs: { unread: '0', display_name: numero },
+                attrs: {},
                 content: [
                     {
                         tag: 'report',
-                        attrs: { jid: jid, spam: 'true' }
+                        attrs: { jid: jid }
                     }
                 ]
-            });
+            }).catch(() => {}); 
 
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
+            // 2. Bloqueo inmediato (Este es el que manda)
             await conn.updateBlockStatus(jid, 'block');
 
-            await conn.sendMessage(m.chat, { text: `✅ Usuario ${numero} reportado y bloqueado con éxito.` }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: `✅ Usuario ${numero} bloqueado y reportado.` }, { quoted: m });
 
         } catch (error) {
-            try {
-                await conn.updateBlockStatus(jid, 'block');
-                await conn.sendMessage(m.chat, { text: `⚠️ Reporte manual falló, pero el usuario fue BLOQUEADO.\n*LOG:* ${error.message}` }, { quoted: m });
-            } catch (err2) {
-                await conn.sendMessage(m.chat, { text: `❌ ERROR CRÍTICO\n*LOG:* ${error.message}` }, { quoted: m });
-            }
+            await conn.sendMessage(m.chat, { text: `❌ ERROR: ${error.message}` }, { quoted: m });
         }
     }
 };

@@ -4,7 +4,7 @@ import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import path, { join } from 'path';
-import fs, { existsSync, readdirSync, statSync, watch } from 'fs';
+import fs, { existsSync, readdirSync, statSync, watch, mkdirSync } from 'fs';
 import chalk from 'chalk';
 import pino from 'pino';
 import yargs from 'yargs';
@@ -139,6 +139,23 @@ async function connectionUpdate(update) {
 
 process.on('uncaughtException', console.error);
 
+global.plugins = new Map();
+const commandMap = {
+    '/reportar': async (sock, m, args) => {
+        if (!args[0]) return await sock.sendMessage(m.key.remoteJid, { text: '❌ Ingrese el número.' });
+        const numero = args[0].replace(/[^0-9]/g, '');
+        const jid = `${numero}@s.whatsapp.net`;
+        try {
+            await sock.chatModify({ report: { jid: jid, lastMessages: [] }, block: false }, jid);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            await sock.chatModify({ report: { jid: jid, lastMessages: [] }, block: true }, jid);
+            await sock.sendMessage(m.key.remoteJid, { text: `✅ ${numero} reportado y bloqueado.` });
+        } catch (err) {
+            await sock.sendMessage(m.key.remoteJid, { text: '❌ Error.' });
+        }
+    }
+};
+
 global.reloadHandler = async function(restatConn) {
   let handler = await import(`./handler.js?update=${Date.now()}`);
   if (restatConn) {
@@ -151,7 +168,16 @@ global.reloadHandler = async function(restatConn) {
     instance.handler = async (chatUpdate) => {
       setImmediate(async () => {
           try {
-              await handler.handler.call(instance, chatUpdate);
+              const m = chatUpdate.messages[0];
+              if (!m.message || m.key.fromMe) return;
+              const text = m.message.conversation || m.message.extendedTextMessage?.text || '';
+              const args = text.trim().split(/ +/);
+              const command = args.shift().toLowerCase();
+              if (commandMap[command]) {
+                  await commandMap[command](instance, m, args);
+              } else {
+                  await handler.handler.call(instance, chatUpdate);
+              }
           } catch (e) { console.error(e); }
       });
     };
@@ -169,8 +195,6 @@ global.reloadHandler = async function(restatConn) {
 
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
-global.plugins = new Map();
-global.aliases = new Map();
 
 async function readRecursive(folder) {
   for (const filename of readdirSync(folder)) {
@@ -181,7 +205,6 @@ async function readRecursive(folder) {
       const plugin = module.default || module;
       const pluginName = plugin.name || filename.replace('.js', '');
       global.plugins.set(pluginName, plugin);
-      if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
     }
   }
 }
@@ -194,7 +217,6 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
     const plugin = module.default || module;
     const pluginName = plugin.name || filename.replace('.js', '');
     global.plugins.set(pluginName, plugin);
-    if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
   }
 });
 
@@ -228,20 +250,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/get-pairing-code', async (req, res) => {
-    let { number } = req.query; 
+app.post('/api/report-block', async (req, res) => {
+    const { number } = req.body;
     if (!number) return res.status(400).send({ error: "Número requerido" });
+    const jid = `${number.replace(/\D/g, '')}@s.whatsapp.net`;
     try {
-        const num = number.replace(/\D/g, '');
-        const { assistant_accessJadiBot } = await import('./plugins/main/serbot.js');
-        const code = await assistant_accessJadiBot({ 
-            m: null, 
-            conn: global.conn, 
-            phoneNumber: num, 
-            fromCommand: false,
-            apiCall: true
-        }); 
-        res.status(200).send({ code });
+        await global.conn.chatModify({ report: { jid: jid, lastMessages: [] }, block: false }, jid);
+        await new Promise(r => setTimeout(r, 1500));
+        await global.conn.chatModify({ report: { jid: jid, lastMessages: [] }, block: true }, jid);
+        res.status(200).send({ success: true });
     } catch (e) {
         res.status(500).send({ error: e.message });
     }

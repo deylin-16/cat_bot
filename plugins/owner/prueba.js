@@ -11,27 +11,16 @@ const reportarCommand = {
         const jid = `${numero}@s.whatsapp.net`;
 
         try {
-            await conn.sendMessage(m.chat, { text: `⏳ Procesando: ${numero}...` }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: `⏳ Bloqueando a: ${numero}...` }, { quoted: m });
 
-            try {
-                // Intento de reporte directo
-                await conn.chatModify({
-                    report: {
-                        jid: jid,
-                        lastMessages: [] 
-                    }
-                }, jid);
-            } catch {
-                // Si falla el reporte (bad-request), simplemente ignoramos y seguimos al bloqueo
-            }
-
-            // Bloqueo definitivo (Este no falla si el JID es correcto)
+            // Bloqueo directo por estatus (Método más estable de Baileys)
             await conn.updateBlockStatus(jid, 'block');
 
-            await conn.sendMessage(m.chat, { text: `✅ Usuario ${numero} bloqueado y enviado a revisión.` }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: `✅ Usuario ${numero} ha sido bloqueado exitosamente.` }, { quoted: m });
 
         } catch (error) {
-            await conn.sendMessage(m.chat, { text: `❌ ERROR FINAL: ${error.message}` }, { quoted: m });
+            console.error(error);
+            await conn.sendMessage(m.chat, { text: `❌ ERROR AL BLOQUEAR: ${error.message}` }, { quoted: m });
         }
     }
 };

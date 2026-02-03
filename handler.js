@@ -136,7 +136,7 @@ export async function handler(chatUpdate) {
 
         m.isCommand = true;
         try {
-            // Fix del error .call verificando que sea función
+            
             const runMethod = plugin.run || plugin.default || plugin;
             if (typeof runMethod === 'function') {
                 await runMethod.call(conn, m, { 
@@ -154,12 +154,13 @@ export async function handler(chatUpdate) {
 
 global.dfail = (type, m, conn) => {
     const messages = {
-        rowner: `Solo con Deylin-Eliac hablo de eso w.`,
-        owner: `Solo con Deylin-Eliac hablo de eso w.`,
-        group: `Si quieres hablar de eso solo en grupos bro.`,
+        rowner: `> ╰❒ Solo mí creador puede usar esté comando.`,
+        owner: `> ╰❒ Solo mí creador puede usar esté comando.`,
+        group: `> ╰✎ Esté comando sólo se puede usar en grupos.`,
         private: `De ésto solo habló en privado güey.`,
-        admin: `Solo los administradores me pueden decir que hacer.`,
-        botAdmin: `Dame admin bro para seguir.`
+        admin: `> ╰♛ Sólo los administradores pueden ejecutar este comando.`,
+        botAdmin: `> 
+╰✰ Necesito tener administrador para ejercitar está acción.`
     };
     if (messages[type]) conn.reply(m.chat, messages[type], m);
 };
@@ -170,6 +171,6 @@ watchFile(file, async () => {
     if (global.conns) {
         for (const u of global.conns.filter(c => c.user && c.ws?.readyState === ws.OPEN)) {
             if (u.subreloadHandler) u.subreloadHandler(false);
-        }
+      }
     }
 });

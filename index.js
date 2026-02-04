@@ -18,7 +18,7 @@ import readline from 'readline';
 import express from 'express';
 import cors from 'cors';
 import cfonts from 'cfonts';
-import axios from 'axios'; // Usamos axios para la descarga rápida
+import axios from 'axios'; 
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 

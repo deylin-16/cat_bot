@@ -26,16 +26,17 @@ const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 if (!existsSync('./tmp')) mkdirSync('./tmp');
-
-// --- SISTEMA DE DESCARGA DE LICENCIA OFICIAL ---
+// --- SISTEMA DE DESCARGA DE LICENCIA CON AUTO-GUARDADO EN GALERÍA ---
 async function descargarLicencia() {
   if (!existsSync('.gen_license')) return;
   
   const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
-  const outputPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
+  const localPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
+  // Ruta de la carpeta de descargas del móvil en Termux
+  const galleryPath = '/sdcard/Download/LICENCIA_AUTORIZADA.png';
 
   try {
-      console.log(chalk.cyanBright("📡 Descargando certificado de licencia oficial..."));
+      console.log(chalk.cyanBright("📡 Accediendo a la Red Z para descargar certificado..."));
       
       const response = await axios({
           url,
@@ -43,24 +44,34 @@ async function descargarLicencia() {
           responseType: 'stream'
       });
 
-      const writer = createWriteStream(outputPath);
+      // Guardar en la carpeta del bot (para el sistema)
+      const writer = createWriteStream(localPath);
       response.data.pipe(writer);
 
       return new Promise((resolve, reject) => {
           writer.on('finish', () => {
-              console.log(chalk.greenBright(`✅ LICENCIA GUARDADA EXITOSAMENTE: ${outputPath}`));
-              unlinkSync('.gen_license'); // Eliminar señal de activación
+              console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada localmente.`));
+              
+              // Intentar copiar a la Galería (Descargas)
+              try {
+                  if (existsSync('/sdcard')) {
+                      fs.copyFileSync(localPath, galleryPath);
+                      console.log(chalk.magentaBright(`📸 GALERÍA: Certificado guardado en Descargas.`));
+                  }
+              } catch (e) {
+                  console.log(chalk.yellow("⚠️ Nota: No se pudo enviar a Galería. Ejecuta 'termux-setup-storage' para dar permisos."));
+              }
+
+              unlinkSync('.gen_license'); 
               resolve();
           });
-          writer.on('error', (err) => {
-              console.error(chalk.red("❌ Error en escritura de archivo:"), err);
-              reject(err);
-          });
+          writer.on('error', reject);
       });
   } catch (err) {
-      console.error(chalk.red("❌ No se pudo descargar la licencia desde la Red Z:"), err.message);
+      console.error(chalk.red("❌ Error crítico en el despliegue de licencia:"), err.message);
   }
 }
+
 
 let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));

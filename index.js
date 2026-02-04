@@ -4,7 +4,7 @@ import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import path, { join } from 'path';
-import fs, { existsSync, readdirSync, statSync, watch, mkdirSync } from 'fs';
+import fs, { existsSync, readdirSync, statSync, watch, mkdirSync, createWriteStream, unlinkSync } from 'fs';
 import chalk from 'chalk';
 import pino from 'pino';
 import yargs from 'yargs';
@@ -18,7 +18,7 @@ import readline from 'readline';
 import express from 'express';
 import cors from 'cors';
 import cfonts from 'cfonts';
-import Jimp from 'jimp'; // Librería para la licencia
+import axios from 'axios'; // Usamos axios para la descarga rápida
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 
@@ -27,28 +27,38 @@ const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 if (!existsSync('./tmp')) mkdirSync('./tmp');
 
-async function crearLicenciaVisual() {
-  if (!fs.existsSync('.gen_license')) return;
+// --- SISTEMA DE DESCARGA DE LICENCIA OFICIAL ---
+async function descargarLicencia() {
+  if (!existsSync('.gen_license')) return;
+  
+  const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
+  const outputPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
+
   try {
-      console.log(chalk.cyanBright("🎨 Generando certificado de licencia oficial..."));
-      const image = new Jimp(800, 500, '#000000');
-      const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-      const fontSmall = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+      console.log(chalk.cyanBright("📡 Descargando certificado de licencia oficial..."));
+      
+      const response = await axios({
+          url,
+          method: 'GET',
+          responseType: 'stream'
+      });
 
-      image.print(font, 50, 50, "CAT BOT OS - CERTIFICADO OFICIAL");
-      image.print(fontSmall, 50, 100, "--------------------------------------------------");
-      image.print(font, 50, 160, "ESTADO: PERMISO AUTORIZADO");
-      image.print(font, 50, 220, `ID: CB-${Math.floor(Math.random() * 999999)}`);
-      image.print(font, 50, 280, `FECHA: ${new Date().toLocaleString()}`);
-      image.print(font, 50, 340, "PROPIEDAD: DEYLIN ELIAC SYSTEMS");
-      image.print(fontSmall, 50, 420, "PROHIBIDA SU VENTA O DISTRIBUCIÓN - SISTEMA PRIVADO");
+      const writer = createWriteStream(outputPath);
+      response.data.pipe(writer);
 
-      const output = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
-      await image.writeAsync(output);
-      console.log(chalk.greenBright(`✅ LICENCIA DESCARGADA: ${output}`));
-      fs.unlinkSync('.gen_license');
+      return new Promise((resolve, reject) => {
+          writer.on('finish', () => {
+              console.log(chalk.greenBright(`✅ LICENCIA GUARDADA EXITOSAMENTE: ${outputPath}`));
+              unlinkSync('.gen_license'); // Eliminar señal de activación
+              resolve();
+          });
+          writer.on('error', (err) => {
+              console.error(chalk.red("❌ Error en escritura de archivo:"), err);
+              reject(err);
+          });
+      });
   } catch (err) {
-      console.error("Error al generar la licencia visual:", err);
+      console.error(chalk.red("❌ No se pudo descargar la licencia desde la Red Z:"), err.message);
   }
 }
 
@@ -258,4 +268,5 @@ app.listen(PORT, () => {
     console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
 });
 
-await crearLicenciaVisual();
+// Iniciamos la descarga de la licencia antes de conectar el bot
+await descargarLicencia();

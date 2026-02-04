@@ -115,7 +115,7 @@ const menuCommand = {
 *┃ ▣* .toimg
 *┃ ▣* .pfp 
 *┃ ▣* .reducir 
-*┃ ▣* .sa/ssweb
+*┃ ▣* .ss/ssweb
 *┗━━━━━━━━━━━━━*
 `;
 

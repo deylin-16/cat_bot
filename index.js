@@ -26,13 +26,11 @@ const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 if (!existsSync('./tmp')) mkdirSync('./tmp');
-// --- SISTEMA DE DESCARGA DE LICENCIA CON AUTO-GUARDADO EN GALERÍA ---
 async function descargarLicencia() {
   if (!existsSync('.gen_license')) return;
   
   const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
   const localPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
-  // Ruta de la carpeta de descargas del móvil en Termux
   const galleryPath = '/sdcard/Download/LICENCIA_AUTORIZADA.png';
 
   try {
@@ -44,7 +42,6 @@ async function descargarLicencia() {
           responseType: 'stream'
       });
 
-      // Guardar en la carpeta del bot (para el sistema)
       const writer = createWriteStream(localPath);
       response.data.pipe(writer);
 
@@ -52,7 +49,6 @@ async function descargarLicencia() {
           writer.on('finish', () => {
               console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada localmente.`));
               
-              // Intentar copiar a la Galería (Descargas)
               try {
                   if (existsSync('/sdcard')) {
                       fs.copyFileSync(localPath, galleryPath);
@@ -279,5 +275,4 @@ app.listen(PORT, () => {
     console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
 });
 
-// Iniciamos la descarga de la licencia antes de conectar el bot
 await descargarLicencia();

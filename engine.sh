@@ -34,8 +34,9 @@ clear
 # Logo Gato Saludando
 echo -e "${C}"
 echo -e "      |\__/,|   "
-echo -e "    _.|o o  |_  ${W}  ¡Hola, Deylin!${C}"
-echo -e "  -(((---(((    ${W}  CAT BOT OS Ready.${C}"
+echo -e "    _.|o o  |_  ${W}  ¡Hola, usuario!${C}"
+echo -e "  -(((---(((    ${W} Soy CAT BOT Mucho gusto.${C}"
+echo -e "Estás apunto de iniciar una aventura llena de sorpresas..."
 echo -e "${N}"
 
 echo -e "${B}==================================================${N}"

@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 const ssCommand = {
     name: 'ss',
-    alias: ['screenshot', 'captura', 'web'],
+    alias: ['screenshot', 'captura', 'ssweb'],
     category: 'tools',
     run: async (m, { conn, args }) => {
         let link = args[0];

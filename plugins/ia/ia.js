@@ -35,7 +35,7 @@ const geminiCommand = {
 };
 
 async function chatAI(m, conn, query) {
-    let assistantName = global.db?.data?.settings?.namebot || 'CAT BOT OS';
+    let assistantName = global.name() || 'CAT BOT OS';
     let username = m.pushName || 'Usuario';
     
     let prompt = `Eres ${assistantName}. Creado por Deylin Eliac. Eres serio, directo y con autoridad. No uses negritas dobles, usa asteriscos simples (*). Si ${username} te insulta, responde con la misma agresividad. Usuario actual: ${username}. Responde a: ${query}`;

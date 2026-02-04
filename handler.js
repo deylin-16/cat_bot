@@ -137,7 +137,8 @@ export async function handler(chatUpdate) {
         m.isCommand = true;
         try {
             
-            const runMethod = plugin.run || plugin.default || plugin;
+            const runMethod = plugin.run; 
+
             if (typeof runMethod === 'function') {
                 await runMethod.call(conn, m, { 
                     usedPrefix, noPrefix: text, args, command, text, 

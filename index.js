@@ -4,7 +4,7 @@ import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import path, { join } from 'path';
-import fs, { existsSync, readdirSync, statSync, watch } from 'fs';
+import fs, { existsSync, readdirSync, statSync, watch, mkdirSync } from 'fs';
 import chalk from 'chalk';
 import pino from 'pino';
 import yargs from 'yargs';
@@ -18,6 +18,7 @@ import readline from 'readline';
 import express from 'express';
 import cors from 'cors';
 import cfonts from 'cfonts';
+import Jimp from 'jimp'; // Librería para la licencia
 
 const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
 
@@ -25,6 +26,31 @@ const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 
 if (!existsSync('./tmp')) mkdirSync('./tmp');
+
+async function crearLicenciaVisual() {
+  if (!fs.existsSync('.gen_license')) return;
+  try {
+      console.log(chalk.cyanBright("🎨 Generando certificado de licencia oficial..."));
+      const image = new Jimp(800, 500, '#000000');
+      const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+      const fontSmall = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+
+      image.print(font, 50, 50, "CAT BOT OS - CERTIFICADO OFICIAL");
+      image.print(fontSmall, 50, 100, "--------------------------------------------------");
+      image.print(font, 50, 160, "ESTADO: PERMISO AUTORIZADO");
+      image.print(font, 50, 220, `ID: CB-${Math.floor(Math.random() * 999999)}`);
+      image.print(font, 50, 280, `FECHA: ${new Date().toLocaleString()}`);
+      image.print(font, 50, 340, "PROPIEDAD: DEYLIN ELIAC SYSTEMS");
+      image.print(fontSmall, 50, 420, "PROHIBIDA SU VENTA O DISTRIBUCIÓN - SISTEMA PRIVADO");
+
+      const output = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
+      await image.writeAsync(output);
+      console.log(chalk.greenBright(`✅ LICENCIA DESCARGADA: ${output}`));
+      fs.unlinkSync('.gen_license');
+  } catch (err) {
+      console.error("Error al generar la licencia visual:", err);
+  }
+}
 
 let { say } = cfonts;
 console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
@@ -228,25 +254,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/get-pairing-code', async (req, res) => {
-    let { number } = req.query; 
-    if (!number) return res.status(400).send({ error: "Número requerido" });
-    try {
-        const num = number.replace(/\D/g, '');
-        const { assistant_accessJadiBot } = await import('./plugins/main/serbot.js');
-        const code = await assistant_accessJadiBot({ 
-            m: null, 
-            conn: global.conn, 
-            phoneNumber: num, 
-            fromCommand: false,
-            apiCall: true
-        }); 
-        res.status(200).send({ code });
-    } catch (e) {
-        res.status(500).send({ error: e.message });
-    }
-});
-
 app.listen(PORT, () => {
     console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
 });
+
+await crearLicenciaVisual();

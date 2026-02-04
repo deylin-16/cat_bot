@@ -15,19 +15,19 @@ const ssCommand = {
 
         try {
             await m.react('⌛');
+
+            const thumApi = `https://image.thum.io/get/width/1200/crop/1200/noanimate/${link}`;
+
+            const response = await fetch(thumApi);
+            if (!response.ok) throw new Error('Error al conectar con Thum.io');
             
-            const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(link)}&screenshot=true`;
-            const response = await fetch(apiUrl);
-            const json = await response.json();
+            const buffer = await response.buffer();
 
-            if (!json.lighthouseResult?.audits?.['final-screenshot']?.details?.data) {
-                throw new Error('No se pudo generar la captura.');
-            }
+            await conn.sendMessage(m.chat, { 
+                image: buffer, 
+                caption: `> ✎ *𝗖𝗮𝗽𝘁𝘂𝗿𝗮 𝗱𝗲:* ${link}` 
+            }, { quoted: m });
 
-            const base64Data = json.lighthouseResult.audits['final-screenshot'].details.data.replace(/^data:image\/jpeg;base64,/, '');
-            const buffer = Buffer.from(base64Data, 'base64');
-
-            await conn.sendFile(m.chat, buffer, 'ss.jpg', `> ✎ *𝗖𝗮𝗽𝘁𝘂𝗿𝗮 𝗱𝗲:* ${link}`, m);
             await m.react('✅');
 
         } catch (err) {

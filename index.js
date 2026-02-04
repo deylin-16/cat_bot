@@ -224,10 +224,14 @@ async function readRecursive(folder) {
       const plugin = module.default || module;
       const pluginName = plugin.name || filename.replace('.js', '');
       global.plugins.set(pluginName, plugin);
-      if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
+
+      if (plugin.alias && Array.isArray(plugin.alias)) {
+          plugin.alias.forEach(a => global.aliases.set(a, pluginName));
+      }
     }
   }
 }
+
 
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
@@ -237,9 +241,13 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
     const plugin = module.default || module;
     const pluginName = plugin.name || filename.replace('.js', '');
     global.plugins.set(pluginName, plugin);
-    if (plugin.alias) plugin.alias.forEach(a => global.aliases.set(a, pluginName));
+
+    if (plugin.alias && Array.isArray(plugin.alias)) {
+        plugin.alias.forEach(a => global.aliases.set(a, pluginName));
+    }
   }
 });
+
 
 await global.reloadHandler();
 

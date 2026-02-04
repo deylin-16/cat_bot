@@ -109,6 +109,7 @@ const menuCommand = {
 *┃ ▣* .upload 
 *┃ ▣* .meme
 *┃ ▣* .whatmusic
+*┃ ▣* .toimg
 *┃ ▣* .pfp 
 *┃ ▣* .reducir 
 *┃ ▣* .sa/ssweb

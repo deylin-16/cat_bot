@@ -107,6 +107,8 @@ const menuCommand = {
 *┃ ▣* .get
 *┃ ▣* .sticker
 *┃ ▣* .upload 
+*┃ ▣* .read
+*┃ ▣* .ver
 *┃ ▣* .meme
 *┃ ▣* .whatmusic
 *┃ ▣* .toimg

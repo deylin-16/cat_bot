@@ -110,8 +110,9 @@ export async function handler(chatUpdate) {
     const command = (args.shift() || '').toLowerCase();
     const text = args.join(' ');
 
-    const pluginName = global.plugins.has(command) ? command : (global.aliases.get(command) || null);
+    const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
     plugin = pluginName ? global.plugins.get(pluginName) : null;
+
 
     if (plugin) {
         if (plugin.disabled) return;

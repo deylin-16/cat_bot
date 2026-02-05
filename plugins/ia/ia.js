@@ -18,36 +18,42 @@ const geminiCommand = {
         if (!text) return conn.sendMessage(m.chat, { text: '*[!] Ingrese su consulta.*' }, { quoted: m });
         await chatAI(m, conn, text);
     },
-    all: async function (m) {
+    all: async function (m, { conn }) {
         if (!m.text || m.fromMe || m.isBaileys) return;
 
         let queryLower = m.text.toLowerCase().trim();
-        
+
         if (respuestasPredefinidas[queryLower]) {
-            return await this.sendMessage(m.chat, { text: respuestasPredefinidas[queryLower] }, { quoted: m });
+            return await conn.sendMessage(m.chat, { text: respuestasPredefinidas[queryLower] }, { quoted: m });
         }
 
         const keywords = ['gato', 'cat', 'bot', 'gemini'];
         if (keywords.some(word => queryLower.includes(word))) {
-            await chatAI(m, this, m.text);
+            await chatAI(m, conn, m.text);
         }
     }
 };
 
 async function chatAI(m, conn, query) {
-    let assistantName = global.name() || 'CAT BOT OS';
+    let assistantName = 'CAT BOT OS';
     let username = m.pushName || 'Usuario';
-    
+
     let prompt = `Eres ${assistantName}. Creado por Deylin Eliac. Eres serio, directo y con autoridad. No uses negritas dobles, usa asteriscos simples (*). Si ${username} te insulta, responde con la misma agresividad. Usuario actual: ${username}. Responde a: ${query}`;
 
     try {
-        const response = await fetch(`${global.api.url}/api/ai/text/ai?prompt=${encodeURIComponent(prompt)}&id=${m.sender}`);
-        const json = await response.json();
+        const url = `https://api.deylin.xyz/api/ai/text/ai?prompt=${encodeURIComponent(prompt)}&id=${m.sender}`;
+        const response = await fetch(url);
+        
+        const result = await response.text();
+        const json = JSON.parse(result);
 
         if (json.response) {
-            await conn.sendMessage(m.chat, { text: json.response.trim() }, { quoted: m });
+            
+            let reply = json.response.replace(/\\n/g, '\n').trim();
+            await conn.sendMessage(m.chat, { text: reply }, { quoted: m });
         }
     } catch (err) {
+        console.error(err);
         await conn.sendMessage(m.chat, { text: '*[ ❌ ] Error en Red Z.*' }, { quoted: m });
     }
 }

@@ -24,7 +24,7 @@ const ttsCommand = {
             await conn.sendMessage(m.chat, { 
                 audio: audioBuffer, 
                 mimetype: 'audio/mp3', 
-                ptt: true 
+                ptt: false 
             }, { quoted: m });
 
             await m.react('✅');

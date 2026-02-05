@@ -11,28 +11,28 @@ const apkCommand = {
 
         try {
             await m.react('⏳')
-            const resThumb = await fetch('https://files.catbox.moe/rxpw9c.png')
-            const thumb2 = Buffer.from(await resThumb.arrayBuffer())
-
-            const fkontak = {
-                key: { participants: "0@s.whatsapp.net", remoteJid: "status@broadcast", fromMe: false, id: "CAT-BOT" },
-                message: { locationMessage: { name: '𝗔𝗣𝗞 𝗗𝗘𝗦𝗖𝗔𝗥𝗚𝗔𝗗𝗔', jpegThumbnail: thumb2 } },
-                participant: "0@s.whatsapp.net"
-            }
-
+            
+            // 1. Buscar la aplicación
             let searchA = await search(text)
             if (!searchA.length) {
                 await m.react('❌')
                 return conn.sendMessage(m.chat, { text: '*[!] No se encontraron resultados.*' }, { quoted: m })
             }
 
+            // 2. Descargar datos de la APK
             let data5 = await download(searchA[0].id)
             
+            // 3. Validar peso máximo
             if (data5.size.includes('GB') || parseFloat(data5.size.replace(' MB', '')) > 999) {
                 await m.react('❌')
-                return conn.sendMessage(m.chat, { text: '*[!] El archivo supera el límite de peso.*' }, { quoted: m })
+                return conn.sendMessage(m.chat, { text: '*[!] El archivo es demasiado pesado.*' }, { quoted: m })
             }
 
+            // 4. Preparar miniatura (Icono de la APK)
+            const resThumb = await fetch(data5.icon)
+            const thumbBuffer = Buffer.from(await resThumb.arrayBuffer())
+
+            // 5. Diseño de información (Tu estilo)
             let txt = `┏━━━━━━━━━━━━━━━━☒\n`
             txt += `┇➙ *❒ APTOIDE - DOWNLOADER*\n`
             txt += `┣━━━━━━━━━━━━━━━━⚄\n`
@@ -41,12 +41,13 @@ const apkCommand = {
             txt += `┋➙ *Peso:* ${data5.size}\n`
             txt += `┗━━━━━━━━━━━━━━━━⍰`
 
-            await conn.sendFile(m.chat, data5.icon, 'thumbnail.jpg', txt, fkontak)
-
+            // 6. Envío Único: Archivo + Texto + Miniatura
             await conn.sendMessage(m.chat, {
                 document: { url: data5.dllink },
                 mimetype: 'application/vnd.android.package-archive',
-                fileName: `${data5.name}.apk`
+                fileName: `${data5.name}.apk`,
+                caption: txt,
+                jpegThumbnail: thumbBuffer
             }, { quoted: m })
 
             await m.react('✅')
@@ -54,7 +55,7 @@ const apkCommand = {
         } catch (e) {
             console.error(e)
             await m.react('❌')
-            return conn.sendMessage(m.chat, { text: '*[!] Fallo en el servidor de descarga.*' }, { quoted: m })
+            return conn.sendMessage(m.chat, { text: '*[!] Error en el proceso de descarga.*' }, { quoted: m })
         }
     }
 }

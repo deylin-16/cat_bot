@@ -11,28 +11,23 @@ const apkCommand = {
 
         try {
             await m.react('⏳')
-            
-            // 1. Buscar la aplicación
+
             let searchA = await search(text)
-            if (!searchA.length) {
+            if (!searchA || !searchA.length) {
                 await m.react('❌')
                 return conn.sendMessage(m.chat, { text: '*[!] No se encontraron resultados.*' }, { quoted: m })
             }
 
-            // 2. Descargar datos de la APK
             let data5 = await download(searchA[0].id)
-            
-            // 3. Validar peso máximo
-            if (data5.size.includes('GB') || parseFloat(data5.size.replace(' MB', '')) > 999) {
+
+            if (data5.size.includes('GB') || parseFloat(data5.size.replace(/[^0-9.]/g, '')) > 999) {
                 await m.react('❌')
                 return conn.sendMessage(m.chat, { text: '*[!] El archivo es demasiado pesado.*' }, { quoted: m })
             }
 
-            // 4. Preparar miniatura (Icono de la APK)
             const resThumb = await fetch(data5.icon)
             const thumbBuffer = Buffer.from(await resThumb.arrayBuffer())
 
-            // 5. Diseño de información (Tu estilo)
             let txt = `┏━━━━━━━━━━━━━━━━☒\n`
             txt += `┇➙ *❒ APTOIDE - DOWNLOADER*\n`
             txt += `┣━━━━━━━━━━━━━━━━⚄\n`
@@ -41,16 +36,17 @@ const apkCommand = {
             txt += `┋➙ *Peso:* ${data5.size}\n`
             txt += `┗━━━━━━━━━━━━━━━━⍰`
 
-            // 6. Envío Único: Archivo + Texto + Miniatura
             await conn.sendMessage(m.chat, {
                 document: { url: data5.dllink },
                 mimetype: 'application/vnd.android.package-archive',
                 fileName: `${data5.name}.apk`,
                 caption: txt,
-                   contextInfo: {
+                contextInfo: {
                     externalAdReply: {
-                       // title: `\t\t\t\t\t\t\t\t${name()}`,
-                        thumbnailUrl: thumbBuffer || '', 
+                        title: data5.name,
+                        body: 'Click para descargar',
+                        thumbnail: thumbBuffer,
+                        sourceUrl: data5.dllink,
                         mediaType: 1,
                         renderLargerThumbnail: true
                     }

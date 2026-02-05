@@ -8,13 +8,9 @@ const muteCommand = {
     botAdmin: true,
     group: true,
     run: async (m, { conn, command, text, isAdmin, isROwner }) => {
-        
         let who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : text.replace(/[^0-9]/g, '') + '@s.whatsapp.net'
-        
-        if (!who || who === '@s.whatsapp.net') return conn.reply(m.chat, `*👑 Menciona o responde al mensaje de la persona que deseas ${command === 'mute' ? 'mutar' : 'demutar'}*`, m)
 
-        let user = global.db.data.users[who]
-        if (!user) global.db.data.users[who] = { exp: 0, muto: false, warnAntiLink: 0 }
+        if (!who || who === '@s.whatsapp.net') return conn.reply(m.chat, `*👑 Menciona o responde al mensaje de la persona que deseas ${command === 'mute' ? 'mutar' : 'demutar'}*`, m)
 
         const ownerBot = global.owner[0][0] + '@s.whatsapp.net'
         if (who === ownerBot) throw '🔥 *No puedes mutar al creador del bot*'
@@ -24,16 +20,19 @@ const muteCommand = {
         const groupOwner = groupMetadata.owner || m.chat.split`-`[0] + '@s.whatsapp.net'
         if (who === groupOwner) throw '🔥 *No puedes mutar al creador del grupo*'
 
+        let chat = global.db.data.chats[m.chat]
+        if (!chat.mutos) chat.mutos = []
+
         if (command === 'mute') {
-            if (user.muto) throw '🔥 *Este usuario ya ha sido mutado*'
-            
-            user.muto = true
-            await conn.reply(m.chat, '𝗨𝘀𝘂𝗮𝗿𝗶𝗼 𝗺𝘂𝘁𝗮𝗱𝗼\n*Sus mensajes serán eliminados automáticamente.*', m, { mentions: [who] })
-            
+            if (chat.mutos.includes(who)) throw '🔥 *Este usuario ya ha sido mutado en este grupo*'
+
+            chat.mutos.push(who)
+            await conn.reply(m.chat, '𝗨𝘀𝘂𝗮𝗿𝗶𝗼 𝗺𝘂𝘁𝗮𝗱𝗼\n*Sus mensajes serán eliminados automáticamente en este grupo.*', m, { mentions: [who] })
+
         } else if (command === 'unmute') {
-            if (!user.muto) throw '🔥 *Este usuario no ha sido mutado*'
-            
-            user.muto = false
+            if (!chat.mutos.includes(who)) throw '🔥 *Este usuario no está mutado en este grupo*'
+
+            chat.mutos = chat.mutos.filter(id => id !== who)
             await conn.reply(m.chat, '𝗨𝘀𝘂𝗮𝗿𝗶𝗼 𝗱𝗲𝗺𝘂𝘁𝗮𝗱𝗼\n*Ya puede enviar mensajes normalmente.*', m, { mentions: [who] })
         }
     }

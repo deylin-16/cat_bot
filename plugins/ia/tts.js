@@ -8,14 +8,13 @@ const ttsCommand = {
         try {
             await m.react('🗣️');
 
-            const speed = 1.0;
             const lang = 'es';
-            const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=${speed}`;
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=1`;
 
-            const response = await fetch(url);
-            if (!response.ok) throw new Error();
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Error en la petición');
             
-            const buffer = Buffer.from(await response.arrayBuffer());
+            const buffer = Buffer.from(await res.arrayBuffer());
 
             await conn.sendMessage(m.chat, { 
                 audio: buffer, 
@@ -25,6 +24,7 @@ const ttsCommand = {
 
             await m.react('✅');
         } catch (error) {
+            console.error(error);
             await m.react('❌');
         }
     }

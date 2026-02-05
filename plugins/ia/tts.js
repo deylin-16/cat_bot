@@ -10,13 +10,9 @@ const ttsCommand = {
 
             const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=es&client=tw-ob`;
 
-            const res = await fetch(url);
-            if (!res.ok) throw new Error();
-            
-            const buffer = Buffer.from(await res.arrayBuffer());
-
             await conn.sendMessage(m.chat, { 
-                audio: buffer, 
+                audio: { url: url }, 
+                mimetype: 'audio/mpeg', 
                 ptt: true 
             }, { quoted: m });
 

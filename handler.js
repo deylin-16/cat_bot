@@ -71,6 +71,10 @@ export async function handler(chatUpdate) {
     global.db.data.users[senderJid] ||= { exp: 0, muto: false, warnAntiLink: 0 };
     user = global.db.data.users[senderJid];
 
+
+if (user?.muto && m.isGroup && !m.isAdmin) {
+    return conn.sendMessage(m.chat, { delete: m.key })
+}
     const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + (senderJid.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(senderJid);
     const isOwner = isROwner || m.fromMe;
 

@@ -1,35 +1,26 @@
-import axios from 'axios';
-
 const ttsCommand = {
     name: 'tts',
     alias: ['voz', 'decir'],
     category: 'tools',
     run: async (m, { conn, text }) => {
-        if (!text) return; 
+        if (!text) return;
 
         try {
             await m.react('🗣️');
 
             const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=es&client=tw-ob`;
 
-            const res = await axios.get(url, {
-                responseType: 'arraybuffer',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                }
-            });
-
-            const audioBuffer = Buffer.from(res.data);
-
+            // En lugar de bajar el buffer manualmente, dejamos que Baileys maneje el flujo
             await conn.sendMessage(m.chat, { 
-                audio: audioBuffer, 
-                mimetype: 'audio/mp3', 
-                ptt: false 
+                audio: { url: url }, 
+                mimetype: 'audio/mpeg', 
+                ptt: true,
+                waveform: [0,0,10,20,30,40,50,60,70,80,90,100] // Esto ayuda a que WhatsApp lo procese como audio real
             }, { quoted: m });
 
             await m.react('✅');
         } catch (error) {
-            console.error('Error en el TTS:', error);
+            console.error('Error enviando audio:', error);
             await m.react('❌');
         }
     }

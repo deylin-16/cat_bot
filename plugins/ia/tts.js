@@ -1,5 +1,3 @@
-import gtts from 'node-gtts';
-
 const ttsCommand = {
     name: 'tts',
     alias: ['voz', 'decir'],
@@ -10,26 +8,22 @@ const ttsCommand = {
         try {
             await m.react('🗣️');
 
-            const cleanText = text.replace(/[^\p{L}\p{N}\p{Zs}]/gu, '');
-            const tts = gtts('es');
-            const chunks = [];
-            const stream = tts.stream(cleanText);
+            const speed = 1.0;
+            const lang = 'es';
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=${speed}`;
 
-            stream.on('data', (chunk) => chunks.push(chunk));
-            stream.on('end', async () => {
-                const audioBuffer = Buffer.concat(chunks);
-                await conn.sendMessage(m.chat, { 
-                    audio: audioBuffer, 
-                    mimetype: 'audio/mpeg', 
-                    ptt: true 
-                }, { quoted: m });
-                await m.react('✅');
-            });
+            const response = await fetch(url);
+            if (!response.ok) throw new Error();
+            
+            const buffer = Buffer.from(await response.arrayBuffer());
 
-            stream.on('error', async (err) => {
-                console.error(err);
-                await m.react('❌');
-            });
+            await conn.sendMessage(m.chat, { 
+                audio: buffer, 
+                mimetype: 'audio/mpeg', 
+                ptt: true 
+            }, { quoted: m });
+
+            await m.react('✅');
         } catch (error) {
             await m.react('❌');
         }

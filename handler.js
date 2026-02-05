@@ -37,12 +37,14 @@ export async function handler(chatUpdate) {
         welcome: true, 
         detect: true, 
         antisub: false,
-        customWelcome: '' 
+        customWelcome: '',
+        mutos: []
     };
-    
+
     const chat = global.db.data.chats[chatJid];
     if (!('welcome' in chat)) chat.welcome = true;
     if (!('detect' in chat)) chat.detect = true;
+    if (!('mutos' in chat)) chat.mutos = [];
 
     if (chatJid.endsWith('@g.us')) {
         if (!isMainBot && chat.antisub) return;
@@ -71,10 +73,6 @@ export async function handler(chatUpdate) {
     global.db.data.users[senderJid] ||= { exp: 0, muto: false, warnAntiLink: 0 };
     user = global.db.data.users[senderJid];
 
-
-if (user?.muto && m.isGroup && !m.isAdmin) {
-    return conn.sendMessage(m.chat, { delete: m.key })
-}
     const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + (senderJid.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(senderJid);
     const isOwner = isROwner || m.fromMe;
 
@@ -93,6 +91,10 @@ if (user?.muto && m.isGroup && !m.isAdmin) {
 
         isAdmin = userInGroup?.admin === 'admin' || userInGroup?.admin === 'superadmin';
         isBotAdmin = !!botInGroup?.admin;
+    }
+
+    if (m.isGroup && chat.mutos.includes(m.sender) && !isAdmin && !isOwner) {
+        return await conn.sendMessage(m.chat, { delete: m.key });
     }
 
     const prefixRegex = /^[.#\/]/;
@@ -117,7 +119,6 @@ if (user?.muto && m.isGroup && !m.isAdmin) {
     const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
     plugin = pluginName ? global.plugins.get(pluginName) : null;
 
-
     if (plugin) {
         if (plugin.disabled) return;
         if (chat?.isBanned && !isROwner) return;
@@ -140,9 +141,7 @@ if (user?.muto && m.isGroup && !m.isAdmin) {
 
         m.isCommand = true;
         try {
-            
             const runMethod = plugin.run; 
-
             if (typeof runMethod === 'function') {
                 await runMethod.call(conn, m, { 
                     usedPrefix, noPrefix: text, args, command, text, 
@@ -164,8 +163,7 @@ global.dfail = (type, m, conn) => {
         group: `> ╰✎ Esté comando sólo se puede usar en grupos.`,
         private: `De ésto solo habló en privado güey.`,
         admin: `> ╰♛ Sólo los administradores pueden ejecutar este comando.`,
-        botAdmin: `> 
-╰✰ Necesito tener administrador para ejercitar está acción.`
+        botAdmin: `> ╰✰ Necesito tener administrador para ejercitar está acción.`
     };
     if (messages[type]) conn.reply(m.chat, messages[type], m);
 };

@@ -47,7 +47,14 @@ const apkCommand = {
                 mimetype: 'application/vnd.android.package-archive',
                 fileName: `${data5.name}.apk`,
                 caption: txt,
-                jpegThumbnail: thumbBuffer
+                   contextInfo: {
+                    externalAdReply: {
+                       // title: `\t\t\t\t\t\t\t\t${name()}`,
+                        thumbnailUrl: thumbBuffer || '', 
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    }
+                }
             }, { quoted: m })
 
             await m.react('✅')

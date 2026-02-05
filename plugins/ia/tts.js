@@ -23,7 +23,7 @@ const ttsCommand = {
 
             await conn.sendMessage(m.chat, { 
                 audio: audioBuffer, 
-                mimetype: 'audio/mpeg', 
+                mimetype: 'audio/mp3', 
                 ptt: true 
             }, { quoted: m });
 

@@ -48,6 +48,7 @@ export async function handler(chatUpdate) {
 
     if (chatJid.endsWith('@g.us')) {
         if (!isMainBot && chat.antisub) return;
+
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         const participantsList = groupMetadata?.participants || [];
 
@@ -55,6 +56,7 @@ export async function handler(chatUpdate) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
                 .map(c => c.user.jid.replace(/[^0-9]/g, ''));
+
             const isAnySubPresent = participantsList.some(p => activeSubBots.includes(p.id.replace(/[^0-9]/g, '')));
             if (isAnySubPresent) return;
         } else if (!isMainBot && !chat.antisub) {
@@ -78,12 +80,15 @@ export async function handler(chatUpdate) {
     if (m.isGroup) {
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         participants = groupMetadata.participants || [];
+
         const [senderLid, botLid] = await Promise.all([
             getLidFromJid(senderJid, conn),
             getLidFromJid(currentJid, conn)
         ]);
+
         const userInGroup = participants.find(p => p.id === senderLid || p.id === senderJid) || {};
         const botInGroup = participants.find(p => p.id === botLid || p.id === currentJid) || {};
+
         isAdmin = userInGroup?.admin === 'admin' || userInGroup?.admin === 'superadmin';
         isBotAdmin = !!botInGroup?.admin;
     }
@@ -96,8 +101,7 @@ export async function handler(chatUpdate) {
     const textRaw = m.text || '';
     const isCmd = prefixRegex.test(textRaw);
 
-    for (const name in global.plugins) {
-        let p = global.plugins[name];
+    for (const p of Array.from(global.plugins.values())) {
         if (p.before && typeof p.before === 'function') {
             if (await p.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin, chat })) continue;
         }
@@ -112,7 +116,8 @@ export async function handler(chatUpdate) {
     const command = (args.shift() || '').toLowerCase();
     const text = args.join(' ');
 
-    plugin = global.plugins[command] || Object.values(global.plugins).find(p => p.alias && p.alias.includes(command));
+    const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
+    plugin = pluginName ? global.plugins.get(pluginName) : null;
 
     if (plugin) {
         if (plugin.disabled) return;
@@ -136,11 +141,14 @@ export async function handler(chatUpdate) {
 
         m.isCommand = true;
         try {
-            await plugin.run.call(conn, m, { 
-                usedPrefix, noPrefix: text, args, command, text, 
-                conn, user, chat, isROwner, isOwner, isAdmin, 
-                isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
-            });
+            const runMethod = plugin.run; 
+            if (typeof runMethod === 'function') {
+                await runMethod.call(conn, m, { 
+                    usedPrefix, noPrefix: text, args, command, text, 
+                    conn, user, chat, isROwner, isOwner, isAdmin, 
+                    isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
+                });
+            }
         } catch (e) {
             console.error(e);
             m.reply(format(e));
@@ -159,3 +167,13 @@ global.dfail = (type, m, conn) => {
     };
     if (messages[type]) conn.reply(m.chat, messages[type], m);
 };
+
+let file = global.__filename(import.meta.url, true);
+watchFile(file, async () => {
+    unwatchFile(file);
+    if (global.conns) {
+        for (const u of global.conns.filter(c => c.user && c.ws?.readyState === ws.OPEN)) {
+            if (u.subreloadHandler) u.subreloadHandler(false);
+      }
+    }
+});

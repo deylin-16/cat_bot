@@ -4,6 +4,7 @@ import path, { join } from 'path';
 import { unwatchFile, watchFile } from 'fs';
 import chalk from 'chalk';
 import ws from 'ws';
+import { jidNormalizedUser } from '@whiskeysockets/baileys';
 
 export async function handler(m, chatUpdate) {
     this.uptime = this.uptime || Date.now();
@@ -13,13 +14,15 @@ export async function handler(m, chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.chat;
-    const MAIN_NUMBER = conn.user.jid;
     
     const senderLid = m.sender;
     const senderPn = m.key.participantAlt || m.key.remoteJidAlt || m.sender;
+    
+    const currentJid = jidNormalizedUser(conn.user.id);
     const botLid = conn.user.lid || '';
-    const botPn = conn.user.id.split(':')[0] + '@s.whatsapp.net';
-    const isMainBot = conn.user.jid;
+    
+    const isSubBot = (global.conns || []).some(c => c.user && jidNormalizedUser(c.user.id) === currentJid);
+    const isMainBot = !isSubBot;
 
     global.db.data.chats[chatJid] ||= { 
         isBanned: false, 
@@ -41,10 +44,8 @@ export async function handler(m, chatUpdate) {
         if (isMainBot && !chat.antisub) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
-                .map(c => (c.user.id.split(':')[0]));
-            if (participants.some(p => activeSubBots.includes(p.id.split('@')[0]) || activeSubBots.includes(p.lid?.split('@')[0]))) return;
-        } else if (!isMainBot && !chat.antisub) {
-            if (participants.some(p => p.id.replace(/\D/g, '') === MAIN_NUMBER || p.pn?.replace(/\D/g, '') === MAIN_NUMBER)) return;
+                .map(c => jidNormalizedUser(c.user.id));
+            if (participants.some(p => activeSubBots.includes(p.id) || activeSubBots.includes(p.lid))) return;
         }
     }
 
@@ -55,14 +56,14 @@ export async function handler(m, chatUpdate) {
 
     const isROwner = global.owner.some(([num]) => {
         let jid = num.replace(/\D/g, '') + '@s.whatsapp.net';
-        return jid === senderPn || jid === senderLid;
+        return jid === senderPn || jid === senderLid || num === senderPn.split('@')[0];
     }) || m.fromMe;
     const isOwner = isROwner;
 
     let isAdmin = false, isBotAdmin = false;
     if (m.isGroup) {
         const userInGroup = participants.find(p => p.id === senderLid || p.id === senderPn);
-        const botInGroup = participants.find(p => p.id === botPn || p.id === botLid);
+        const botInGroup = participants.find(p => p.id === currentJid || p.id === botLid);
         
         isAdmin = !!userInGroup?.admin;
         isBotAdmin = !!botInGroup?.admin;
@@ -107,7 +108,7 @@ export async function handler(m, chatUpdate) {
                 usedPrefix: m.prefix, noPrefix: m.text.replace(m.prefix + m.command, '').trim(), 
                 args: m.args, command: m.command, text: m.args.join(' '), 
                 conn, user, chat, isROwner, isOwner, isAdmin, 
-                isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
+                isBotAdmin, isMainBot, isSubAssistant: !isMainBot, chatUpdate, participants
             });
         } catch (e) {
             console.error(e);

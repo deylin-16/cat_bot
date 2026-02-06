@@ -13,7 +13,7 @@ export async function handler(m, chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.chat;
-    const MAIN_NUMBER = '50432569059';
+    const MAIN_NUMBER = conn.user.jid;
     
     const senderLid = m.sender;
     const senderPn = m.key.participantAlt || m.key.remoteJidAlt || m.sender;

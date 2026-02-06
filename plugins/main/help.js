@@ -110,7 +110,6 @@ const menuCommand = {
 *┃ ▣* .upload 
 *┃ ▣* .read
 *┃ ▣* .ver
-*┃ ▣* .meme
 *┃ ▣* .whatmusic
 *┃ ▣* .toimg
 *┃ ▣* .pfp 

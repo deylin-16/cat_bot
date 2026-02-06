@@ -2,23 +2,23 @@ import fetch from 'node-fetch';
 
 const ttsCommand = {
     name: 'tts',
-    alias: ['voz', 'decir'],
+    alias: ['voz'],
     category: 'tools',
     run: async (m, { conn, text }) => {
         if (!text) return;
         try {
             await m.react('⏳');
             
-            const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=es&client=tw-ob`;
+            // Reemplaza con tu URL de Vercel
+            const vUrl = `https://api.deylin.xyz/api/ai/text/tts?text=${encodeURIComponent(text)}`;
 
-            // Descargamos el buffer (esto es lo que asegura que se envíe)
-            const res = await fetch(url);
+            const res = await fetch(vUrl);
             const buffer = await res.buffer();
 
             await conn.sendMessage(m.chat, { 
                 audio: buffer, 
                 mimetype: 'audio/mpeg',
-                ptt: false // <--- FALSO para que se envíe como MP3 normal
+                ptt: true 
             }, { quoted: m });
 
             await m.react('✅');

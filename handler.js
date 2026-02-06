@@ -14,12 +14,20 @@ export async function handler(m, chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.chat;
+    
+    // Función de limpieza extrema para evitar conflictos de caracteres (:24, @lid, etc)
+    const cleanId = (id) => id ? id.split('@')[0].split(':')[0] : '';
+
     const senderLid = m.sender;
     const senderPn = m.key.participantAlt || m.key.remoteJidAlt || m.sender;
-    const currentJid = jidNormalizedUser(conn.user.id);
+    
+    // IDs del Bot Normalizados
+    const botJid = jidNormalizedUser(conn.user.id);
     const botLid = conn.user.lid || '';
+    const botClean = cleanId(botJid);
+    const botLidClean = cleanId(botLid);
 
-    const isSubBot = (global.conns || []).some(c => c.user && jidNormalizedUser(c.user.id) === currentJid);
+    const isSubBot = (global.conns || []).some(c => c.user && cleanId(c.user.id) === botClean);
     const isMainBot = !isSubBot;
 
     global.db.data.chats[chatJid] ||= { 
@@ -33,7 +41,7 @@ export async function handler(m, chatUpdate) {
     const chat = global.db.data.chats[chatJid];
     let participants = [];
     if (m.isGroup) {
-        let groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         participants = groupMetadata.participants || [];
     }
 
@@ -42,8 +50,8 @@ export async function handler(m, chatUpdate) {
         if (isMainBot && !chat.antisub) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
-                .map(c => jidNormalizedUser(c.user.id));
-            if (participants.some(p => activeSubBots.includes(p.id) || activeSubBots.includes(p.lid))) return;
+                .map(c => cleanId(c.user.id));
+            if (participants.some(p => activeSubBots.includes(cleanId(p.id)) || activeSubBots.includes(cleanId(p.lid)))) return;
         }
     }
 
@@ -53,15 +61,16 @@ export async function handler(m, chatUpdate) {
     const user = global.db.data.users[m.sender];
 
     const isROwner = global.owner.some(([num]) => {
-        let jid = num.replace(/\D/g, '') + '@s.whatsapp.net';
-        return jid === senderPn || jid === senderLid || num === senderPn.split('@')[0];
+        const ownerClean = num.replace(/\D/g, '');
+        return ownerClean === cleanId(senderPn) || ownerClean === cleanId(senderLid);
     }) || m.fromMe;
     const isOwner = isROwner;
 
     let isAdmin = false, isBotAdmin = false;
     if (m.isGroup) {
-        const userInGroup = participants.find(p => p.id === senderLid || p.id === senderPn);
-        const botInGroup = participants.find(p => p.id === currentJid || p.id === botLid);
+        // Comparación por ID limpio para ignorar @lid, :dispositivo o @s.whatsapp.net
+        const userInGroup = participants.find(p => cleanId(p.id) === cleanId(senderLid) || cleanId(p.id) === cleanId(senderPn));
+        const botInGroup = participants.find(p => cleanId(p.id) === botClean || cleanId(p.id) === botLidClean);
 
         isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
         isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
@@ -85,12 +94,12 @@ export async function handler(m, chatUpdate) {
     if (plugin) {
         if (plugin.disabled || (chat?.isBanned && !isROwner)) return;
 
-        // Re-validación forzada si el comando requiere admin y la caché dice que no
+        // Doble verificación: Si falla la caché, refrescamos info del grupo
         if (m.isGroup && ((plugin.admin && !isAdmin) || (plugin.botAdmin && !isBotAdmin))) {
             const groupMetadata = await conn.groupMetadata(chatJid, false).catch(() => ({}));
             participants = groupMetadata.participants || [];
-            const userInGroup = participants.find(p => p.id === senderLid || p.id === senderPn);
-            const botInGroup = participants.find(p => p.id === currentJid || p.id === botLid);
+            const userInGroup = participants.find(p => cleanId(p.id) === cleanId(senderLid) || cleanId(p.id) === cleanId(senderPn));
+            const botInGroup = participants.find(p => cleanId(p.id) === botClean || cleanId(p.id) === botLidClean);
             isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
             isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
         }

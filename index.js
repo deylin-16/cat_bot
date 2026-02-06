@@ -16,6 +16,7 @@ import NodeCache from 'node-cache';
 import readline from 'readline';
 import cfonts from 'cfonts';
 import axios from 'axios'; 
+import { smsg } from './lib/serializer.js';
 
 const { 
     makeWASocket, 
@@ -24,9 +25,7 @@ const {
     fetchLatestBaileysVersion, 
     makeCacheableSignalKeyStore, 
     jidNormalizedUser, 
-    Browsers,
-    getContentType,
-    proto
+    Browsers
 } = await import('@whiskeysockets/baileys');
 
 const { chain } = lodash;
@@ -92,37 +91,17 @@ const connectionOptions = {
   getMessage: async (key) => { return ""; } 
 };
 
-const smsg = (conn, m) => {
-    if (!m) return m;
-    let M = proto.WebMessageInfo;
-    if (m.key) {
-        m.id = m.key.id;
-        m.isBaileys = m.id.startsWith('BAE5') && m.id.length === 16;
-        m.chat = m.key.remoteJid;
-        m.fromMe = m.key.fromMe;
-        m.isGroup = m.chat.endsWith('@g.us');
-        m.sender = jidNormalizedUser(m.fromMe ? conn.user.id : m.participant || m.key.participant || m.chat || '');
-    }
-    if (m.message) {
-        m.mtype = getContentType(m.message);
-        m.msg = m.message[m.mtype];
-        m.quoted = m.msg?.contextInfo?.quotedMessage ? smsg(conn, { key: { remoteJid: m.chat, fromMe: false, id: m.msg.contextInfo.stanzaId }, message: m.msg.contextInfo.quotedMessage }) : null;
-        m.text = m.msg?.text || m.msg?.caption || m.msg?.contentText || m.text || '';
-    }
-    return m;
-};
-
 global.conn = makeWASocket(connectionOptions);
 
 if (!existsSync(`./sessions/creds.json`)) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
-    
+
     console.log(chalk.bold.magenta('\n┌──────────────────────────────────────────────────┐'));
     console.log(chalk.bold.magenta('│') + chalk.bold.white('         CONFIGURACIÓN DE EMPAREJAMIENTO          ') + chalk.bold.magenta('│'));
     console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
-    
-    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: +59######):\n> `));
+
+    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: +504 5178-2571):\n> `));
     let addNumber = phoneNumber.replace(/\D/g, '');
 
     setTimeout(async () => {
@@ -144,7 +123,7 @@ global.reloadHandler = async function(restatConn) {
   global.conn.ev.on('messages.upsert', async chatUpdate => {
     try {
         const m = smsg(global.conn, chatUpdate.messages[0]);
-        if (!m) return;
+        if (!m || !m.message) return;
         await handler.handler.call(global.conn, m, chatUpdate);
     } catch (e) { console.error(e); }
   });
@@ -205,13 +184,12 @@ async function descargarLicencia() {
       const response = await axios({ url, method: 'GET', responseType: 'stream' });
       const writer = createWriteStream(localPath);
       response.data.pipe(writer);
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
           writer.on('finish', () => {
               console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada.`));
               unlinkSync('.gen_license'); 
               resolve();
           });
-          writer.on('error', reject);
       });
   } catch (err) {}
 }

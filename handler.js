@@ -19,7 +19,7 @@ export async function handler(m, chatUpdate) {
     const senderPn = m.key.participantAlt || m.key.remoteJidAlt || m.sender;
     const botLid = conn.user.lid || '';
     const botPn = conn.user.id.split(':')[0] + '@s.whatsapp.net';
-    const isMainBot = botPn.replace(/\D/g, '') === MAIN_NUMBER;
+    const isMainBot = conn.user.jid;
 
     global.db.data.chats[chatJid] ||= { 
         isBanned: false, 

@@ -1,5 +1,4 @@
 import fetch from 'node-fetch'
-import baileys from '@whiskeysockets/baileys'
 
 const animeCommand = {
     name: 'anime',
@@ -9,9 +8,10 @@ const animeCommand = {
         const sendAlbumMessage = async (conn, jid, medias, options = {}) => {
             if (typeof jid !== "string") throw new TypeError("jid must be string")
             const caption = options.text || options.caption || ""
-            const delay = !isNaN(options.delay) ? options.delay : 500
+            const delayTime = !isNaN(options.delay) ? options.delay : 500
 
-            const album = baileys.generateWAMessageFromContent(
+            // Se usa conn.generateWAMessageFromContent inyectado
+            const album = conn.generateWAMessageFromContent(
                 jid,
                 {
                     messageContextInfo: {},
@@ -37,14 +37,14 @@ const animeCommand = {
             for (let i = 0; i < medias.length; i++) {
                 const { type, data } = medias[i]
                 try {
-                    const img = await baileys.generateWAMessage(
+                    const img = await conn.generateWAMessage(
                         album.key.remoteJid,
                         { [type]: data, ...(i === 0 ? { caption } : {}) },
                         { upload: conn.waUploadToServer }
                     )
                     img.message.messageContextInfo = { messageAssociation: { associationType: 1, parentMessageKey: album.key } }
                     await conn.relayMessage(img.key.remoteJid, img.message, { messageId: img.key.id })
-                    await baileys.delay(delay)
+                    await conn.delay(delayTime)
                 } catch (err) {
                     continue
                 }

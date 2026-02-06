@@ -9,8 +9,7 @@ const ttsCommand = {
             const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=es&client=tw-ob`;
             await conn.sendMessage(m.chat, { 
                 audio: { url }, 
-                mimetype: 'audio/mpeg', 
-                ptt: true 
+                mimetype: 'audio/mpeg'
             }, { quoted: m });
             await m.react('✅');
         } catch {

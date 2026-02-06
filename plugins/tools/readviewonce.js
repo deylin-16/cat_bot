@@ -5,23 +5,27 @@ const readOnceCommand = {
     alias: ['ver', 'read', 'vv'],
     category: 'tools',
     run: async (m, { conn }) => {
-        const q = m.quoted ? m.quoted : null;
-        if (!q) return;
+        const q = m.quoted ? m.quoted : m;
+        const msg = q.message?.viewOnceMessageV2?.message || q.message?.viewOnceMessage?.message || q.message;
+        
+        if (!msg) return;
 
-        const isViewOnce = q.msg?.viewOnce || q.viewOnce;
-        if (!isViewOnce) return;
+        const type = Object.keys(msg)[0];
+        if (!/image|video|audio/.test(type)) return m.reply('❯❯ 𝗘𝗥𝗥𝗢𝗥: Responde a un mensaje de "una sola vez".');
 
         try {
             await m.react('👁️');
 
-            const buffer = await downloadMediaMessage(q, 'buffer', {}, { 
-                reusedStaticNetworkKey: true 
-            });
+            const buffer = await downloadMediaMessage(
+                q,
+                'buffer',
+                {},
+                { reusedStaticNetworkKey: true }
+            );
 
-            if (!buffer) return m.reply('❯❯ 𝗘𝗥𝗥𝗢𝗥: Fallo al procesar el archivo.');
+            if (!buffer) return m.reply('❯❯ 𝗘𝗥𝗥𝗢𝗥: No se pudo obtener el buffer.');
 
-            const type = q.mtype;
-            const originalCaption = q.text || q.caption || '';
+            const originalCaption = msg[type]?.caption || '';
             const caption = originalCaption ? `❖ 𝗧𝗘𝗫𝗧𝗢: ${originalCaption}` : `❯❯ 𝗦𝗬𝗦𝗧𝗘𝗠: Contenido revelado`;
 
             if (/video/.test(type)) {
@@ -40,7 +44,7 @@ const readOnceCommand = {
 
         } catch (e) {
             console.error(e);
-            m.reply('❯❯ 𝗘𝗥𝗥𝗢𝗥: El archivo ha expirado o no pudo ser descargado.');
+            m.reply('❯❯ 𝗘𝗥𝗥𝗢𝗥: El archivo ha expirado o falló la descarga.');
         }
     }
 };

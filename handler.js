@@ -14,6 +14,8 @@ export async function handler(m, chatUpdate) {
 
     const chatJid = m.chat;
     const MAIN_NUMBER = '50432569059';
+    
+    // Normalizar JID del Bot
     const currentJid = conn.user.id.split(':')[0] + '@s.whatsapp.net';
     const currentNumber = currentJid.replace(/[^0-9]/g, '');
     const isMainBot = currentNumber === MAIN_NUMBER;
@@ -27,19 +29,23 @@ export async function handler(m, chatUpdate) {
     };
 
     const chat = global.db.data.chats[chatJid];
-    
+
+    // Cargar participantes y metadatos si es grupo
+    let participants = [];
+    if (m.isGroup) {
+        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+        participants = groupMetadata.participants || [];
+    }
+
     if (m.isGroup) {
         if (!isMainBot && chat.antisub) return;
-        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
-        const participantsList = groupMetadata?.participants || [];
-
         if (isMainBot && !chat.antisub) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
-                .map(c => c.user.id.replace(/[^0-9]/g, ''));
-            if (participantsList.some(p => activeSubBots.includes(p.id.replace(/[^0-9]/g, '')))) return;
+                .map(c => c.user.id.split(':')[0]);
+            if (participants.some(p => activeSubBots.includes(p.id.split('@')[0]))) return;
         } else if (!isMainBot && !chat.antisub) {
-            if (participantsList.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER)) return;
+            if (participants.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER)) return;
         }
     }
 
@@ -48,17 +54,20 @@ export async function handler(m, chatUpdate) {
     global.db.data.users[m.sender] ||= { exp: 0, muto: false, warnAntiLink: 0 };
     const user = global.db.data.users[m.sender];
 
-    const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender);
+    // --- CORRECCIÓN DE DUEÑO (Soporte LID/PN) ---
+    const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').some(jid => jid === m.sender) || 
+                     global.owner.map(([num]) => num.replace(/\D/g, '')).some(num => m.sender.includes(num));
     const isOwner = isROwner || m.fromMe;
 
-    let isAdmin = false, isBotAdmin = false, participants = [];
+    // --- CORRECCIÓN DE ADMINS (Soporte LID/PN) ---
+    let isAdmin = false, isBotAdmin = false;
     if (m.isGroup) {
-        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
-        participants = groupMetadata.participants || [];
+        // Buscamos al usuario comparando IDs limpios para ignorar si es @lid o @s.whatsapp.net
         const userInGroup = participants.find(p => p.id === m.sender) || {};
         const botInGroup = participants.find(p => p.id === currentJid) || {};
-        isAdmin = userInGroup?.admin?.includes('admin');
-        isBotAdmin = !!botInGroup?.admin;
+        
+        isAdmin = userInGroup?.admin?.includes('admin') || false;
+        isBotAdmin = botInGroup?.admin?.includes('admin') || false;
     }
 
     if (m.isGroup && chat.mutos.includes(m.sender) && !isAdmin && !isOwner) {

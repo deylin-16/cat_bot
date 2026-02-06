@@ -6,10 +6,9 @@ const dsCommand = {
     alias: ['cleansession', 'limpiar'],
     category: 'owner',
     rowner: true,
-    run: async (m, { conn }) => {
-        const MAIN_NUMBER = '50432569059@s.whatsapp.net'
-        if (conn.user.jid !== MAIN_NUMBER) {
-            return conn.sendMessage(m.chat, { text: '> *Este comando solo puede ser ejecutado por el número principal.*' }, { quoted: m })
+    run: async (m, { conn, isMainBot }) => {
+        if (!isMainBot) {
+            return m.reply('> *Este comando solo puede ser ejecutado por el bot principal.*')
         }
 
         const sessionPath = `./${global.sessions || 'sessions'}/`
@@ -17,7 +16,6 @@ const dsCommand = {
         let filesDeleted = 0
 
         try {
-            
             if (existsSync(sessionPath)) {
                 const sessionFiles = await fs.readdir(sessionPath)
                 for (const file of sessionFiles) {
@@ -37,16 +35,14 @@ const dsCommand = {
             }
 
             if (filesDeleted === 0) {
-                await conn.sendMessage(m.chat, { text: '> *No se encontraron archivos prescindibles para eliminar.*' }, { quoted: m })
+                await m.reply('> *No se encontraron archivos prescindibles para eliminar.*')
             } else {
-                await conn.sendMessage(m.chat, { 
-                    text: `> *𝗟𝗜𝗠𝗣𝗜𝗘𝗭𝗔 𝗣𝗥𝗢𝗙𝗨𝗡𝗗𝗔 𝗙𝗜𝗡𝗔𝗟𝗜𝗭𝗔𝗗𝗔*\n\n*Archivos eliminados:* ${filesDeleted}\n*Estado:* Memoria optimizada y sesiones huérfanas purgadas.` 
-                }, { quoted: m })
+                await m.reply(`> *𝗟𝗜𝗠𝗣𝗜𝗘𝗭𝗔 𝗣𝗥𝗢𝗙𝗨𝗡𝗗𝗔 𝗙𝗜𝗡𝗔𝗟𝗜𝗭𝗔𝗗𝗔*\n\n*Archivos eliminados:* ${filesDeleted}\n*Estado:* Memoria optimizada y sesiones huérfanas purgadas.`)
             }
 
         } catch (err) {
             console.error(err)
-            await conn.sendMessage(m.chat, { text: '> *Error crítico durante la purga de archivos.*' }, { quoted: m })
+            await m.reply('> *Error crítico durante la purga de archivos.*')
         }
     }
 }

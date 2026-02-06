@@ -1,91 +1,74 @@
-import axios from 'axios';
-import baileys from '@whiskeysockets/baileys';
+import { jidNormalizedUser, getContentType, proto, downloadContentFromMessage, generateWAMessageFromContent, prepareWAMessageMedia, generateWAMessage, delay } from '@whiskeysockets/baileys';
+import fs from 'fs';
 
-const pinterestCommand = {
-    name: 'pinterest',
-    alias: ['pin'],
-    category: 'search',
-    run: async (m, { conn, text }) => {
-        if (!text) return conn.reply(m.chat, `\t\t\t *『 PINTEREST SEARCH 』* \n\n> ✎ Ingresa un texto para iniciar la búsqueda...`, m);
+export const smsg = (conn, m) => {
+    if (!m) return m;
+    let M = proto.WebMessageInfo;
+    if (m.key) {
+        m.id = m.key.id;
+        m.isBaileys = m.id.startsWith('BAE5') && m.id.length === 16;
+        m.chat = m.key.remoteJid;
+        m.fromMe = m.key.fromMe;
+        m.isGroup = m.chat.endsWith('@g.us');
+        m.sender = jidNormalizedUser(m.fromMe ? conn.user.id : m.participant || m.key.participant || m.chat || '');
+    }
 
-        try {
-            await m.react('🕒');
-
-            const { data: res } = await axios.get(`${global.url_api}/api/search/pin?q=${encodeURIComponent(text)}&apikey=${global.key}`);
-            
-            if (!res.success || !res.results || res.results.length === 0) {
-                await m.react('❌');
-                return conn.reply(m.chat, `No se encontraron resultados para "${text}".`, m);
-            }
-
-            const maxImages = Math.min(res.results.length, 7);
-            const medias = [];
-            
-            const randomPick = res.results[Math.floor(Math.random() * maxImages)];
-
-            for (let i = 0; i < maxImages; i++) {
-                medias.push({
-                    type: 'image',
-                    data: { url: res.results[i].url }
-                });
-            }
-
-            const caption = `\t\t*── 「 PINTEREST ALBUM 」 ──*\n\n` +
-                             `▢ *BÚSQUEDA:* ${text}\n` +
-                             `▢ *TÍTULO:* ${randomPick.title}\n` +
-                             `▢ *AUTOR:* ${randomPick.author}\n` +
-                             `▢ *LINK:* ${randomPick.source}\n` +
-                             `▢ *CANTIDAD:* ${maxImages}\n\n`;
-
-            await sendAlbum(conn, m.chat, medias, {
-                caption: caption,
-                quoted: m,
-                delay: 500
-            });
-
-            await m.react('✅');
-
-        } catch (error) {
-            console.error(error);
-            await m.react('❌');
-            conn.reply(m.chat, 'Error al conectar con la API de Pinterest.', m);
+    if (m.message) {
+        m.mtype = getContentType(m.message);
+        m.msg = (m.mtype === 'viewOnceMessageV2') ? m.message[m.mtype].message[getContentType(m.message[m.mtype].message)] : m.message[m.mtype];
+        m.text = m.msg?.text || m.msg?.caption || m.msg?.contentText || m.message?.conversation || m.msg?.selectedDisplayText || m.msg?.title || '';
+        
+        const prefix = new RegExp('^[#!./]').test(m.text) ? m.text.substring(0, 1) : '/';
+        m.isCommand = m.text.startsWith(prefix);
+        m.command = m.isCommand ? m.text.slice(prefix.length).trim().split(/ +/).shift().toLowerCase() : null;
+        m.args = m.text.trim().split(/ +/).slice(1);
+        m.query = m.args.join(' ');
+        
+        // Inyectar mentionedJid para que kiss.js no de error de 'undefined' (Captura 223367)
+        m.mentionedJid = m.msg?.contextInfo?.mentionedJid || [];
+        
+        m.quoted = m.msg?.contextInfo?.quotedMessage ? {
+            key: {
+                remoteJid: m.chat,
+                fromMe: m.msg.contextInfo.participant === jidNormalizedUser(conn.user.id),
+                id: m.msg.contextInfo.stanzaId,
+                participant: m.msg.contextInfo.participant
+            },
+            message: m.msg.contextInfo.quotedMessage
+        } : null;
+        
+        if (m.quoted) {
+            m.quoted.mtype = getContentType(m.quoted.message);
+            m.quoted.msg = m.quoted.message[m.quoted.mtype];
+            m.quoted.text = m.quoted.msg?.text || m.quoted.msg?.caption || m.quoted.msg?.contentText || m.quoted.message?.conversation || '';
+            m.quoted.sender = jidNormalizedUser(m.msg.contextInfo.participant);
+            m.quoted.id = m.msg.contextInfo.stanzaId;
+            m.quoted.mentionedJid = m.quoted.msg?.contextInfo?.mentionedJid || [];
+            m.quoted.download = () => conn.downloadM(m.quoted.msg, m.quoted.mtype.replace('Message', ''));
         }
     }
+
+    // Compatibilidad para Pinterest (Captura 223367)
+    conn.generateWAMessageFromContent = generateWAMessageFromContent;
+    conn.generateWAMessage = generateWAMessage;
+    conn.relayMessage = conn.relayMessage;
+    conn.delay = delay;
+
+    // Métodos de respuesta (Captura 223270)
+    conn.reply = (jid, text, quoted, options) => conn.sendMessage(jid, { text, mentions: conn.parseMention(text) }, { quoted, ...options });
+    m.reply = (text, chat = m.chat, options = {}) => conn.reply(chat, text, m, options);
+    m.react = (emoji) => conn.sendMessage(m.chat, { react: { text: emoji, key: m.key } });
+
+    // Descarga de archivos (Captura 223315)
+    conn.downloadM = async (message, type) => {
+        let stream = await downloadContentFromMessage(message, type);
+        let buffer = Buffer.from([]);
+        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+        return buffer;
+    };
+
+    conn.parseMention = (text = '') => [...text.matchAll(/@([0-9]{5,16}|0)/g)].map(v => v[1] + '@s.whatsapp.net');
+    m.delete = () => conn.sendMessage(m.chat, { delete: m.key });
+
+    return m;
 };
-
-async function sendAlbum(conn, jid, medias, options = {}) {
-    const album = baileys.generateWAMessageFromContent(jid, {
-        messageContextInfo: {},
-        albumMessage: {
-            expectedImageCount: medias.filter(m => m.type === "image").length,
-            expectedVideoCount: medias.filter(m => m.type === "video").length,
-            ...(options.quoted ? {
-                contextInfo: {
-                    remoteJid: options.quoted.key.remoteJid,
-                    fromMe: options.quoted.key.fromMe,
-                    stanzaId: options.quoted.key.id,
-                    participant: options.quoted.key.participant || options.quoted.key.remoteJid,
-                    quotedMessage: options.quoted.message,
-                }
-            } : {}),
-        }
-    }, {});
-
-    await conn.relayMessage(album.key.remoteJid, album.message, { messageId: album.key.id });
-
-    for (let i = 0; i < medias.length; i++) {
-        const { type, data } = medias[i];
-        const msg = await baileys.generateWAMessage(album.key.remoteJid, {
-            [type]: data,
-            ...(i === 0 ? { caption: options.caption || "" } : {})
-        }, { upload: conn.waUploadToServer });
-
-        msg.message.messageContextInfo = {
-            messageAssociation: { associationType: 1, parentMessageKey: album.key }
-        };
-        await conn.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id });
-        await baileys.delay(options.delay || 300);
-    }
-}
-
-export default pinterestCommand;

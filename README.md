@@ -6,7 +6,7 @@
   <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 10px; color: #856404; margin-bottom: 20px;">
     <strong>📜 ESTE REPOSITORIO ESTÁ PROTEGIDO POR UNA LICENCIA PROPIETARIA</strong><br>
     ⚠︎ Queda estrictamente prohibido distribuir, clonar o comercializar este código sin la autorización previa del autor:<br>
-    <a href="https://wa.me/50432955554" style="text-decoration: none; font-weight: bold; color: #d9534f;">[(つω｀)～𝔻𝕖𝕪𝕝𝕚𝕟 𝔼𝕝𝕚𝕒𝕔⊂(・﹏・⊂)]</a>
+    <a href="https://wa.me/50432955554" style="text-decoration: none; font-weight: bold; color: #d9534f;">[_Deylin Eliac ᴼᶠᶜ_]</a>
   </div>
 </div>
 

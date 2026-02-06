@@ -1,5 +1,4 @@
 import axios from 'axios';
-import baileys from '@whiskeysockets/baileys';
 
 const pinterestCommand = {
     name: 'pinterest',
@@ -20,7 +19,6 @@ const pinterestCommand = {
 
             const maxImages = Math.min(res.results.length, 7);
             const medias = [];
-
             const randomPick = res.results[Math.floor(Math.random() * maxImages)];
 
             for (let i = 0; i < maxImages; i++) {
@@ -54,7 +52,8 @@ const pinterestCommand = {
 };
 
 async function sendAlbum(conn, jid, medias, options = {}) {
-    const album = baileys.generateWAMessageFromContent(jid, {
+    // Se usa conn.generateWAMessageFromContent inyectado por el serializer
+    const album = conn.generateWAMessageFromContent(jid, {
         messageContextInfo: {},
         albumMessage: {
             expectedImageCount: medias.filter(m => m.type === "image").length,
@@ -75,7 +74,7 @@ async function sendAlbum(conn, jid, medias, options = {}) {
 
     for (let i = 0; i < medias.length; i++) {
         const { type, data } = medias[i];
-        const msg = await baileys.generateWAMessage(album.key.remoteJid, {
+        const msg = await conn.generateWAMessage(album.key.remoteJid, {
             [type]: data,
             ...(i === 0 ? { caption: options.caption || "" } : {})
         }, { upload: conn.waUploadToServer });
@@ -84,7 +83,7 @@ async function sendAlbum(conn, jid, medias, options = {}) {
             messageAssociation: { associationType: 1, parentMessageKey: album.key }
         };
         await conn.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id });
-        await baileys.delay(options.delay || 300);
+        await conn.delay(options.delay || 300);
     }
 }
 

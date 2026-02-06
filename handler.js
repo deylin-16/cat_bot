@@ -1,34 +1,20 @@
-import { smsg } from './lib/simple.js';
 import { format } from 'util';
 import { fileURLToPath } from 'url';
 import path, { join } from 'path';
 import { unwatchFile, watchFile } from 'fs';
 import chalk from 'chalk';
 import ws from 'ws';
-import fetch from 'node-fetch';
 
-const isNumber = x => typeof x === 'number' && !isNaN(x);
-
-async function getLidFromJid(id, connection) {
-    if (!id) return '';
-    if (id.endsWith('@lid')) return id;
-    const res = await connection.onWhatsApp(id).catch(() => []);
-    return res[0]?.lid || id;
-}
-
-export async function handler(chatUpdate) {
+export async function handler(m, chatUpdate) {
     this.uptime = this.uptime || Date.now();
     const conn = this;
 
-    if (!chatUpdate?.messages?.[0]) return;
-    let m = chatUpdate.messages[chatUpdate.messages.length - 1];
     if (!m) return;
-
     if (global.db.data == null) await global.loadDatabase();
 
-    const chatJid = m.key.remoteJid;
+    const chatJid = m.chat;
     const MAIN_NUMBER = '50432569059';
-    const currentJid = conn.user.jid;
+    const currentJid = conn.user.id.split(':')[0] + '@s.whatsapp.net';
     const currentNumber = currentJid.replace(/[^0-9]/g, '');
     const isMainBot = currentNumber === MAIN_NUMBER;
 
@@ -37,59 +23,41 @@ export async function handler(chatUpdate) {
         welcome: true, 
         detect: true, 
         antisub: false,
-        customWelcome: '',
         mutos: []
     };
 
     const chat = global.db.data.chats[chatJid];
-    if (!('welcome' in chat)) chat.welcome = true;
-    if (!('detect' in chat)) chat.detect = true;
-    if (!('mutos' in chat)) chat.mutos = [];
-
-    if (chatJid.endsWith('@g.us')) {
+    
+    if (m.isGroup) {
         if (!isMainBot && chat.antisub) return;
-
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         const participantsList = groupMetadata?.participants || [];
 
         if (isMainBot && !chat.antisub) {
             const activeSubBots = (global.conns || [])
                 .filter(c => c.user && c.ws?.readyState === ws.OPEN)
-                .map(c => c.user.jid.replace(/[^0-9]/g, ''));
-
-            const isAnySubPresent = participantsList.some(p => activeSubBots.includes(p.id.replace(/[^0-9]/g, '')));
-            if (isAnySubPresent) return;
+                .map(c => c.user.id.replace(/[^0-9]/g, ''));
+            if (participantsList.some(p => activeSubBots.includes(p.id.replace(/[^0-9]/g, '')))) return;
         } else if (!isMainBot && !chat.antisub) {
-            const isMainPresent = participantsList.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER);
-            if (isMainPresent) return;
+            if (participantsList.some(p => p.id.replace(/[^0-9]/g, '') === MAIN_NUMBER)) return;
         }
     }
 
-    m = smsg(conn, m) || m;
-    if (!m || m.isBaileys) return;
+    if (m.isBaileys) return;
 
-    let user, plugin;
-    const senderJid = m.sender;
-    global.db.data.users[senderJid] ||= { exp: 0, muto: false, warnAntiLink: 0 };
-    user = global.db.data.users[senderJid];
+    global.db.data.users[m.sender] ||= { exp: 0, muto: false, warnAntiLink: 0 };
+    const user = global.db.data.users[m.sender];
 
-    const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + (senderJid.includes('@lid') ? '@lid' : '@s.whatsapp.net')).includes(senderJid);
+    const isROwner = global.owner.map(([num]) => num.replace(/\D/g, '') + '@s.whatsapp.net').includes(m.sender);
     const isOwner = isROwner || m.fromMe;
 
     let isAdmin = false, isBotAdmin = false, participants = [];
     if (m.isGroup) {
         const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         participants = groupMetadata.participants || [];
-
-        const [senderLid, botLid] = await Promise.all([
-            getLidFromJid(senderJid, conn),
-            getLidFromJid(currentJid, conn)
-        ]);
-
-        const userInGroup = participants.find(p => p.id === senderLid || p.id === senderJid) || {};
-        const botInGroup = participants.find(p => p.id === botLid || p.id === currentJid) || {};
-
-        isAdmin = userInGroup?.admin === 'admin' || userInGroup?.admin === 'superadmin';
+        const userInGroup = participants.find(p => p.id === m.sender) || {};
+        const botInGroup = participants.find(p => p.id === currentJid) || {};
+        isAdmin = userInGroup?.admin?.includes('admin');
         isBotAdmin = !!botInGroup?.admin;
     }
 
@@ -97,31 +65,19 @@ export async function handler(chatUpdate) {
         return await conn.sendMessage(m.chat, { delete: m.key });
     }
 
-    const prefixRegex = /^[.#\/]/;
-    const textRaw = m.text || '';
-    const isCmd = prefixRegex.test(textRaw);
-
     for (const p of Array.from(global.plugins.values())) {
         if (p.before && typeof p.before === 'function') {
             if (await p.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin, chat })) continue;
         }
     }
 
-    if (!isCmd) return;
+    if (!m.command) return;
 
-    const match = textRaw.match(prefixRegex);
-    const usedPrefix = match[0];
-    const noPrefixText = textRaw.slice(usedPrefix.length).trim();
-    const args = noPrefixText.split(/\s+/).filter(v => v);
-    const command = (args.shift() || '').toLowerCase();
-    const text = args.join(' ');
-
-    const pluginName = global.plugins.has(command) ? command : global.aliases.get(command);
-    plugin = pluginName ? global.plugins.get(pluginName) : null;
+    const pluginName = global.plugins.has(m.command) ? m.command : global.aliases.get(m.command);
+    const plugin = pluginName ? global.plugins.get(pluginName) : null;
 
     if (plugin) {
-        if (plugin.disabled) return;
-        if (chat?.isBanned && !isROwner) return;
+        if (plugin.disabled || (chat?.isBanned && !isROwner)) return;
 
         const checkPermissions = (perm) => ({
             rowner: isROwner,
@@ -139,16 +95,13 @@ export async function handler(chatUpdate) {
             }
         }
 
-        m.isCommand = true;
         try {
-            const runMethod = plugin.run; 
-            if (typeof runMethod === 'function') {
-                await runMethod.call(conn, m, { 
-                    usedPrefix, noPrefix: text, args, command, text, 
-                    conn, user, chat, isROwner, isOwner, isAdmin, 
-                    isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
-                });
-            }
+            await plugin.run.call(conn, m, { 
+                usedPrefix: m.prefix, noPrefix: m.text.replace(m.prefix + m.command, '').trim(), 
+                args: m.args, command: m.command, text: m.args.join(' '), 
+                conn, user, chat, isROwner, isOwner, isAdmin, 
+                isBotAdmin, isSubAssistant: !isMainBot, chatUpdate, participants
+            });
         } catch (e) {
             console.error(e);
             m.reply(format(e));
@@ -158,22 +111,18 @@ export async function handler(chatUpdate) {
 
 global.dfail = (type, m, conn) => {
     const messages = {
-        rowner: `> ╰❒ Solo mí creador puede usar esté comando.`,
-        owner: `> ╰❒ Solo mí creador puede usar esté comando.`,
-        group: `> ╰✎ Esté comando sólo se puede usar en grupos.`,
-        private: `De ésto solo habló en privado güey.`,
+        rowner: `> ╰❒ Solo mi creador puede usar este comando.`,
+        owner: `> ╰❒ Solo mi creador puede usar este comando.`,
+        group: `> ╰✎ Este comando sólo se puede usar en grupos.`,
+        private: `De esto solo hablo en privado.`,
         admin: `> ╰♛ Sólo los administradores pueden ejecutar este comando.`,
-        botAdmin: `> ╰✰ Necesito tener administrador para ejercitar está acción.`
+        botAdmin: `> ╰✰ Necesito ser administrador.`
     };
     if (messages[type]) conn.reply(m.chat, messages[type], m);
 };
 
 let file = global.__filename(import.meta.url, true);
-watchFile(file, async () => {
+watchFile(file, () => {
     unwatchFile(file);
-    if (global.conns) {
-        for (const u of global.conns.filter(c => c.user && c.ws?.readyState === ws.OPEN)) {
-            if (u.subreloadHandler) u.subreloadHandler(false);
-      }
-    }
+    console.log(chalk.bold.greenBright(`Actualización detectada en handler.js`));
 });

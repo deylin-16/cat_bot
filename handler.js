@@ -14,13 +14,11 @@ export async function handler(m, chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.chat;
-    
     const senderLid = m.sender;
     const senderPn = m.key.participantAlt || m.key.remoteJidAlt || m.sender;
-    
     const currentJid = jidNormalizedUser(conn.user.id);
     const botLid = conn.user.lid || '';
-    
+
     const isSubBot = (global.conns || []).some(c => c.user && jidNormalizedUser(c.user.id) === currentJid);
     const isMainBot = !isSubBot;
 
@@ -35,7 +33,7 @@ export async function handler(m, chatUpdate) {
     const chat = global.db.data.chats[chatJid];
     let participants = [];
     if (m.isGroup) {
-        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+        let groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         participants = groupMetadata.participants || [];
     }
 
@@ -64,9 +62,9 @@ export async function handler(m, chatUpdate) {
     if (m.isGroup) {
         const userInGroup = participants.find(p => p.id === senderLid || p.id === senderPn);
         const botInGroup = participants.find(p => p.id === currentJid || p.id === botLid);
-        
-        isAdmin = !!userInGroup?.admin;
-        isBotAdmin = !!botInGroup?.admin;
+
+        isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
+        isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
     }
 
     if (m.isGroup && chat.mutos.includes(m.sender) && !isAdmin && !isOwner) {
@@ -86,6 +84,16 @@ export async function handler(m, chatUpdate) {
 
     if (plugin) {
         if (plugin.disabled || (chat?.isBanned && !isROwner)) return;
+
+        // Re-validación forzada si el comando requiere admin y la caché dice que no
+        if (m.isGroup && ((plugin.admin && !isAdmin) || (plugin.botAdmin && !isBotAdmin))) {
+            const groupMetadata = await conn.groupMetadata(chatJid, false).catch(() => ({}));
+            participants = groupMetadata.participants || [];
+            const userInGroup = participants.find(p => p.id === senderLid || p.id === senderPn);
+            const botInGroup = participants.find(p => p.id === currentJid || p.id === botLid);
+            isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
+            isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
+        }
 
         const checkPermissions = (perm) => ({
             rowner: isROwner,

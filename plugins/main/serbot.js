@@ -124,12 +124,11 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
             
-            // Lista de errores que indican que la sesión ya no sirve
             const deleteSessionErrors = [
-                DisconnectReason.loggedOut, // 401
-                DisconnectReason.badSession, // 400
-                403, // Prohibido
-                405 // Método no permitido (a veces ocurre en fallos de sync)
+                DisconnectReason.loggedOut,
+                DisconnectReason.badSession,
+                403,
+                405 
             ];
 
             if (deleteSessionErrors.includes(reason)) {
@@ -137,7 +136,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true });
                 global.conns = global.conns.filter(c => jidNormalizedUser(c.user.id) !== jidNormalizedUser(sock.user.id));
             } else {
-                // Errores temporales: reintentar
+                
                 console.log(chalk.yellowBright(`[ SUB-BOT ] Reintentando conexión: ${id} (Razón: ${reason})`));
                 setTimeout(() => assistant_accessJadiBot({ phoneNumber: id, fromCommand: false }), 10000);
             }

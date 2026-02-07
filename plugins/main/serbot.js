@@ -110,23 +110,40 @@ export async function assistant_accessJadiBot(options) {
 
 function setupSubBotEvents(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update
+        const { connection, lastDisconnect } = update;
+        const id = path.basename(authFolder);
+
         if (connection === 'open') {
-            const userJid = jidNormalizedUser(sock.user.id)
+            console.log(chalk.greenBright(`[ SUB-BOT ] Sesión abierta: ${id}`));
+            const userJid = jidNormalizedUser(sock.user.id);
             if (!global.conns.some(c => jidNormalizedUser(c.user.id) === userJid)) {
-                global.conns.push(sock)
+                global.conns.push(sock);
             }
         }
+
         if (connection === 'close') {
-            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            if (reason === DisconnectReason.loggedOut || reason === 401) {
-                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                global.conns = global.conns.filter(c => jidNormalizedUser(c.user.id) !== jidNormalizedUser(sock.user.id))
+            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+            
+            // Lista de errores que indican que la sesión ya no sirve
+            const deleteSessionErrors = [
+                DisconnectReason.loggedOut, // 401
+                DisconnectReason.badSession, // 400
+                403, // Prohibido
+                405 // Método no permitido (a veces ocurre en fallos de sync)
+            ];
+
+            if (deleteSessionErrors.includes(reason)) {
+                console.log(chalk.redBright(`[ SUB-BOT ] Sesión inválida (${reason}). Eliminando carpeta: ${id}`));
+                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true });
+                global.conns = global.conns.filter(c => jidNormalizedUser(c.user.id) !== jidNormalizedUser(sock.user.id));
             } else {
-                setTimeout(() => assistant_accessJadiBot({ phoneNumber: path.basename(authFolder), fromCommand: false }), 5000)
+                // Errores temporales: reintentar
+                console.log(chalk.yellowBright(`[ SUB-BOT ] Reintentando conexión: ${id} (Razón: ${reason})`));
+                setTimeout(() => assistant_accessJadiBot({ phoneNumber: id, fromCommand: false }), 10000);
             }
         }
-    })
+    });
+
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {

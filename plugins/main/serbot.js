@@ -4,17 +4,15 @@ import fs from 'fs'
 import path from 'path'
 import NodeCache from 'node-cache'
 import chalk from 'chalk'
-import * as ws from 'ws'
-import { jidNormalizedUser } from '@whiskeysockets/baileys'
-
-const { 
-    default: makeWASocket,
+import { 
+    makeWASocket, 
     DisconnectReason, 
     makeCacheableSignalKeyStore, 
-    fetchLatestBaileysVersion,
-    Browsers,
-    useMultiFileAuthState 
-} = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
+    fetchLatestBaileysVersion, 
+    Browsers, 
+    useMultiFileAuthState,
+    jidNormalizedUser
+} from '@whiskeysockets/baileys'
 
 if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()
@@ -44,7 +42,7 @@ const serbot = {
             let phoneNumber = m.sender.split('@')[0]
             let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
 
-            if (typeof code === 'string' && code !== "Conectado") {
+            if (code && code !== "Conectado") {
                 await conn.sendMessage(m.chat, { 
                     text: code,
                     contextInfo: {
@@ -59,7 +57,6 @@ const serbot = {
             }
             return
         }
-
         m.reply(`Usa el comando *${usedPrefix}code* para obtener tu código de vinculación.`)
     }
 }
@@ -67,7 +64,9 @@ export default serbot
 
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
-    const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
+    const id = phoneNumber.replace(/[^0-9]/g, '')
+    const authFolder = path.join(process.cwd(), 'jadibts', id)
+
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
 
     try {
@@ -84,33 +83,35 @@ export async function assistant_accessJadiBot(options) {
             browser: Browsers.ubuntu("Chrome"),
             version,
             msgRetryCache,
-            markOnlineOnConnect: true,
             syncFullHistory: false,
+            markOnlineOnConnect: true
         })
 
         sock.ev.on('creds.update', saveCreds)
 
-        if (!sock.authState.creds.registered) {
-            if (!fromCommand) {
-                if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                return
-            }
-
-            return new Promise((resolve, reject) => {
-                setTimeout(async () => {
-                    try {
-                        let code = await sock.requestPairingCode(phoneNumber)
-                        code = code?.match(/.{1,4}/g)?.join("-") || code
-                        setupSubBotEvents(sock, authFolder, m, conn)
-                        resolve(code)
-                    } catch (err) { reject(err) }
-                }, 3000)
+        if (!sock.authState.creds.registered && fromCommand) {
+            return new Promise(async (resolve) => {
+                sock.ev.on('connection.update', async (update) => {
+                    const { connection } = update
+                    if (connection === 'connecting') {
+                        await new Promise(r => setTimeout(r, 5000))
+                        try {
+                            let code = await sock.requestPairingCode(id)
+                            code = code?.match(/.{1,4}/g)?.join("-") || code
+                            setupSubBotEvents(sock, authFolder, m, conn)
+                            resolve(code)
+                        } catch (err) {
+                            console.error(chalk.red(`❌ Error al pedir código: ${err.message}`))
+                            resolve(null)
+                        }
+                    }
+                })
             })
         } else {
             setupSubBotEvents(sock, authFolder, m, conn)
             return "Conectado"
         }
-    } catch (e) { throw e }
+    } catch (e) { console.error(e) }
 }
 
 function setupSubBotEvents(sock, authFolder, m, conn) {
@@ -128,11 +129,11 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            if (reason === DisconnectReason.loggedOut) {
+            if (reason === DisconnectReason.loggedOut || reason === 401) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 global.conns = global.conns.filter(c => jidNormalizedUser(c.user.id) !== jidNormalizedUser(sock.user.id))
             } else {
-                assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false })
+                setTimeout(() => assistant_accessJadiBot({ phoneNumber: botNumber, fromCommand: false }), 5000)
             }
         }
     })
@@ -141,11 +142,10 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         try {
             const handlerPath = path.join(process.cwd(), 'handler.js')
             const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
-
             for (let msg of chatUpdate.messages) {
-                if (!msg.message) continue
+                if (!msg.message || msg.key.fromMe) continue
                 await handler.call(sock, msg, chatUpdate)
             }
-        } catch (e) { console.error(chalk.red('[ERROR SUBBOT]:'), e) }
+        } catch (e) { console.error(e) }
     })
 }

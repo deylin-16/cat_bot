@@ -125,20 +125,23 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
         const msg = chatUpdate.messages[0];
         if (!msg) return;
-        if (!msg.message && !msg.messageStubType) return;  
-        const m = await smsg(conn, msg);     
-        const handlerPath = `./handler.js?update=${Date.now()}`;
-        const { handler } = await import(handlerPath);      
-        if (typeof handler === 'function') {
-            await handler.call(conn, m, chatUpdate);
+        if (!msg.message && !msg.messageStubType) return;
+        const m = await smsg(conn, msg);
+        const handlerPath = path.join(process.cwd(), 'handler.js');
+        const module = await import(`file://${handlerPath}?update=${Date.now()}`);
+        const handlerFunc = module.handler || module.default?.handler || module.default;
+
+        if (typeof handlerFunc === 'function') {
+            await handlerFunc.call(conn, m, chatUpdate);
         } else {
-            console.error('El archivo handler.js no exporta una función llamada handler');
+            console.error('No se pudo encontrar la función handler en handler.js');
         }
 
     } catch (e) {
-        console.error('Error en el sistema de mensajes:', e);
+        console.error('Error en upsert:', e);
     }
 });
+
 
 
 

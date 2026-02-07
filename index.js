@@ -120,18 +120,26 @@ global.reloadHandler = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
 
-  conn.ev.on('messages.upsert', async (chatUpdate) => {
+  
+conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
         const msg = chatUpdate.messages[0];
         if (!msg) return;
-        if (!msg.message && !msg.messageStubType) return;
-        const m = await smsg(conn, msg);
-        await handler.call(conn, m, chatUpdate);
+        if (!msg.message && !msg.messageStubType) return;  
+        const m = await smsg(conn, msg);     
+        const handlerPath = `./handler.js?update=${Date.now()}`;
+        const { handler } = await import(handlerPath);      
+        if (typeof handler === 'function') {
+            await handler.call(conn, m, chatUpdate);
+        } else {
+            console.error('El archivo handler.js no exporta una función llamada handler');
+        }
 
     } catch (e) {
-        console.error(e);
+        console.error('Error en el sistema de mensajes:', e);
     }
 });
+
 
 
   global.conn.ev.on('connection.update', async (update) => {

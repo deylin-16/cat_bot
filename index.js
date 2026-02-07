@@ -227,7 +227,7 @@ async function initSubBots() {
     for (const folder of folders) {
         try {
             // Importamos la función desde el plugin directamente
-            const { assistant_accessJadiBot } = await import(`./plugins/serbot.js?update=${Date.now()}`);
+            const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
             await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
             await new Promise(r => setTimeout(r, 5000)); // Delay para no saturar
         } catch (e) {

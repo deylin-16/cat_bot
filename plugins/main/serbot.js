@@ -13,12 +13,10 @@ import {
     useMultiFileAuthState,
     jidNormalizedUser
 } from '@whiskeysockets/baileys'
+import { getRealJid, cleanNumber } from './lib/identifier.js'
 
 if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()
-
-// Cache interna para no saturar con peticiones de metadatos
-const lidCache = new Map()
 
 const serbot = {
     name: 'serbot',
@@ -26,30 +24,11 @@ const serbot = {
     category: 'serbot',
     run: async (m, { conn, command, usedPrefix }) => {
         if (command === 'code') {
-            let user = m.sender
-            let phoneNumber = ''
-
-            // LÓGICA ANTI-LID: Extraer el número real si m.sender es un LID
-            if (user.endsWith('@lid')) {
-                const baseLid = user.split('@')[0]
-                if (lidCache.has(baseLid)) {
-                    phoneNumber = lidCache.get(baseLid)
-                } else if (m.isGroup) {
-                    // Si estamos en grupo, buscamos en los participantes el número real
-                    const groupMetadata = await conn.groupMetadata(m.chat).catch(() => ({}))
-                    const participant = (groupMetadata.participants || []).find(p => p.id === user)
-                    if (participant?.phoneNumber) {
-                        phoneNumber = participant.phoneNumber
-                        lidCache.set(baseLid, phoneNumber)
-                    }
-                }
-            }
-
-            // Si falló el mapeo o ya era un JID normal, limpiamos números
-            if (!phoneNumber) phoneNumber = user.replace(/\D/g, '')
+            const realJid = await getRealJid(conn, null, m)
+            const phoneNumber = cleanNumber(realJid)
 
             if (!phoneNumber || phoneNumber.length < 8) {
-                return m.reply('> *No pude obtener tu número real debido a las restricciones de privacidad (LID) de WhatsApp. Intenta enviarme un mensaje al privado primero.*')
+                return m.reply('> *No pude obtener tu número real (PN). Intenta enviarme un mensaje al privado primero.*')
             }
 
             const instruccion = `*VINCULACIÓN DE SUB-BOT*\n\n1. Ve a 'Dispositivos vinculados' > 'Vincular con número'.\n2. Ingresa el código que aparecerá abajo.`
@@ -70,17 +49,7 @@ const serbot = {
             let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
 
             if (code && code !== "Conectado") {
-                await conn.sendMessage(m.chat, { 
-                    text: code,
-                    contextInfo: {
-                        externalAdReply: {
-                            title: 'TU CÓDIGO:',
-                            body: 'Toca para copiar',
-                            mediaType: 1,
-                            showAdAttribution: true
-                        }
-                    }
-                }, { quoted: m })
+                await conn.sendMessage(m.chat, { text: code }, { quoted: m })
             }
             return
         }
@@ -122,7 +91,6 @@ export async function assistant_accessJadiBot(options) {
                     const { connection } = update
                     if (connection === 'connecting' && !codeSent) {
                         codeSent = true
-                        // Reducido a 3 segundos para balance entre velocidad y estabilidad
                         await new Promise(r => setTimeout(r, 3000))
                         try {
                             let code = await sock.requestPairingCode(id)
@@ -162,11 +130,14 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const handlerPath = path.join(process.cwd(), 'handler.js')
-            const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
+            const { smsg } = await import(`./serializer.js?update=${Date.now()}`)
+            const { handler } = await import(`./handler.js?update=${Date.now()}`)
+            
             for (let msg of chatUpdate.messages) {
                 if (!msg.message || msg.key.fromMe) continue
-                await handler.call(sock, msg, chatUpdate)
+                
+                let m = await smsg(sock, msg) 
+                await handler.call(sock, m, chatUpdate)
             }
         } catch (e) { console.error(e) }
     })

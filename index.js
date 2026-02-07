@@ -149,7 +149,7 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
         console.log(chalk.bold.blue(`[ INFO ] ID: ${jidNormalizedUser(conn.user.id)}\n`));
     }
     if (connection === 'close') {
-      if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
+      if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reload(true);
     }
   });
 

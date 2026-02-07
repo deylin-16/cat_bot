@@ -14,18 +14,11 @@ export async function handler(m, chatUpdate) {
     if (global.db.data == null) await global.loadDatabase();
 
     const chatJid = m.chat;
-    
-    // Función de limpieza extrema para evitar conflictos de caracteres (:24, @lid, etc)
     const cleanId = (id) => id ? id.split('@')[0].split(':')[0] : '';
 
-    const senderLid = m.sender;
-    const senderPn = m.key.participantAlt || m.key.remoteJidAlt || m.sender;
-    
-    // IDs del Bot Normalizados
+    const senderJid = m.sender;
     const botJid = jidNormalizedUser(conn.user.id);
-    const botLid = conn.user.lid || '';
     const botClean = cleanId(botJid);
-    const botLidClean = cleanId(botLid);
 
     const isSubBot = (global.conns || []).some(c => c.user && cleanId(c.user.id) === botClean);
     const isMainBot = !isSubBot;
@@ -40,8 +33,10 @@ export async function handler(m, chatUpdate) {
 
     const chat = global.db.data.chats[chatJid];
     let participants = [];
+    let groupMetadata = {};
+
     if (m.isGroup) {
-        const groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
+        groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
         participants = groupMetadata.participants || [];
     }
 
@@ -62,15 +57,14 @@ export async function handler(m, chatUpdate) {
 
     const isROwner = global.owner.some(([num]) => {
         const ownerClean = num.replace(/\D/g, '');
-        return ownerClean === cleanId(senderPn) || ownerClean === cleanId(senderLid);
+        return ownerClean === cleanId(senderJid);
     }) || m.fromMe;
     const isOwner = isROwner;
 
     let isAdmin = false, isBotAdmin = false;
     if (m.isGroup) {
-        // Comparación por ID limpio para ignorar @lid, :dispositivo o @s.whatsapp.net
-        const userInGroup = participants.find(p => cleanId(p.id) === cleanId(senderLid) || cleanId(p.id) === cleanId(senderPn));
-        const botInGroup = participants.find(p => cleanId(p.id) === botClean || cleanId(p.id) === botLidClean);
+        const userInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(senderJid) || (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(senderJid)));
+        const botInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(botJid));
 
         isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
         isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
@@ -94,12 +88,11 @@ export async function handler(m, chatUpdate) {
     if (plugin) {
         if (plugin.disabled || (chat?.isBanned && !isROwner)) return;
 
-        // Doble verificación: Si falla la caché, refrescamos info del grupo
         if (m.isGroup && ((plugin.admin && !isAdmin) || (plugin.botAdmin && !isBotAdmin))) {
-            const groupMetadata = await conn.groupMetadata(chatJid, false).catch(() => ({}));
+            groupMetadata = await conn.groupMetadata(chatJid, false).catch(() => ({}));
             participants = groupMetadata.participants || [];
-            const userInGroup = participants.find(p => cleanId(p.id) === cleanId(senderLid) || cleanId(p.id) === cleanId(senderPn));
-            const botInGroup = participants.find(p => cleanId(p.id) === botClean || cleanId(p.id) === botLidClean);
+            const userInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(senderJid) || (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(senderJid)));
+            const botInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(botJid));
             isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
             isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
         }

@@ -5,9 +5,10 @@ import path from 'path'
 import NodeCache from 'node-cache'
 import chalk from 'chalk'
 import * as ws from 'ws'
-import { fileURLToPath } from 'url'
+import { jidNormalizedUser } from '@whiskeysockets/baileys'
 
 const { 
+    default: makeWASocket,
     DisconnectReason, 
     makeCacheableSignalKeyStore, 
     fetchLatestBaileysVersion,
@@ -15,79 +16,74 @@ const {
     useMultiFileAuthState 
 } = (await import("@whiskeysockets/baileys")).default || (await import("@whiskeysockets/baileys"))
 
-const { makeWASocket } = await import('../../lib/simple.js')
-
 if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()
-
-const name = (conn) => global.botname || conn.user?.name || 'Bot'
 
 const serbot = {
     name: 'serbot',
     alias: ['qr', 'code', 'subbot'],
     category: 'serbot',
     run: async (m, { conn, command, usedPrefix }) => {
-        const url = 'https://deylin.xyz/pairing_code?v=5'
         if (command === 'code') {
+            // Mensaje 1: Instrucciones con Imagen
+            await conn.sendMessage(m.chat, {
+              //  image: { url: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg' },
+                caption: `*VINCULACIÓN DE SUB-BOT*\n\n1. Abre WhatsApp y ve a 'Dispositivos vinculados'.\n2. Toca en 'Vincular un dispositivo' y luego en 'Vincular con el número de teléfono'.\n3. Ingresa el código que te enviaré a continuación.`,
+                contextInfo: {
+                    externalAdReply: {
+                        title: `\t\t\t\t\t\t${name()}`,
+                        thumbnailUrl: img(),
+                        mediaType: 1,
+                        showAdAttribution: true
+                    }
+                }
+            }, { quoted: m })
+
             let phoneNumber = m.sender.split('@')[0]
-            let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true, apiCall: false })
+            let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
+            
             if (typeof code === 'string' && code !== "Conectado") {
-                await conn.sendMessage(m.chat, { text: `${code}` }, { quoted: m })
+                await conn.sendMessage(m.chat, { text: code }, { quoted: m })
             }
             return
         }
-        await conn.sendMessage(m.chat, { 
-            text: `Sólo te puedes hacer subbot desde la web:\n${url}`,
-            contextInfo: {
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363406846602793@newsletter',
-                    newsletterName: `SIGUE EL CANAL DE: ${name(conn)}`,
-                    serverMessageId: 1
-                },
-                externalAdReply: {
-                    title: 'VINCULAR SUB-BOT',
-                    body: 'dynamic bot pairing code',
-                    thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg',
-                    mediaType: 1,
-                    mediaUrl: url,
-                    sourceUrl: url,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: m })
+     
+        m.reply(`Usa el comando *${usedPrefix}code* para obtener tu código de vinculación.`)
     }
 }
 export default serbot
 
 export async function assistant_accessJadiBot(options) {
-    let { m, conn, phoneNumber, fromCommand, apiCall } = options
+    let { m, conn, phoneNumber, fromCommand } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
+    
     try {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
-        const connectionOptions = {
+        
+        const sock = makeWASocket({
             logger: pino({ level: "silent" }),
             printQRInTerminal: false,
             auth: { 
                 creds: state.creds, 
                 keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
             },
-            browser: Browsers.macOS("Chrome"),
+            browser: Browsers.ubuntu("Chrome"), // Identificador para WhatsApp
             version,
             msgRetryCache,
-            markOnlineOnConnect: false,
+            markOnlineOnConnect: true,
             syncFullHistory: false,
-            keepAliveIntervalMs: 30000,
-        }
-        let sock = makeWASocket(connectionOptions)
+        })
+
         sock.ev.on('creds.update', saveCreds)
+
         if (!sock.authState.creds.registered) {
-            if (!fromCommand && !apiCall) {
+            if (!fromCommand) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 return
             }
+            
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
@@ -109,44 +105,35 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
         const botNumber = path.basename(authFolder)
+        
         if (connection === 'open') {
-            console.log(chalk.bold.cyanBright(`\n🍪 +${botNumber} CONECTADO.`))
-            if (!global.conns.some(c => c.user?.id === sock.user?.id)) global.conns.push(sock)
-            await joinChannels(sock)
+            const userJid = jidNormalizedUser(sock.user.id)
+            console.log(chalk.bold.cyanBright(`\n🍪 SUB-BOT +${botNumber} CONECTADO.`))
+            if (!global.conns.some(c => jidNormalizedUser(c.user.id) === userJid)) {
+                global.conns.push(sock)
+            }
         }
+        
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            const sessionDead = [DisconnectReason.loggedOut, 401, 403, 405, DisconnectReason.badSession].includes(reason)
-            if (sessionDead) {
+            if (reason === DisconnectReason.loggedOut) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                global.conns = global.conns.filter(c => c.user?.id !== sock.user?.id)
+                global.conns = global.conns.filter(c => jidNormalizedUser(c.user.id) !== jidNormalizedUser(sock.user.id))
             } else {
-                assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false, apiCall: false })
+                assistant_accessJadiBot({ m, conn, phoneNumber: botNumber, fromCommand: false })
             }
         }
     })
+
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const msg = chatUpdate.messages[0]
-            if (!msg || msg.key.fromMe || msg.isBaileys) return
-            const chatJid = msg.key.remoteJid
-            const MAIN_BOT_JID = global.conn?.user?.jid.split(':')[0] + '@s.whatsapp.net'
-            if (chatJid.endsWith('@g.us')) {
-                const groupMetadata = await sock.groupMetadata(chatJid).catch(() => ({}))
-                const participants = groupMetadata?.participants || []
-                const isMainPresent = participants.some(p => p.id.split(':')[0] + '@s.whatsapp.net' === MAIN_BOT_JID)
-                if (isMainPresent) return
-            }
             const handlerPath = path.join(process.cwd(), 'handler.js')
             const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
-            await handler.call(sock, chatUpdate)
-        } catch (e) { console.error(chalk.red('[ERROR HANDLER SUBBOT]:'), e) }
+            
+            for (let msg of chatUpdate.messages) {
+                if (!msg.message) continue
+                await handler.call(sock, msg, chatUpdate)
+            }
+        } catch (e) { console.error(chalk.red('[ERROR SUBBOT]:'), e) }
     })
-}
-
-async function joinChannels(sock) {
-    if (!global.ch) return
-    for (const channelId of Object.values(global.ch)) {
-        await sock.newsletterFollow(channelId).catch(() => {})
-    }
 }

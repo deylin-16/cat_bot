@@ -42,10 +42,15 @@ export async function handler(m, chatUpdate) {
     }
 
     // --- PROCESAR EVENTOS DE GRUPO (Bienvenida, Nombre, Icono) ---
-    if (m.messageStubType) {
-        await events(conn, m, participants);
-        return; 
+        if (m.messageStubType) {
+        // Forzamos actualización de metadatos para obtener al nuevo participante
+        const groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat).catch(() => ({})) : {}
+        const participants = groupMetadata.participants || []
+        
+        await events(conn, m, participants)
+        return 
     }
+
 
     if (m.isGroup && !isMainBot && chat.antisub) return;
     if (m.isBaileys) return;

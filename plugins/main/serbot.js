@@ -150,7 +150,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
             const Path = path.join(process.cwd(), 'lib/message.js')
             
             const { smsg } = await import(`file://${smsgPath}?update=${Date.now()}`)
-            const { handler } = await import(`file://${Path}?update=${Date.now()}`)
+            const { message } = await import(`file://${Path}?update=${Date.now()}`)
 
             for (let msg of chatUpdate.messages) {
                 if (!msg.message || msg.key.fromMe) continue

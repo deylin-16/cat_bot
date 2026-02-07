@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import ws from 'ws';
 import { jidNormalizedUser } from '@whiskeysockets/baileys';
 import { getRealJid } from './lib/identifier.js';
+import { events } from './lib/events.js';
 
 export async function handler(m, chatUpdate) {
     this.uptime = this.uptime || Date.now();
@@ -40,8 +41,13 @@ export async function handler(m, chatUpdate) {
         participants = groupMetadata.participants || [];
     }
 
-    if (m.isGroup && !isMainBot && chat.antisub) return;
+    // --- PROCESAR EVENTOS DE GRUPO (Bienvenida, Nombre, Icono) ---
+    if (m.messageStubType) {
+        await events(conn, m, participants);
+        return; 
+    }
 
+    if (m.isGroup && !isMainBot && chat.antisub) return;
     if (m.isBaileys) return;
 
     global.db.data.users[m.sender] ||= { exp: 0, muto: false, warnAntiLink: 0 };
@@ -52,9 +58,8 @@ export async function handler(m, chatUpdate) {
     }) || m.fromMe;
     const isOwner = isROwner;
 
-        let isAdmin = false, isBotAdmin = false;
+    let isAdmin = false, isBotAdmin = false;
     if (m.isGroup) {
-        
         const getAdminStatus = (targetJid, targetAuthor) => {
             const p = participants.find(p => 
                 jidNormalizedUser(p.id) === jidNormalizedUser(targetJid) || 
@@ -69,7 +74,6 @@ export async function handler(m, chatUpdate) {
         isBotAdmin = getAdminStatus(conn.user.id, conn.user.lid || conn.user.id);
     }
 
-
     if (!m.command) return;
 
     const pluginName = global.plugins.has(m.command) ? m.command : global.aliases.get(m.command);
@@ -81,7 +85,7 @@ export async function handler(m, chatUpdate) {
         if (m.isGroup && ((plugin.admin && !isAdmin) || (plugin.botAdmin && !isBotAdmin))) {
             groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
             participants = groupMetadata.participants || [];
-            
+
             isAdmin = participants.some(p => (jidNormalizedUser(p.id) === jidNormalizedUser(senderJid) || (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(senderJid))) && p.admin);
             isBotAdmin = participants.some(p => jidNormalizedUser(p.id) === jidNormalizedUser(botJid) && p.admin);
         }

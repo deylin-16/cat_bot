@@ -25,29 +25,42 @@ const serbot = {
     category: 'serbot',
     run: async (m, { conn, command, usedPrefix }) => {
         if (command === 'code') {
-            // Mensaje 1: Instrucciones con Imagen
+            const instruccion = `*VINCULACIÓN DE SUB-BOT*\n\n1. Abre WhatsApp y ve a 'Dispositivos vinculados'.\n2. Toca en 'Vincular un dispositivo' y luego en 'Vincular con el número de teléfono'.\n3. Ingresa el código que te enviaré a continuación.`
+            
             await conn.sendMessage(m.chat, {
-              //  image: { url: 'https://ik.imagekit.io/pm10ywrf6f/dynamic_Bot_by_deylin/1767826205356_ikCIl9sqp0.jpeg' },
-                caption: `*VINCULACIÓN DE SUB-BOT*\n\n1. Abre WhatsApp y ve a 'Dispositivos vinculados'.\n2. Toca en 'Vincular un dispositivo' y luego en 'Vincular con el número de teléfono'.\n3. Ingresa el código que te enviaré a continuación.`,
+                text: instruccion,
                 contextInfo: {
                     externalAdReply: {
-                        title: `\t\t\t\t\t\t${name()}`,
+                        title: `\t\t\t\t\t\t${global.name()}`,
+                        //body: 'Deylin Tech - Proceso de Emparejamiento',
                         thumbnailUrl: img(),
                         mediaType: 1,
-                        showAdAttribution: true
+                        showAdAttribution: true,
+                        renderLargerThumbnail: true,
+                        sourceUrl: 'https://deylin.xyz'
                     }
                 }
             }, { quoted: m })
 
             let phoneNumber = m.sender.split('@')[0]
             let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
-            
+
             if (typeof code === 'string' && code !== "Conectado") {
-                await conn.sendMessage(m.chat, { text: code }, { quoted: m })
+                await conn.sendMessage(m.chat, { 
+                    text: code,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: 'CÓDIGO DE VINCULACIÓN',
+                            body: 'Copia y pega este código en WhatsApp',
+                            mediaType: 1,
+                            showAdAttribution: true
+                        }
+                    }
+                }, { quoted: m })
             }
             return
         }
-     
+
         m.reply(`Usa el comando *${usedPrefix}code* para obtener tu código de vinculación.`)
     }
 }
@@ -57,11 +70,11 @@ export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
     const authFolder = path.join(process.cwd(), 'jadibts', phoneNumber)
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
-    
+
     try {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
-        
+
         const sock = makeWASocket({
             logger: pino({ level: "silent" }),
             printQRInTerminal: false,
@@ -69,7 +82,7 @@ export async function assistant_accessJadiBot(options) {
                 creds: state.creds, 
                 keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
             },
-            browser: Browsers.ubuntu("Chrome"), // Identificador para WhatsApp
+            browser: Browsers.ubuntu("Chrome"),
             version,
             msgRetryCache,
             markOnlineOnConnect: true,
@@ -83,7 +96,7 @@ export async function assistant_accessJadiBot(options) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
                 return
             }
-            
+
             return new Promise((resolve, reject) => {
                 setTimeout(async () => {
                     try {
@@ -105,7 +118,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
         const botNumber = path.basename(authFolder)
-        
+
         if (connection === 'open') {
             const userJid = jidNormalizedUser(sock.user.id)
             console.log(chalk.bold.cyanBright(`\n🍪 SUB-BOT +${botNumber} CONECTADO.`))
@@ -113,7 +126,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
                 global.conns.push(sock)
             }
         }
-        
+
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
             if (reason === DisconnectReason.loggedOut) {
@@ -129,7 +142,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         try {
             const handlerPath = path.join(process.cwd(), 'handler.js')
             const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
-            
+
             for (let msg of chatUpdate.messages) {
                 if (!msg.message) continue
                 await handler.call(sock, msg, chatUpdate)

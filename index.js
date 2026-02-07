@@ -212,3 +212,33 @@ async function descargarLicencia() {
 }
 
 await descargarLicencia();
+
+// Al final de tu index.js, después de reloadHandler()
+async function initSubBots() {
+    const jadibtsDir = path.join(process.cwd(), 'jadibts');
+    if (!existsSync(jadibtsDir)) return;
+
+    const folders = readdirSync(jadibtsDir).filter(f => 
+        statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
+    );
+
+    console.log(chalk.bold.blue(`[ SUB-BOTS ] Re-conectando ${folders.length} sesiones activas...`));
+
+    for (const folder of folders) {
+        try {
+            // Importamos la función desde el plugin directamente
+            const { assistant_accessJadiBot } = await import(`./plugins/serbot.js?update=${Date.now()}`);
+            await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
+            await new Promise(r => setTimeout(r, 5000)); // Delay para no saturar
+        } catch (e) {
+            console.error(`Error iniciando sub-bot ${folder}:`, e);
+        }
+    }
+}
+
+// Llama a la función después de que el bot principal conecte
+global.conn.ev.on('connection.update', async (update) => {
+    if (update.connection === 'open') {
+        await initSubBots();
+    }
+});

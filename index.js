@@ -120,13 +120,19 @@ global.reloadHandler = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
 
-  global.conn.ev.on('messages.upsert', async chatUpdate => {
+  conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
-        const m = await smsg(global.conn, chatUpdate.messages[0]);
-        if (!m || !m.message) return;
-        await handler.handler.call(global.conn, m, chatUpdate);
-    } catch (e) { console.error(e); }
-  });
+        const msg = chatUpdate.messages[0];
+        if (!msg) return;
+        if (!msg.message && !msg.messageStubType) return;
+        const m = await smsg(conn, msg);
+        await handler.call(conn, m, chatUpdate);
+
+    } catch (e) {
+        console.error(e);
+    }
+});
+
 
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;

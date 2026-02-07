@@ -142,9 +142,6 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
     }
 });
 
-
-
-
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === 'open') {
@@ -213,7 +210,6 @@ async function descargarLicencia() {
 
 await descargarLicencia();
 
-// Al final de tu index.js, después de reloadHandler()
 async function initSubBots() {
     const jadibtsDir = path.join(process.cwd(), 'jadibts');
     if (!existsSync(jadibtsDir)) return;
@@ -226,17 +222,15 @@ async function initSubBots() {
 
     for (const folder of folders) {
         try {
-            // Importamos la función desde el plugin directamente
             const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
             await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
-            await new Promise(r => setTimeout(r, 5000)); // Delay para no saturar
+            await new Promise(r => setTimeout(r, 1000)); 
         } catch (e) {
             console.error(`Error iniciando sub-bot ${folder}:`, e);
         }
     }
 }
 
-// Llama a la función después de que el bot principal conecte
 global.conn.ev.on('connection.update', async (update) => {
     if (update.connection === 'open') {
         await initSubBots();

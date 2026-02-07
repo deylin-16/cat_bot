@@ -129,7 +129,7 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
         const m = await smsg(conn, msg);
         const Path = path.join(process.cwd(), 'lib/message.js');
         const module = await import(`file://${Path}?update=${Date.now()}`);
-        const Func = module.handler || module.default?.message || module.default;
+        const Func = module.message || module.default?.message || module.default;
 
         if (typeof Func === 'function') {
             await Func.call(conn, m, chatUpdate);

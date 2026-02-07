@@ -41,9 +41,7 @@ export async function handler(m, chatUpdate) {
         participants = groupMetadata.participants || [];
     }
 
-    // --- PROCESAR EVENTOS DE GRUPO (Bienvenida, Nombre, Icono) ---
         if (m.messageStubType) {
-        // Forzamos actualización de metadatos para obtener al nuevo participante
         const groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat).catch(() => ({})) : {}
         const participants = groupMetadata.participants || []
         

@@ -21,7 +21,7 @@ const evala = {
 
         try {
             let exec = new (async () => { }).constructor(
-                'print', 'm', 'handler', 'require', 'conn', 'Array', 'process', 'args', 'groupMetadata', 'module', 'exports', 'argument',
+                'print', 'm', 'message', 'require', 'conn', 'Array', 'process', 'args', 'groupMetadata', 'module', 'exports', 'argument',
                 `return (async () => { 
                     try { 
                         return ${_text} 

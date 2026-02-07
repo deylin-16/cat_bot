@@ -52,19 +52,23 @@ export async function handler(m, chatUpdate) {
     }) || m.fromMe;
     const isOwner = isROwner;
 
-    let isAdmin = false, isBotAdmin = false;
+        let isAdmin = false, isBotAdmin = false;
     if (m.isGroup) {
-        const checkAdmin = (user) => {
+        
+        const getAdminStatus = (targetJid, targetAuthor) => {
             const p = participants.find(p => 
-                jidNormalizedUser(p.id) === jidNormalizedUser(user) || 
-                (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(user))
+                jidNormalizedUser(p.id) === jidNormalizedUser(targetJid) || 
+                jidNormalizedUser(p.id) === jidNormalizedUser(targetAuthor) ||
+                (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(targetJid)) ||
+                (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(targetAuthor))
             );
             return !!(p?.admin || p?.isCommunityAdmin);
         };
 
-        isAdmin = checkAdmin(senderJid);
-        isBotAdmin = checkAdmin(botJid);
+        isAdmin = getAdminStatus(m.sender, m.author);
+        isBotAdmin = getAdminStatus(conn.user.id, conn.user.lid || conn.user.id);
     }
+
 
     if (!m.command) return;
 

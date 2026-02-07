@@ -26,14 +26,13 @@ const serbot = {
     run: async (m, { conn, command, usedPrefix }) => {
         if (command === 'code') {
             const instruccion = `*VINCULACIÓN DE SUB-BOT*\n\n1. Abre WhatsApp y ve a 'Dispositivos vinculados'.\n2. Toca en 'Vincular un dispositivo' y luego en 'Vincular con el número de teléfono'.\n3. Ingresa el código que te enviaré a continuación.`
-            
+
             await conn.sendMessage(m.chat, {
                 text: instruccion,
                 contextInfo: {
                     externalAdReply: {
                         title: `\t\t\t\t\t\t${global.name()}`,
-                        //body: 'Deylin Tech - Proceso de Emparejamiento',
-                        thumbnailUrl: img(),
+                        thumbnailUrl: global.img(),
                         mediaType: 1,
                         showAdAttribution: true,
                         renderLargerThumbnail: true,

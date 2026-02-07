@@ -18,8 +18,8 @@ const updateCommand = {
 
             
             const pluginFolder = path.join(process.cwd(), './plugins');
-            if (global.reloadHandler) {
-                await global.reloadHandler(false); 
+            if (global.reload) {
+                await global.reload(false); 
                 
                 const { readRecursive } = await import('../index.js').catch(() => ({})); 
                 

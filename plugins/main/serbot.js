@@ -155,7 +155,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
             for (let msg of chatUpdate.messages) {
                 if (!msg.message || msg.key.fromMe) continue
                 let m = await smsg(sock, msg) 
-                await handler.call(sock, m, chatUpdate)
+                await message.call(sock, m, chatUpdate)
             }
         } catch (e) { console.error(e) }
     })

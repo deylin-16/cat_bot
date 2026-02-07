@@ -51,7 +51,7 @@
 <h3>2. Clonación y Acceso</h3>
 <p>Descargue el código fuente oficial de la Red Z:</p>
 
-<pre><code>git clone https://github.com/deylin-16/cat_bot</code></pre>
+<pre><code>git clone https://github.com/deylin-16/cat_bot/blob/CAT-BOT-oficial</code></pre>
 <pre><code>cd cat_bot</code></pre>
 
 <h3>3. Ejecución del Motor Principal</h3>

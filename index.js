@@ -156,7 +156,7 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
   global.conn.ev.on('creds.update', saveCreds);
 };
 
-await global.reloadHandler();
+await global.reload();
 
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);

@@ -5,6 +5,7 @@ import { unwatchFile, watchFile } from 'fs';
 import chalk from 'chalk';
 import ws from 'ws';
 import { jidNormalizedUser } from '@whiskeysockets/baileys';
+import { getRealJid } from './lib/identifier.js';
 
 export async function handler(m, chatUpdate) {
     this.uptime = this.uptime || Date.now();
@@ -16,11 +17,10 @@ export async function handler(m, chatUpdate) {
     const chatJid = m.chat;
     const cleanId = (id) => id ? id.split('@')[0].split(':')[0] : '';
 
-    const senderJid = m.sender;
+    const senderJid = await getRealJid(conn, m.sender, m);
     const botJid = jidNormalizedUser(conn.user.id);
-    const botClean = cleanId(botJid);
 
-    const isSubBot = (global.conns || []).some(c => c.user && cleanId(c.user.id) === botClean);
+    const isSubBot = (global.conns || []).some(c => c.user && cleanId(c.user.id) === cleanId(botJid));
     const isMainBot = !isSubBot;
 
     global.db.data.chats[chatJid] ||= { 
@@ -40,15 +40,7 @@ export async function handler(m, chatUpdate) {
         participants = groupMetadata.participants || [];
     }
 
-    if (m.isGroup) {
-        if (!isMainBot && chat.antisub) return;
-        if (isMainBot && !chat.antisub) {
-            const activeSubBots = (global.conns || [])
-                .filter(c => c.user && c.ws?.readyState === ws.OPEN)
-                .map(c => cleanId(c.user.id));
-            if (participants.some(p => activeSubBots.includes(cleanId(p.id)) || activeSubBots.includes(cleanId(p.lid)))) return;
-        }
-    }
+    if (m.isGroup && !isMainBot && chat.antisub) return;
 
     if (m.isBaileys) return;
 
@@ -56,28 +48,22 @@ export async function handler(m, chatUpdate) {
     const user = global.db.data.users[m.sender];
 
     const isROwner = global.owner.some(([num]) => {
-        const ownerClean = num.replace(/\D/g, '');
-        return ownerClean === cleanId(senderJid);
+        return num.replace(/\D/g, '') === cleanId(senderJid);
     }) || m.fromMe;
     const isOwner = isROwner;
 
     let isAdmin = false, isBotAdmin = false;
     if (m.isGroup) {
-        const userInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(senderJid) || (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(senderJid)));
-        const botInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(botJid));
+        const checkAdmin = (user) => {
+            const p = participants.find(p => 
+                jidNormalizedUser(p.id) === jidNormalizedUser(user) || 
+                (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(user))
+            );
+            return !!(p?.admin || p?.isCommunityAdmin);
+        };
 
-        isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
-        isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
-    }
-
-    if (m.isGroup && chat.mutos.includes(m.sender) && !isAdmin && !isOwner) {
-        return await conn.sendMessage(m.chat, { delete: m.key });
-    }
-
-    for (const p of Array.from(global.plugins.values())) {
-        if (p.before && typeof p.before === 'function') {
-            if (await p.before.call(conn, m, { conn, participants, isROwner, isOwner, isAdmin, isBotAdmin, chat })) continue;
-        }
+        isAdmin = checkAdmin(senderJid);
+        isBotAdmin = checkAdmin(botJid);
     }
 
     if (!m.command) return;
@@ -89,12 +75,11 @@ export async function handler(m, chatUpdate) {
         if (plugin.disabled || (chat?.isBanned && !isROwner)) return;
 
         if (m.isGroup && ((plugin.admin && !isAdmin) || (plugin.botAdmin && !isBotAdmin))) {
-            groupMetadata = await conn.groupMetadata(chatJid, false).catch(() => ({}));
+            groupMetadata = await conn.groupMetadata(chatJid).catch(() => ({}));
             participants = groupMetadata.participants || [];
-            const userInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(senderJid) || (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(senderJid)));
-            const botInGroup = participants.find(p => jidNormalizedUser(p.id) === jidNormalizedUser(botJid));
-            isAdmin = !!(userInGroup?.admin || userInGroup?.isCommunityAdmin);
-            isBotAdmin = !!(botInGroup?.admin || botInGroup?.isCommunityAdmin);
+            
+            isAdmin = participants.some(p => (jidNormalizedUser(p.id) === jidNormalizedUser(senderJid) || (p.lid && jidNormalizedUser(p.lid) === jidNormalizedUser(senderJid))) && p.admin);
+            isBotAdmin = participants.some(p => jidNormalizedUser(p.id) === jidNormalizedUser(botJid) && p.admin);
         }
 
         const checkPermissions = (perm) => ({
@@ -134,7 +119,7 @@ global.dfail = (type, m, conn) => {
         group: `> ╰✎ Este comando sólo se puede usar en grupos.`,
         private: `De esto solo hablo en privado.`,
         admin: `> ╰♛ Sólo los administradores pueden ejecutar este comando.`,
-        botAdmin: `> ╰✰ Necesito ser administrador.`
+        botAdmin: `> ╰✰ Necesito ser administrador.`,
     };
     if (messages[type]) conn.reply(m.chat, messages[type], m);
 };

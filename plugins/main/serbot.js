@@ -130,12 +130,14 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const { smsg } = await import(`./serializer.js?update=${Date.now()}`)
-            const { handler } = await import(`./handler.js?update=${Date.now()}`)
+            const smsgPath = path.join(process.cwd(), 'serializer.js')
+            const handlerPath = path.join(process.cwd(), 'handler.js')
             
+            const { smsg } = await import(`file://${smsgPath}?update=${Date.now()}`)
+            const { handler } = await import(`file://${handlerPath}?update=${Date.now()}`)
+
             for (let msg of chatUpdate.messages) {
                 if (!msg.message || msg.key.fromMe) continue
-                
                 let m = await smsg(sock, msg) 
                 await handler.call(sock, m, chatUpdate)
             }

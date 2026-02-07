@@ -23,14 +23,21 @@ const serbot = {
     category: 'serbot',
     run: async (m, { conn, command, usedPrefix }) => {
         if (command === 'code') {
+            // Extraer solo números del sender para evitar el error del @lid
+            let phoneNumber = m.sender.replace(/\D/g, '')
+            
+            if (!phoneNumber || phoneNumber.length < 8) {
+                return m.reply('> *No pude obtener tu número real (PN). Intenta escribirme un mensaje normal primero.*')
+            }
+
             const instruccion = `*VINCULACIÓN DE SUB-BOT*\n\n1. Abre WhatsApp y ve a 'Dispositivos vinculados'.\n2. Toca en 'Vincular un dispositivo' y luego en 'Vincular con el número de teléfono'.\n3. Ingresa el código que te enviaré a continuación.`
 
             await conn.sendMessage(m.chat, {
                 text: instruccion,
                 contextInfo: {
                     externalAdReply: {
-                        title: `\t\t\t\t\t\t${global.name()}`,
-                        thumbnailUrl: global.img(),
+                        title: `${global.name?.() || 'Deylin Bot'}`,
+                        thumbnailUrl: global.img?.() || '',
                         mediaType: 1,
                         showAdAttribution: true,
                         renderLargerThumbnail: true,
@@ -39,7 +46,7 @@ const serbot = {
                 }
             }, { quoted: m })
 
-            let phoneNumber = m.sender.split('@')[0]
+            // Iniciar proceso de código
             let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
 
             if (code && code !== "Conectado") {
@@ -57,14 +64,14 @@ const serbot = {
             }
             return
         }
-        m.reply(`Usa el comando *${usedPrefix}code* para obtener tu código de vinculación.`)
+        m.reply(`Usa el comando *${usedPrefix}code* para obtener tu código.`)
     }
 }
 export default serbot
 
 export async function assistant_accessJadiBot(options) {
     let { m, conn, phoneNumber, fromCommand } = options
-    const id = phoneNumber.replace(/[^0-9]/g, '')
+    const id = phoneNumber.replace(/\D/g, '') // Limpieza extra del ID
     const authFolder = path.join(process.cwd(), 'jadibts', id)
 
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
@@ -80,28 +87,32 @@ export async function assistant_accessJadiBot(options) {
                 creds: state.creds, 
                 keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
             },
-            browser: Browsers.ubuntu("Chrome"),
+            browser: Browsers.macOS("Chrome"), // MacOS suele ser más rápido para pairing
             version,
             msgRetryCache,
             syncFullHistory: false,
-            markOnlineOnConnect: true
+            markOnlineOnConnect: true,
+            connectTimeoutMs: 60000
         })
 
         sock.ev.on('creds.update', saveCreds)
 
         if (!sock.authState.creds.registered && fromCommand) {
+            // Solicitud ultra rápida: Esperamos solo a que el socket inicie el handshake
             return new Promise(async (resolve) => {
+                let codeSent = false
                 sock.ev.on('connection.update', async (update) => {
                     const { connection } = update
-                    if (connection === 'connecting') {
-                        await new Promise(r => setTimeout(r, 5000))
+                    if ((connection === 'connecting' || connection === 'open') && !codeSent) {
+                        codeSent = true
+                        await new Promise(r => setTimeout(r, 2500)) // Reducido a 2.5s para mayor velocidad
                         try {
                             let code = await sock.requestPairingCode(id)
                             code = code?.match(/.{1,4}/g)?.join("-") || code
                             setupSubBotEvents(sock, authFolder, m, conn)
                             resolve(code)
                         } catch (err) {
-                            console.error(chalk.red(`❌ Error al pedir código: ${err.message}`))
+                            console.error(`Error pairing: ${err.message}`)
                             resolve(null)
                         }
                     }
@@ -121,7 +132,6 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'open') {
             const userJid = jidNormalizedUser(sock.user.id)
-            console.log(chalk.bold.cyanBright(`\n🍪 SUB-BOT +${botNumber} CONECTADO.`))
             if (!global.conns.some(c => jidNormalizedUser(c.user.id) === userJid)) {
                 global.conns.push(sock)
             }

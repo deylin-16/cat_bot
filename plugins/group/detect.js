@@ -1,5 +1,5 @@
 import { WAMessageStubType } from '@whiskeysockets/baileys'
-import { getRealJid } from '../lib/identifier.js'
+import { getRealJid } from '../../lib/identifier.js'
 
 export async function before(m, { conn, participants }) {
     if (!m.messageStubType || !m.chat.endsWith('@g.us')) return true

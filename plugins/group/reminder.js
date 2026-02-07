@@ -10,7 +10,7 @@ const recordatorioCommand = {
     group: true,
     admin: true,
     botAdmin: true,
-    run: async (m, { conn, args, command, participants: participantsFromHandler }) => {
+    run: async (m, { conn, args, command, participants: participants }) => {
         const chatId = m.chat;
 
         if (command === 'cancelarrecordatorio' || command === 'nomore') {
@@ -40,7 +40,7 @@ const recordatorioCommand = {
 
         let mencionados = [];
         try {
-            const participants = participantsFromHandler || (await conn.groupMetadata(chatId)).participants;
+            const participants = participants || (await conn.groupMetadata(chatId)).participants;
             mencionados = participants.map(u => u.id);
         } catch {
             return m.reply('❯❯ 𝗘𝗥𝗥𝗢𝗥: No se pudo obtener la lista de miembros.');
@@ -69,7 +69,7 @@ const recordatorioCommand = {
         const ejecutarEnvio = async () => {
             try {
                 if (recordatorios[chatId] && contador < repeticiones) {
-                    // Usamos copyNForward para mantener la integridad del mensaje citado (fotos, videos, stickers, etc)
+                    
                     await conn.sendMessage(chatId, { 
                         forward: mQuoted.fakeObj || mQuoted, 
                         contextInfo: { 

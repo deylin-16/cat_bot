@@ -122,7 +122,7 @@ global.reloadHandler = async function(restatConn) {
 
   global.conn.ev.on('messages.upsert', async chatUpdate => {
     try {
-        const m = smsg(global.conn, chatUpdate.messages[0]);
+        const m = await smsg(global.conn, chatUpdate.messages[0]);
         if (!m || !m.message) return;
         await handler.handler.call(global.conn, m, chatUpdate);
     } catch (e) { console.error(e); }

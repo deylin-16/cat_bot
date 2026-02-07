@@ -113,8 +113,8 @@ if (!existsSync(`./sessions/creds.json`)) {
 
 if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
 
-global.reloadHandler = async function(restatConn) {
-  let handler = await import(`./handler.js?update=${Date.now()}`);
+global.reload = async function(restatConn) {
+  let message = await import(`./lib/message.js?update=${Date.now()}`);
   if (restatConn) {
     try { global.conn.ws.close(); } catch {}
     global.conn = makeWASocket(connectionOptions);
@@ -127,14 +127,14 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
         if (!msg) return;
         if (!msg.message && !msg.messageStubType) return;
         const m = await smsg(conn, msg);
-        const handlerPath = path.join(process.cwd(), 'handler.js');
-        const module = await import(`file://${handlerPath}?update=${Date.now()}`);
-        const handlerFunc = module.handler || module.default?.handler || module.default;
+        const Path = path.join(process.cwd(), 'lib/message.js');
+        const module = await import(`file://${Path}?update=${Date.now()}`);
+        const Func = module.handler || module.default?.message || module.default;
 
-        if (typeof handlerFunc === 'function') {
-            await handlerFunc.call(conn, m, chatUpdate);
+        if (typeof Func === 'function') {
+            await Func.call(conn, m, chatUpdate);
         } else {
-            console.error('No se pudo encontrar la función handler en handler.js');
+            console.error('No se pudo encontrar la función message en message.js');
         }
 
     } catch (e) {

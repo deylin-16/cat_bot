@@ -13,7 +13,7 @@ import {
     useMultiFileAuthState,
     jidNormalizedUser
 } from '@whiskeysockets/baileys'
-import { getRealJid, cleanNumber } from './lib/identifier.js'
+import { getRealJid, cleanNumber } from '../../lib/identifier.js'
 
 if (!(global.conns instanceof Array)) global.conns = []
 const msgRetryCache = new NodeCache()

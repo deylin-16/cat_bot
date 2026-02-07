@@ -61,11 +61,8 @@ const groupControlCommand = {
 
         const chatId = m.chat;
         
-        // --- SOLUCIÓN AL ERROR ---
-        // Si groupMetadata no viene del handler, la obtenemos aquí mismo.
         const groupMetadata = await conn.groupMetadata(chatId).catch(e => ({}));
         const isAnnounce = groupMetadata.announce;
-        // -------------------------
 
         const tz = getTz(m.sender);
         const horaActual = moment().tz(tz).format('hh:mm A');

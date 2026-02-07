@@ -1,4 +1,4 @@
-import { format } from 'util';
+/*import { format } from 'util';
 import { fileURLToPath } from 'url';
 import path, { join } from 'path';
 import { unwatchFile, watchFile } from 'fs';
@@ -139,4 +139,4 @@ let file = global.__filename(import.meta.url, true);
 watchFile(file, () => {
     unwatchFile(file);
     console.log(chalk.bold.greenBright(`Actualización detectada en handler.js`));
-});
+});*/

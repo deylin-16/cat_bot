@@ -130,7 +130,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            const smsgPath = path.join(process.cwd(), 'serializer.js')
+            const smsgPath = path.join(process.cwd(), 'lib/serializer.js')
             const handlerPath = path.join(process.cwd(), 'handler.js')
             
             const { smsg } = await import(`file://${smsgPath}?update=${Date.now()}`)

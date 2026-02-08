@@ -14,7 +14,7 @@ const pinterestCommand = {
 
             if (!res.success || !res.results || res.results.length === 0) {
                 await m.react('❌');
-                return conn.reply(m.chat, `No se encontraron resultados para "${text}".`, m);
+                return conn.reply(m.chat, `> ⍰ No se encontraron resultados para: *${text}*`, m);
             }
 
             const maxImages = Math.min(res.results.length, 7);
@@ -30,9 +30,8 @@ const pinterestCommand = {
 
             const caption = `\t\t*── 「 PINTEREST ALBUM 」 ──*\n\n` +
                              `▢ *BÚSQUEDA:* ${text}\n` +
-                             `▢ *TÍTULO:* ${randomPick.title}\n` +
-                             `▢ *AUTOR:* ${randomPick.author}\n` +
-                             `▢ *LINK:* ${randomPick.source}\n` +
+                             `▢ *TÍTULO:* ${randomPick.title || 'Sin título'}\n` +
+                             `▢ *AUTOR:* ${randomPick.author || 'Desconocido'}\n` +
                              `▢ *CANTIDAD:* ${maxImages}\n\n`;
 
             await sendAlbum(conn, m.chat, medias, {
@@ -44,15 +43,19 @@ const pinterestCommand = {
             await m.react('✅');
 
         } catch (error) {
-            console.error(error);
             await m.react('❌');
-            conn.reply(m.chat, 'Error al conectar con la API de Pinterest.', m);
+            
+            if (error.response && error.response.status === 404) {
+                return conn.reply(m.chat, `> ⍰ No se encontraron imágenes para: *${text}*`, m);
+            }
+
+            console.error(`> [ERROR PINTEREST]: ${error.message}`);
+            conn.reply(m.chat, '> ⚔ Error al conectar con el servidor de búsqueda.', m);
         }
     }
 };
 
 async function sendAlbum(conn, jid, medias, options = {}) {
-    // Se usa conn.generateWAMessageFromContent inyectado por el serializer
     const album = conn.generateWAMessageFromContent(jid, {
         messageContextInfo: {},
         albumMessage: {

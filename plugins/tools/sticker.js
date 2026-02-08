@@ -90,8 +90,7 @@ const stickerCommand = {
             let stikerBuffer = await sticker6(buffer);
             let bot = name()
             let user = m.pushName
-            let txt = ¡text || ''
-            let [pack, auth] = txt.includes('|') ? txt.split('|').map(v => v.trim()) : [`BOT: ${bot}`, `AUTOR: ${user}`, txt];
+            let [pack, auth] = txt.includes('|') ? txt.split('|').map(v => v.trim()) : [`BOT: ${bot}`, `AUTOR: ${user}`];
             let exifSticker = await addExif(stikerBuffer, pack, auth);
 
             await conn.sendMessage(m.chat, { sticker: exifSticker }, { quoted: m });

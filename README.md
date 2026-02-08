@@ -62,3 +62,81 @@ cd cat_bot
 # 3. Inicialización del sistema
 chmod +x engine.sh
 ./engine.sh
+
+
+<hr>
+
+<h2>📲 PROTOCOLO DE VINCULACIÓN OFICIAL</h2>
+<p align="justify">
+  Para garantizar una conexión segura y persistente, el sistema implementa el método de <b>Pairing Code</b> de Multi-Device. Siga estas instrucciones para sincronizar el motor:
+</p>
+
+<ol>
+  <li>Ejecute el sistema y proporcione su número de teléfono en formato internacional (ej: <code>504XXXXXX</code>).</li>
+  <li>Recibirá un código alfanumérico de 8 dígitos en su terminal.</li>
+  <li>En su dispositivo móvil, acceda a: <b>Dispositivos vinculados > Vincular con el número de teléfono</b>.</li>
+  <li>Ingrese el código generado para establecer la sesión encriptada.</li>
+</ol>
+
+<hr>
+
+<h2>🔋 MANTENIMIENTO PROFESIONAL (PM2)</h2>
+<p>
+  En entornos de producción 24/7 (VPS o servidores en la nube), se exige el uso de un gestor de procesos para garantizar el reinicio automático ante fallos críticos:
+</p>
+
+<pre><code># Instalación global de PM2
+npm install -g pm2
+
+# Inicio del proceso con nombre personalizado
+pm2 start index.js --name "cat-bot"
+
+# Monitoreo de logs en tiempo real
+pm2 logs cat-bot</code></pre>
+
+<hr>
+
+<h2>🛠️ CENTRO DE RECURSOS Y SOPORTE</h2>
+
+<table width="100%">
+  <thead>
+    <tr>
+      <th align="left">Servicio</th>
+      <th align="left">Enlace de Acceso</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>📚 Documentación Técnica</b></td>
+      <td><a href="https://deylin.xyz/cat-bot">deylin.xyz/cat-bot</a></td>
+    </tr>
+    <tr>
+      <td><b>🌐 Web del Desarrollador</b></td>
+      <td><a href="https://deylin.xyz">deylin.xyz</a></td>
+    </tr>
+    <tr>
+      <td><b>🆘 Soporte Directo</b></td>
+      <td><a href="https://deylin.xyz/support">deylin.xyz/support</a></td>
+    </tr>
+    <tr>
+      <td><b>💬 Contacto Business</b></td>
+      <td><a href="https://wa.me/50432955554">Deylin Eliac ᴼᶠᶜ</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+
+<div align="center">
+  <img src="https://github.com/deylin-16.png" width="120" style="border-radius: 50%; border: 3px solid #000; margin-bottom: 10px;">
+  <br>
+  <strong>© 2026 Deylin Automation Systems. All Rights Reserved.</strong>
+  <p align="center">
+    <i>"Innovación y eficiencia en arquitectura de software para automatización."</i>
+  </p>
+  
+  <a href="https://www.instagram.com/deylin_eliac/">
+    <img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" alt="Instagram">
+  </a>
+</div>
+

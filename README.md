@@ -134,8 +134,6 @@ pm2 logs cat-bot</code></pre>
   <p align="center">
     <i>"Innovación y eficiencia en arquitectura de software para automatización."</i>
   </p>
-  
-  <hr>
 
 <hr>
 
@@ -162,6 +160,18 @@ pm2 logs cat-bot</code></pre>
 
 <br>
 
+
+  <p align="center">
+    <i>"Innovación y eficiencia en arquitectura de software para automatización."</i>
+  </p>
+
+  <a href="https://www.instagram.com/deylin_eliac/">
+    <img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" alt="Instagram">
+  </a>
+  
+  <br><br>
+  <strong>© 2026 Deylin Automation Systems. All Rights Reserved.</strong>
 </div>
+
 
 

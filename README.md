@@ -167,10 +167,5 @@ pm2 logs cat-bot</code></pre>
 
 <br>
 
-  
-  <br><br>
-  <strong>© 2026 Deylin Automation Systems. All Rights Reserved.</strong>
-</div>
-
 
 

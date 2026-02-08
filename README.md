@@ -137,19 +137,31 @@ pm2 logs cat-bot</code></pre>
   
   <hr>
 
-<div align="center">
-  <h2>💖 APOYA EL DESARROLLO DEL PROYECTO</h2>
-  <p align="justify">
-    Mantener un sistema de automatización de alto rendimiento como <b>CAT BOT</b> requiere tiempo, investigación y recursos de servidor. Si este software te ha sido de utilidad en tus proyectos de desarrollo o automatización, considera realizar una contribución para asegurar la continuidad de las actualizaciones y el soporte técnico.
-  </p>
+<hr>
 
-  <a href="https://www.paypal.me/tu_usuario_paypal">
-    <img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?style=for-the-badge&logo=paypal&logoColor=white" alt="Donar con PayPal">
-  </a>
-  
-  <p>
-    <small><i>Todas las donaciones se destinan exclusivamente a la mejora de la infraestructura de la Red Z y el mantenimiento del motor principal.</i></small>
-  </p>
+<div align="center">
+  <table width="85%" style="border-collapse: collapse; border: 1px solid #e1e4e8; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <tr>
+      <td style="padding: 30px; background-color: #f8f9fa;">
+        <h3 align="center" style="margin-top: 0; color: #0366d6;">☕ SOPORTE AL DESARROLLO INTEGRAL</h3>
+        <p align="center" style="color: #586069; line-height: 1.6;">
+          El mantenimiento de <b>CAT BOT</b> y la infraestructura de la <b>Red Z</b> es un esfuerzo constante para garantizar velocidad y estabilidad. Tu contribución voluntaria permite que este sistema siga siendo una herramienta de vanguardia, libre de publicidad y con actualizaciones de alto nivel.
+        </p>
+        <div align="center" style="margin-top: 20px;">
+          <a href="https://www.paypal.me/DeylinB" target="_blank" style="text-decoration: none;">
+            <img src="https://img.shields.io/badge/DONAR_VÍA_PAYPAL-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal Donation">
+          </a>
+        </div>
+        <p align="center" style="margin-top: 15px; font-size: 11px; color: #6a737d;">
+          <i>Asegurando la evolución de la automatización | Deylin Automation Systems © 2026</i>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<br>
+
 </div>
 
 

@@ -33,8 +33,8 @@ const uploadRest = async (buffer) => {
 };
 
 const tourlCommand = {
-    name: 'tourl',
-    alias: ['upload', 'subir'],
+    name: 'tourl2',
+    alias: ['upload2', 'subir2'],
     category: 'tools',
     run: async (m, { conn }) => {
         try {

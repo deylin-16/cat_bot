@@ -13,8 +13,18 @@ const hidetagCommand = {
         try {
             if (m.quoted) {
                 await conn.copyNForward(m.chat, m.quoted, false, { 
-                    contextInfo: { mentionedJid: users },
-                    caption: tagText 
+                    contextInfo: { 
+                        mentionedJid: users,
+                        externalAdReply: {
+                            title: '📢 NOTIFICACIÓN GRUPAL',
+                            body: tagText,
+                            mediaType: 1,
+                            previewType: 0,
+                            showAdAttribution: true
+                        }
+                    },
+                    caption: tagText,
+                    mentions: users
                 })
             } else if (/image|video|sticker|audio/.test(mime)) {
                 const media = await q.download()

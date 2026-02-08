@@ -9,17 +9,23 @@
   </p>
 </div>
 
-<div style="background-color: #fff5f5; border-left: 5px solid #ff5a5f; padding: 20px; margin: 20px 0; border-radius: 8px;">
-  <strong style="color: #ff5a5f;">⚠️ PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA</strong><br>
-  <p style="color: #4a4a4a;">Este software es propiedad exclusiva de <b>Deylin Eliac</b>. Queda estrictamente prohibida la redistribución, clonación masiva o comercialización del código fuente sin autorización previa.</p>
+<div align="center">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+    <tr>
+      <td bgcolor="#fff5f5" style="border-left: 5px solid #ff5a5f; padding: 20px; border-radius: 8px;">
+        <strong style="color: #ff5a5f;">⚠️ PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA</strong><br>
+        <p style="color: #4a4a4a; margin: 10px 0 0 0;">Este software es propiedad exclusiva de <b>Deylin Eliac</b>. Queda estrictamente prohibida la redistribución, clonación masiva o comercialización del código fuente sin autorización previa.</p>
+      </td>
+    </tr>
+  </table>
 </div>
 
 <hr>
 
 <h2>⚖️ DESCARGO DE RESPONSABILIDAD</h2>
-<table width="100%" cellpadding="10">
+<table width="100%" cellpadding="10" border="0">
   <tr>
-    <td bgcolor="#f8f9fa">
+    <td bgcolor="#f8f9fa" style="border-radius: 8px;">
       <b>1. Meta & WhatsApp:</b> Implementación independiente de la API. No oficial. <br>
       <b>2. TOS:</b> El usuario es responsable de cumplir los términos de WhatsApp. Evite el Spam. <br>
       <b>3. Baileys:</b> Basado en WhiskeySockets/Baileys. Sin responsabilidad por cambios en el cifrado.
@@ -32,20 +38,24 @@
 <h2>🚀 ARQUITECTURA TÉCNICA (v5.0.0 Stable)</h2>
 <ul>
   <li><b>Command Map System:</b> Ejecución determinista sin latencia.</li>
-  <li><b>Minimalist Serializer:</b> Optimización masiva de RAM (Adiós simple.js).</li>
-  <li><b>Cloud-Hybrid Sync:</b> Conexión directa a Supabase/Render.</li>
+  <li><b>Minimalist Serializer:</b> Optimización masiva de RAM (Reemplazo de simple.js).</li>
+  <li><b>Cloud-Hybrid Sync:</b> Conexión directa a Supabase/Render para persistencia.</li>
   <li><b>Media Scraper:</b> Motor avanzado para flujos de YouTube e Instagram.</li>
 </ul>
 
 <hr>
 
 <h2>📦 GUÍA OFICIAL DE INSTALACIÓN</h2>
-<div style="background-color: #e7f3ff; padding: 15px; border-radius: 10px; border: 1px solid #b8daff;">
-  🌐 <b>Documentación Interactiva:</b> <a href="https://deylin.xyz/cat-bot">deylin.xyz/cat-bot</a>
-</div>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td bgcolor="#e7f3ff" style="padding: 15px; border-radius: 10px; border: 1px solid #b8daff;">
+      🌐 <b>Documentación Interactiva:</b> <a href="https://deylin.xyz/cat-bot">deylin.xyz/cat-bot</a>
+    </td>
+  </tr>
+</table>
 
 <h3>Pasos para Termux:</h3>
-<pre style="background: #272822; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto;">
+<pre>
 pkg update -y && pkg upgrade -y
 pkg install git nodejs-lts ffmpeg -y
 git clone https://github.com/deylin-16/cat_bot
@@ -57,10 +67,10 @@ chmod +x engine.sh
 <hr>
 
 <h2>🛠️ CENTRO DE RECURSOS Y SOPORTE</h2>
-<table width="100%" style="border-collapse: collapse; text-align: left;">
-  <tr style="background-color: #f2f2f2;">
-    <th style="padding: 12px; border: 1px solid #ddd;">Servicio</th>
-    <th style="padding: 12px; border: 1px solid #ddd;">Enlace de Acceso</th>
+<table width="100%" style="border-collapse: collapse;">
+  <tr bgcolor="#f2f2f2">
+    <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">Servicio</th>
+    <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">Enlace de Acceso</th>
   </tr>
   <tr>
     <td style="padding: 12px; border: 1px solid #ddd;"><b>Web Oficial</b></td>
@@ -75,30 +85,39 @@ chmod +x engine.sh
 <hr>
 
 <div align="center">
-  <table width="90%" style="border: 1px solid #e1e4e8; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(0,0,0,0.08);">
+  <table width="90%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #e1e4e8; border-radius: 12px; overflow: hidden;">
     <tr>
-      <td style="padding: 30px; background-color: #ffffff;">
-        <h3 style="color: #1a1a1a;">☕ SOPORTE AL DESARROLLO</h3>
-        <p style="color: #666666;">Tu contribución asegura la evolución de la <b>Red Z</b>.</p>
+      <td align="center" style="padding: 40px; background-color: #ffffff;">
+        <h3 style="color: #1a1a1a; margin-bottom: 10px;">☕ SOPORTE AL DESARROLLO</h3>
+        <p style="color: #666666; margin-bottom: 25px;">Tu contribución asegura la evolución constante de la <b>Red Z</b>.</p>
         
-        <div style="margin-top: 20px;">
-          <a href="https://www.paypal.me/DeylinB" target="_blank">
-            <img src="https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white">
-          </a>
-          <span style="margin: 0 10px;"></span>
-          <a href="https://Ko-fi.com/deylin16" target="_blank">
-            <img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white">
-          </a>
-        </div>
+        <table border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td align="center" style="padding: 0 10px;">
+              <a href="https://www.paypal.me/DeylinB" target="_blank">
+                <img src="https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal">
+              </a>
+            </td>
+            <td align="center" style="padding: 0 10px;">
+              <a href="https://Ko-fi.com/deylin16" target="_blank">
+                <img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
+              </a>
+            </td>
+          </tr>
+        </table>
+        
       </td>
     </tr>
   </table>
 </div>
 
+<hr>
+
 <div align="center" style="margin-top: 40px;">
   <img src="https://github.com/deylin-16.png" width="100" style="border-radius: 50%; border: 3px solid #000;">
-  <p><b>© 2026 Deylin Automation Systems. All Rights Reserved.</b></p>
+  <p style="margin: 15px 0;"><b>© 2026 Deylin Automation Systems. All Rights Reserved.</b></p>
+  <p><i>"Innovación y eficiencia en arquitectura de software para automatización."</i></p>
   <a href="https://www.instagram.com/deylin_eliac/">
-    <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white">
+    <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram">
   </a>
 </div>

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import baileys from '@whiskeysockets/baileys';
 
 const albumCommand = {
     name: 'tiktokalbum',
@@ -22,7 +21,6 @@ const albumCommand = {
             const medias = [];
             let linksMetadata = "";
 
-            // Descarga paralela para mayor velocidad
             await Promise.all(rawVideos.map(async (v, index) => {
                 try {
                     const res = await axios.get(v.play, { responseType: 'arraybuffer' });
@@ -34,7 +32,7 @@ const albumCommand = {
                     const videoUrl = `https://www.tiktok.com/@${v.author.unique_id}/video/${v.video_id}`;
                     linksMetadata += `▢ *Link #${index + 1}:* ${videoUrl}\n`;
                 } catch (e) {
-                    console.error("Error en descarga:", e.message);
+                    console.error(e.message);
                 }
             }));
 
@@ -46,7 +44,6 @@ const albumCommand = {
                                  `${linksMetadata}` +
                                  `*──────────────────*`;
 
-            // Ejecución de la función de álbum adaptada a la conexión actual
             await sendAlbum(conn, m.chat, medias, {
                 caption: albumCaption,
                 quoted: m,
@@ -57,14 +54,13 @@ const albumCommand = {
 
         } catch (error) {
             await m.react("❌");
-            console.error(error);
             conn.reply(m.chat, `*── 「 FAILURE 」 ──*\n\n*LOG:* ${error.message}`, m);
         }
     }
 };
 
 async function sendAlbum(conn, jid, medias, options = {}) {
-    const album = baileys.generateWAMessageFromContent(jid, {
+    const album = await conn.generateWAMessageFromContent(jid, {
         messageContextInfo: {},
         albumMessage: {
             expectedImageCount: medias.filter(m => m.type === "image").length,
@@ -79,13 +75,13 @@ async function sendAlbum(conn, jid, medias, options = {}) {
                 }
             } : {}),
         }
-    }, {});
+    }, { userJid: conn.user.id });
 
-    await conn.relayMessage(album.key.remoteJid, album.message, { messageId: album.key.id });
+    await conn.relayMessage(jid, album.message, { messageId: album.key.id });
 
     for (let i = 0; i < medias.length; i++) {
         const { type, data } = medias[i];
-        const msg = await baileys.generateWAMessage(album.key.remoteJid, {
+        const msg = await conn.generateWAMessage(jid, {
             [type]: data,
             ...(i === 0 ? { caption: options.caption || "" } : {})
         }, { upload: conn.waUploadToServer });
@@ -93,10 +89,9 @@ async function sendAlbum(conn, jid, medias, options = {}) {
         msg.message.messageContextInfo = {
             messageAssociation: { associationType: 1, parentMessageKey: album.key }
         };
-        await conn.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id });
-        await baileys.delay(options.delay || 300);
+        await conn.relayMessage(jid, msg.message, { messageId: msg.key.id });
+        if (conn.delay) await conn.delay(options.delay || 300);
     }
-    return album;
 }
 
 export default albumCommand;

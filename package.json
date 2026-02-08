@@ -1,7 +1,7 @@
 {
   "name": "cat-bot",
-  "version": "4.0.1-pre-launch",
-  "description": "WhatsApp Bot Multi Device - Optimized for Deylin",
+  "version": "5.0.0",
+  "description": "High-performance WhatsApp Bot (Multi-Device) with Command-Map architecture and minimalist serialization.",
   "main": "index.js",
   "type": "module",
   "directories": {
@@ -15,7 +15,7 @@
     "type": "git",
     "url": "git+https://github.com/deylin-16/cat_bot.git"
   },
-  "author": "Deylin",
+  "author": "Deylin https://deylin.xyz",
   "license": "MIT",
   "dependencies": {
     "@hapi/boom": "^10.0.1",

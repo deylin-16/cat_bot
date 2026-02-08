@@ -62,7 +62,7 @@ cd cat_bot
 # 3. Inicialización del sistema
 chmod +x engine.sh
 ./engine.sh
-
+```
 
 <hr>
 

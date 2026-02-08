@@ -135,8 +135,21 @@ pm2 logs cat-bot</code></pre>
     <i>"Innovación y eficiencia en arquitectura de software para automatización."</i>
   </p>
   
-  <a href="https://www.instagram.com/deylin_eliac/">
-    <img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" alt="Instagram">
+  <hr>
+
+<div align="center">
+  <h2>💖 APOYA EL DESARROLLO DEL PROYECTO</h2>
+  <p align="justify">
+    Mantener un sistema de automatización de alto rendimiento como <b>CAT BOT</b> requiere tiempo, investigación y recursos de servidor. Si este software te ha sido de utilidad en tus proyectos de desarrollo o automatización, considera realizar una contribución para asegurar la continuidad de las actualizaciones y el soporte técnico.
+  </p>
+
+  <a href="https://www.paypal.me/tu_usuario_paypal">
+    <img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?style=for-the-badge&logo=paypal&logoColor=white" alt="Donar con PayPal">
   </a>
+  
+  <p>
+    <small><i>Todas las donaciones se destinan exclusivamente a la mejora de la infraestructura de la Red Z y el mantenimiento del motor principal.</i></small>
+  </p>
 </div>
+
 

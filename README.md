@@ -3,102 +3,62 @@
 
   <hr>
 
-  <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 10px; color: #856404; margin-bottom: 20px;">
-    <strong>📜 ESTE REPOSITORIO ESTÁ PROTEGIDO POR UNA LICENCIA PROPIETARIA</strong><br>
-    ⚠︎ Queda estrictamente prohibido distribuir, clonar o comercializar este código sin la autorización previa del autor:<br>
-    <a href="https://wa.me/50432955554" style="text-decoration: none; font-weight: bold; color: #d9534f;">Deylin Eliac ᴼᶠᶜ</a>
-  </div>
+  <h1>🐈 CAT BOT AUTOMATION SYSTEM v5.0.0</h1>
+  <p>
+    <strong>Core Architect:</strong> <a href="https://deylin.xyz">Deylin</a> | 
+    <strong>Engine:</strong> Command-Map Architecture | 
+    <strong>Status:</strong> Stable Release
+  </p>
 </div>
 
-<h1 align="center">🐈 CAT BOT AUTOMATION SYSTEM v1.0</h1>
-<p align="center">
-  <strong>Lead Developer:</strong> Deylin | <strong>Architecture:</strong> Z-Network (Cloud-Based)
-</p>
+> [!CAUTION]
+> **PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA**
+> Este software es propiedad exclusiva de **Deylin Eliac**. Queda estrictamente prohibida la redistribución, clonación masiva o comercialización del código fuente sin una licencia comercial explícita. El incumplimiento de estos términos resultará en acciones técnicas y legales pertinentes.
 
-<p align="justify">
-  Interfaz avanzada de automatización para WhatsApp diseñada para operar con eficiencia máxima en entornos de bajos recursos (Termux/VPS) mediante el uso de almacenamiento distribuido y procesamiento en la nube.
-</p>
+---
 
-<hr>
+## ⚖️ DESCARGO DE RESPONSABILIDAD Y TÉRMINOS LEGALES
 
-<h2>👑 CREADOR Y DESARROLLADOR</h2>
-<ul>
-  <li><strong>Nombre:</strong> Deylin</li>
-  <li><strong>Rol:</strong> Creador & Administrador de Sistemas</li>
-  <li><strong>Especialidad:</strong> Automatización y Web Scrapping</li>
-</ul>
+### 1. Relación con Meta & WhatsApp
+Este sistema utiliza una implementación independiente de la API de WhatsApp (Multi-Device). **CAT BOT** no está afiliado, asociado, autorizado ni respaldado por Meta Platforms, Inc. o WhatsApp LLC. 
 
-<hr>
+### 2. Cumplimiento de Términos (TOS)
+> [!IMPORTANT]
+> El usuario es el único responsable del cumplimiento de los **Términos de Servicio de WhatsApp**. El uso de automatizaciones para el envío de spam o contenido no solicitado puede resultar en la suspensión permanente de su cuenta. Este software ha sido diseñado con fines de automatización técnica y educativa.
 
-<h2>🚀 CARACTERÍSTICAS PRINCIPALES</h2>
-<ul>
-  <li><strong>Cloud-Centric:</strong> Conexión directa a Supabase para gestión de sesiones y logs en tiempo real.</li>
-  <li><strong>Stateless Memory:</strong> Minimiza el uso de disco local moviendo archivos temporales a la Red Z.</li>
-  <li><strong>Minimalist Serializer:</strong> Estructura de datos optimizada para reducir el consumo de RAM hasta en un 60%.</li>
-  <li><strong>Command Map System:</strong> Ejecución instantánea de funciones sin redundancia de handlers tradicionales.</li>
-</ul>
+### 3. Dependencia de Baileys
+Este sistema opera sobre la librería [Baileys](https://github.com/WhiskeySockets/Baileys). El desarrollador no se hace responsable por cambios en los protocolos de cifrado de WhatsApp que puedan afectar la funcionalidad del software.
 
-<hr>
+### 4. Entorno de Ejecución (Termux/Linux)
+Al ejecutar este software en entornos como **Termux**, el usuario acepta las políticas de uso de paquetes de código abierto y entiende que la estabilidad depende de la configuración correcta del hardware y la red del cliente.
 
-<h2>📦 INSTALACIÓN PASO A PASO (TERMUX)</h2>
+---
 
-<h3>1. Preparación del Entorno</h3>
-<p>Antes de clonar el repositorio, es obligatorio actualizar Termux e instalar las herramientas base:</p>
+## 🚀 ARQUITECTURA TÉCNICA (v5.0.0 Stable)
 
-<pre><code>pkg update -y && pkg upgrade -y</code></pre>
-<pre><code>pkg install git nodejs-lts ffmpeg -y</code></pre>
+* **Command Map System:** Ejecución determinista de comandos eliminando la latencia de los handlers tradicionales.
+* **Minimalist Serializer:** Reemplazo de `simple.js` por un motor de serialización optimizado que reduce la carga de CPU y memoria RAM.
+* **Cloud-Hybrid Sync:** Soporte nativo para persistencia de datos y logs directamente en **Supabase** y **Render**.
+* **Media Scraper Engine:** Estructura adaptada para el manejo de flujos de datos externos (YouTube/Instagram) con manejo de errores avanzado.
 
-<h3>2. Clonación y Acceso</h3>
-<p>Descargue el código fuente oficial de la Red Z:</p>
+---
 
-<pre><code>git clone https://github.com/deylin-16/cat_bot</code></pre>
-<pre><code>cd cat_bot</code></pre>
+## 📦 GUÍA OFICIAL DE INSTALACIÓN
 
-<h3>3. Ejecución del Motor Principal</h3>
-<p>Otorgue permisos y encienda el Engine:</p>
+> [!TIP]
+> Para una guía visual interactiva y acceso a recursos adicionales, visite nuestra documentación oficial:
+> 🌐 **[deylin.xyz/cat-bot](https://deylin.xyz/cat-bot)**
 
-<pre><code>chmod +x engine.sh</code></pre>
-<pre><code>./engine.sh</code></pre>
+### Instalación Rápida en Termux
+```bash
+# 1. Actualización de repositorio y dependencias
+pkg update -y && pkg upgrade -y
+pkg install git nodejs-lts ffmpeg -y
 
-<hr>
+# 2. Obtención de código fuente bajo licencia
+git clone [https://github.com/deylin-16/cat_bot](https://github.com/deylin-16/cat_bot)
+cd cat_bot
 
-<h3>📲 PROTOCOLO DE VINCULACIÓN</h3>
-<ol>
-  <li>El sistema solicitará su número de teléfono (formato internacional).</li>
-  <li>Se generará un <strong>Código de Emparejamiento</strong> único de 8 caracteres.</li>
-  <li>Vincule desde su celular en: <em>Dispositivos vinculados > Vincular con el número de teléfono</em>.</li>
-</ol>
-
-<hr>
-
-<h2>🔋 MANTENIMIENTO 24/7</h2>
-<p>Para asegurar estabilidad permanente, utilice <strong>PM2</strong>:</p>
-
-<pre><code>npm install -g pm2</code></pre>
-<pre><code>pm2 start index.js --name "cat-bot"</code></pre>
-<pre><code>pm2 logs cat-bot</code></pre>
-
-<hr>
-
-<h2>⚖️ TÉRMINOS Y DERECHOS DE AUTOR</h2>
-<ol>
-  <li><strong>PROPIEDAD:</strong> Software propiedad intelectual exclusiva de Deylin.</li>
-  <li><strong>RESTRICCIÓN:</strong> Prohibida la clonación sin permiso del autor.</li>
-  <li><strong>CRÉDITOS:</strong> La alteración de créditos invalida la licencia de uso.</li>
-</ol>
-
-<hr>
-
-<div align="center">
-  <h2>🌐 PERFIL DEL CREADOR</h2>
-  <img src="https://github.com/deylin-16.png" width="150" style="border-radius: 50%; border: 3px solid #000;">
-  <br>
-  <h3>Deylin Eliac</h3>
-  <p>Software Architecture & Automation Expert</p>
-  
-  <a href="https://www.instagram.com/deylin_eliac/">
-    <img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" alt="Instagram">
-  </a>
-  <br><br>
-  <strong>© 2026 Deylin Automation Systems. Todos los derechos reservados.</strong>
-</div>
+# 3. Inicialización del sistema
+chmod +x engine.sh
+./engine.sh

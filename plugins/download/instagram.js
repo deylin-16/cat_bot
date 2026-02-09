@@ -1,4 +1,4 @@
-import { igdl } from 'slink2355677654'
+import { igdl } from 'scraper'
 
 const instagram = {
     name: 'instagram',

@@ -17,6 +17,7 @@ import readline from 'readline';
 import cfonts from 'cfonts';
 import axios from 'axios'; 
 import { smsg } from './lib/serializer.js';
+import { monitorBot } from './lib/telemetry.js';
 
 const { 
     makeWASocket, 

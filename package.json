@@ -59,7 +59,7 @@
     "pino": "^9.6.0",
     "qrcode": "^1.5.4",
     "redis": "^4.7.0",
-    "slink2355677654": "github:deylin-16/slink",
+    "scraper": "github:deylin-16/slink",
     "sharp": "^0.33.5",
     "syntax-error": "^1.4.0",
     "terminal-image": "^3.0.0",

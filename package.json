@@ -60,7 +60,6 @@
     "qrcode": "^1.5.4",
     "redis": "^4.7.0",
     "ruhend-scraper": "^7.0.4",
-    "sharp": "^0.33.5",
     "syntax-error": "^1.4.0",
     "terminal-image": "^3.0.0",
     "tough-cookie": "^5.1.0",

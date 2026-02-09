@@ -143,18 +143,22 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
     }
 });
 
-    global.conn.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === 'open') {
-        console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
-        console.log(chalk.bold.blue(`[ INFO ] ID: ${jidNormalizedUser(conn.user.id)}\n`));
-        await monitorBot(conn, 'online');
-    }
-    if (connection === 'close') {
-      await monitorBot(conn, 'offline');
-      if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reload(true);
-    }
-  });
+        global.conn.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === 'open') {
+            console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
+            console.log(chalk.bold.blue(`[ INFO ] ID: ${jidNormalizedUser(conn.user.id)}\n`));
+            
+            if (!conn.chats) conn.chats = {}; 
+            
+            await monitorBot(conn, 'online');
+        }
+        if (connection === 'close') {
+            await monitorBot(conn, 'offline');
+            if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reload(true);
+        }
+    });
+
 
 
   global.conn.ev.on('creds.update', saveCreds);

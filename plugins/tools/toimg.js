@@ -17,7 +17,7 @@ const toimgCommand = {
             let stickerBuffer = await q.download();
             if (!stickerBuffer) return m.reply("❯❯ 𝗘𝗥𝗥𝗢𝗥: Fallo en la descarga.");
 
-            let outPath = path.join(process.cwd(), `temp_${Date.now()}.jpg`);
+            let outPath = path.join(process.cwd(), `tmp/temp_${Date.now()}.jpg`);
             await sharp(stickerBuffer).jpeg().toFile(outPath);
 
             await conn.sendFile(m.chat, outPath, "sticker.jpg", "❯❯ 𝗦𝗬𝗦𝗧𝗘𝗠: Sticker convertido a imagen.", m);

@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import sharp from "sharp";
+import * as jimp from "jimp"; 
 
 const toimgCommand = {
     name: 'toimg',
@@ -18,7 +18,9 @@ const toimgCommand = {
             if (!stickerBuffer) return m.reply("❯❯ 𝗘𝗥𝗥𝗢𝗥: Fallo en la descarga.");
 
             let outPath = path.join(process.cwd(), `tmp/temp_${Date.now()}.jpg`);
-            await sharp(stickerBuffer).jpeg().toFile(outPath);
+            
+            const image = await jimp.read(stickerBuffer);
+            await image.quality(90).writeAsync(outPath);
 
             await conn.sendFile(m.chat, outPath, "sticker.jpg", "❯❯ 𝗦𝗬𝗦𝗧𝗘𝗠: Sticker convertido a imagen.", m);
 

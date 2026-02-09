@@ -14,11 +14,11 @@ cat_running() {
     local pid=$1
     local delay=0.2
     while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
-        echo -ne "\r${C}     |\\__/,|  ${W}Loading... ${C}  _ "
+        echo -ne "\r${C}  ${W}Loading. ${C}  _ "
         sleep $delay
-        echo -ne "\r${C}  _.|o o  |_ ${W}Loading... ${C} ( )"
+        echo -ne "\r${C} ${W}Loading.. ${C} ( )"
         sleep $delay
-        echo -ne "\r${C} -(((---(((  ${W}Loading... ${C}  / "
+        echo -ne "\r${C} ${W}Loading... ${C}  / "
         sleep $delay
     done
     echo -e "\n"

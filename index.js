@@ -147,8 +147,6 @@ conn.ev.on('messages.upsert', async (chatUpdate) => {
     const { connection, lastDisconnect } = update;
     if (connection === 'open') {
         console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
-        
-        if (!conn.chats) conn.chats = {}; 
 
         await monitorBot(conn, 'online');
     }

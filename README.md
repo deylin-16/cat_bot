@@ -16,6 +16,7 @@
 <div align="center">
   <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770157236468_HFypRNHeu.jpeg" width="120" height="120" alt="Cat_Bot Logo" style="border-radius: 20%; margin-bottom: 10px;">
 
+</div>
   <hr>
 
   <h1>🐈 CAT BOT AUTOMATION SYSTEM v5.0.0</h1>

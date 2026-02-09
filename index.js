@@ -106,50 +106,58 @@ if (!state.creds.registered) {
     let addNumber = phoneNumber.replace(/\D/g, '');
 
     setTimeout(async () => {
-        try {
-            let codeBot = await conn.requestPairingCode(addNumber);
-            codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-            console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
-        } catch (e) {
-            console.error('Error al generar código:', e);
-        }
-    }, 5000);
+        let codeBot = await conn.requestPairingCode(addNumber);
+        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+        console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
+    }, 3000);
 }
 
 if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
 
 global.reload = async function(restatConn) {
+  let message = await import(`./lib/message.js?update=${Date.now()}`);
   if (restatConn) {
     try { global.conn.ws.close(); } catch {}
     global.conn = makeWASocket(connectionOptions);
   }
 
-  global.conn.ev.on('messages.upsert', async (chatUpdate) => {
+
+conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
         const msg = chatUpdate.messages[0];
-        if (!msg || (!msg.message && !msg.messageStubType)) return;
+        if (!msg) return;
+        if (!msg.message && !msg.messageStubType) return;
         const m = await smsg(conn, msg);
         const Path = path.join(process.cwd(), 'lib/message.js');
         const module = await import(`file://${Path}?update=${Date.now()}`);
         const Func = module.message || module.default?.message || module.default;
-        if (typeof Func === 'function') await Func.call(conn, m, chatUpdate);
+
+        if (typeof Func === 'function') {
+            await Func.call(conn, m, chatUpdate);
+        } else {
+            console.error('No se pudo encontrar la función message en message.js');
+        }
+
     } catch (e) {
         console.error('Error en upsert:', e);
     }
-  });
+});
 
-  global.conn.ev.on('connection.update', async (update) => {
+       global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === 'open') {
         console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
+
         await monitorBot(conn, 'online');
-        await initSubBots();
     }
     if (connection === 'close') {
       await monitorBot(conn, 'offline');
       if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reload(true);
     }
   });
+
+
+
 
   global.conn.ev.on('creds.update', saveCreds);
 };
@@ -199,7 +207,7 @@ async function descargarLicencia() {
       return new Promise((resolve) => {
           writer.on('finish', () => {
               console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada.`));
-              if (existsSync('.gen_license')) unlinkSync('.gen_license'); 
+              unlinkSync('.gen_license'); 
               resolve();
           });
       });
@@ -211,11 +219,13 @@ await descargarLicencia();
 async function initSubBots() {
     const jadibtsDir = path.join(process.cwd(), 'jadibts');
     if (!existsSync(jadibtsDir)) return;
+
     const folders = readdirSync(jadibtsDir).filter(f => 
         statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
     );
-    if (folders.length === 0) return;
+
     console.log(chalk.bold.blue(`[ SUB-BOTS ] Re-conectando ${folders.length} sesiones activas...`));
+
     for (const folder of folders) {
         try {
             const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
@@ -226,3 +236,9 @@ async function initSubBots() {
         }
     }
 }
+
+global.conn.ev.on('connection.update', async (update) => {
+    if (update.connection === 'open') {
+        await initSubBots();
+    }
+});

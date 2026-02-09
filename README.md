@@ -13,6 +13,7 @@
 
 > [!CAUTION]
 > **PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA**
+> 
 > Este software es propiedad exclusiva de **Deylin Eliac**. Queda estrictamente prohibida la redistribución, clonación masiva o comercialización del código fuente sin una licencia comercial explícita. El incumplimiento de estos términos resultará en acciones técnicas y legales pertinentes.
 
 ---
@@ -47,6 +48,7 @@ Al ejecutar este software en entornos como **Termux**, el usuario acepta las pol
 
 > [!TIP]
 > Para una guía visual interactiva y acceso a recursos adicionales, visite nuestra documentación oficial:
+> 
 > 🌐 **[deylin.xyz/cat-bot](https://deylin.xyz/cat-bot)**
 
 ### Instalación Rápida en Termux
@@ -56,7 +58,7 @@ pkg update -y && pkg upgrade -y
 pkg install git nodejs-lts ffmpeg -y
 
 # 2. Obtención de código fuente bajo licencia
-git clone [https://github.com/deylin-16/cat_bot](https://github.com/deylin-16/cat_bot)
+git clone https://github.com/deylin-16/cat_bot
 cd cat_bot
 
 # 3. Inicialización del sistema
@@ -64,123 +66,81 @@ chmod +x engine.sh
 ./engine.sh
 ```
 
-<hr>
+---
 
-<h2>📲 PROTOCOLO DE VINCULACIÓN OFICIAL</h2>
-<p align="justify">
-  Para garantizar una conexión segura y persistente, el sistema implementa el método de <b>Pairing Code</b> de Multi-Device. Siga estas instrucciones para sincronizar el motor:
-</p>
+## 📲 PROTOCOLO DE VINCULACIÓN OFICIAL
 
-<ol>
-  <li>Ejecute el sistema y proporcione su número de teléfono en formato internacional (ej: <code>504XXXXXX</code>).</li>
-  <li>Recibirá un código alfanumérico de 8 dígitos en su terminal.</li>
-  <li>En su dispositivo móvil, acceda a: <b>Dispositivos vinculados > Vincular con el número de teléfono</b>.</li>
-  <li>Ingrese el código generado para establecer la sesión encriptada.</li>
-</ol>
+Para garantizar una conexión segura y persistente, el sistema implementa el método de **Pairing Code** de Multi-Device. Siga estas instrucciones para sincronizar el motor:
 
-<hr>
+1. Ejecute el sistema y proporcione su número de teléfono en formato internacional (ej: `504XXXXXX`).
+2. Recibirá un código alfanumérico de 8 dígitos en su terminal.
+3. En su dispositivo móvil, acceda a: **Dispositivos vinculados > Vincular con el número de teléfono**.
+4. Ingrese el código generado para establecer la sesión encriptada.
 
-<h2>🔋 MANTENIMIENTO PROFESIONAL (PM2)</h2>
-<p>
-  En entornos de producción 24/7 (VPS o servidores en la nube), se exige el uso de un gestor de procesos para garantizar el reinicio automático ante fallos críticos:
-</p>
+---
 
-<pre><code># Instalación global de PM2
+## 🔋 MANTENIMIENTO PROFESIONAL (PM2)
+
+En entornos de producción 24/7 (VPS o servidores en la nube), se exige el uso de un gestor de procesos para garantizar el reinicio automático ante fallos críticos:
+
+```bash
+# Instalación global de PM2
 npm install -g pm2
 
 # Inicio del proceso con nombre personalizado
 pm2 start index.js --name "cat-bot"
 
 # Monitoreo de logs en tiempo real
-pm2 logs cat-bot</code></pre>
+pm2 logs cat-bot
+```
 
-<hr>
+---
 
-<h2>🛠️ CENTRO DE RECURSOS Y SOPORTE</h2>
+## 🛠️ CENTRO DE RECURSOS Y SOPORTE
 
-<table width="100%">
-  <thead>
-    <tr>
-      <th align="left">Servicio</th>
-      <th align="left">Enlace de Acceso</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><b>📚 Documentación Técnica</b></td>
-      <td><a href="https://deylin.xyz/cat-bot">deylin.xyz/cat-bot</a></td>
-    </tr>
-    <tr>
-      <td><b>🌐 Web del Desarrollador</b></td>
-      <td><a href="https://deylin.xyz">deylin.xyz</a></td>
-    </tr>
-    <tr>
-      <td><b>🆘 Soporte Directo</b></td>
-      <td><a href="https://deylin.xyz/support">deylin.xyz/support</a></td>
-    </tr>
-    <tr>
-      <td><b>💬 Contacto Business</b></td>
-      <td><a href="https://wa.me/50432955554">Deylin Eliac ᴼᶠᶜ</a></td>
-    </tr>
-  </tbody>
-</table>
+| Servicio | Enlace de Acceso |
+|----------|------------------|
+| 📚 **Documentación Técnica** | [deylin.xyz/cat-bot](https://deylin.xyz/cat-bot) |
+| 🌐 **Web del Desarrollador** | [deylin.xyz](https://deylin.xyz) |
+| 🆘 **Soporte Directo** | [deylin.xyz/support](https://deylin.xyz/support) |
+| 💬 **Contacto Business** | [Deylin Eliac ᴼᶠᶜ](https://wa.me/50432955554) |
 
-<br>
+---
 
 <div align="center">
   <img src="https://github.com/deylin-16.png" width="120" style="border-radius: 50%; border: 3px solid #000; margin-bottom: 10px;">
   <br>
   <strong>© 2026 Deylin Automation Systems. All Rights Reserved.</strong>
   <p align="center">
-    <i>"Innovación y eficiencia en arquitectura de software para automatización."</i>
+    <em>"Innovación y eficiencia en arquitectura de software para automatización."</em>
+  </p>
+</div>
+
+---
+
+<div align="center">
+  <h3>☕ SOPORTE AL DESARROLLO INTEGRAL</h3>
+  <p>
+    El mantenimiento de <strong>CAT BOT</strong> y la infraestructura de la <strong>Red Z</strong> es un esfuerzo constante para garantizar velocidad y estabilidad. Tu contribución voluntaria permite que este sistema siga evolucionando como una herramienta de vanguardia y alto rendimiento.
+  </p>
+  
+  <p>
+    <a href="https://www.paypal.me/DeylinB" target="_blank">
+      <img src="https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal Donation">
+    </a>
+    <a href="https://Ko-fi.com/deylin16" target="_blank">
+      <img src="https://img.shields.io/badge/Buy_me_a_coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi Donation">
+    </a>
   </p>
 
-<div align="center">
-  <img src="https://github.com/deylin-16.png" width="120" style="border-radius: 50%; border: 3px solid #000; margin-bottom: 10px;">
-  <br>
-  <strong>© 2026 Deylin Automation Systems. All Rights Reserved.</strong>
-  <p><i>"Innovación y eficiencia en arquitectura de software para automatización."</i></p>
+  <p>
+    <em>Impulsando la próxima generación de automatización.</em><br>
+    <strong>Deylin Automation Systems © 2026</strong>
+  </p>
 </div>
 
-<hr>
+---
 
 <div align="center">
-  <table width="90%" border="0" cellpadding="0" cellspacing="0" style="border: 1px solid #e1e4e8; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(0,0,0,0.08);">
-    <tr>
-      <td align="center" style="padding: 40px; background-color: #ffffff;">
-        <h3 style="color: #1a1a1a; font-family: sans-serif;">☕ SOPORTE AL DESARROLLO INTEGRAL</h3>
-        <p style="color: #666666; line-height: 1.7; font-family: sans-serif; max-width: 600px;">
-          El mantenimiento de <b>CAT BOT</b> y la infraestructura de la <b>Red Z</b> es un esfuerzo constante para garantizar velocidad y estabilidad. Tu contribución voluntaria permite que este sistema siga evolucionando.
-        </p>
-        
-        <br>
-
-        <table border="0" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="padding: 0 10px;">
-              <a href="https://www.paypal.me/DeylinB" target="_blank">
-                <img src="https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal">
-              </a>
-            </td>
-            <td style="padding: 0 10px;">
-              <a href="https://Ko-fi.com/deylin16" target="_blank">
-                <img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
-              </a>
-            </td>
-          </tr>
-        </table>
-
-        <p style="margin-top: 25px; font-size: 12px; color: #999999; font-family: sans-serif;">
-          <i>Impulsando la próxima generación de automatización.</i><br>
-          <b>Deylin Automation Systems © 2026</b>
-        </p>
-      </td>
-    </tr>
-  </table>
-</div>
-
-<div align="center" style="margin-top: 20px;">
-  <a href="https://www.instagram.com/deylin_eliac/">
-    <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram">
-  </a>
+  <sub>Built with ❤️ by <a href="https://deylin.xyz">Deylin</a></sub>
 </div>

@@ -1,4 +1,4 @@
-import { igdl } from 'scraper'
+import { igdl } from 'ruhend-scraper'
 
 const instagram = {
     name: 'instagram',

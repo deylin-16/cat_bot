@@ -1,4 +1,19 @@
 <div align="center">
+  <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770681140747_VoYDYJVpM.jpeg" width="120" height="120" alt="Cat_Bot Logo" style="border-radius: 20%; margin-bottom: 10px;">
+
+  <h1 align="center" style="border-bottom: none;">
+    <span style="background: linear-gradient(135deg, #00BFFF, #FF4500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Segoe UI', sans-serif; font-size: 50px; font-weight: 800;">
+      CAT_BOT
+    </span>
+  </h1>
+
+  <p align="center">
+    <kbd>ESTADO: ACTIVO 🚀</kbd> 
+    <kbd>VERSIÓN: 2.0.0 📦</kbd>
+    <kbd>DEVELOPER: DEYLIN 💻</kbd>
+  </p>
+
+<div align="center">
   <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770157236468_HFypRNHeu.jpeg" width="100%" style="border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 
   <hr>

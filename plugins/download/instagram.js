@@ -1,4 +1,4 @@
-/*import { igdl } from 'scraper'
+import { igdl } from 'scraper'
 
 const instagram = {
     name: 'instagram',
@@ -38,4 +38,4 @@ const instagram = {
     }
 }
 
-export default instagram*/
+export default instagram

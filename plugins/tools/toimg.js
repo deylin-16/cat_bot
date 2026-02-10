@@ -1,6 +1,9 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { Jimp } = require('jimp');
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
+
+const execPromise = promisify(exec);
 
 const toimgCommand = {
     name: 'toimg',
@@ -17,18 +20,27 @@ const toimgCommand = {
             let stickerBuffer = await q.download?.();
             if (!stickerBuffer) return conn.sendMessage(m.chat, { text: "❯❯ 𝗘𝗥𝗥𝗢𝗥: Fallo en la descarga." }, { quoted: m });
 
-            const image = await Jimp.read(stickerBuffer);
-            const buffer = await image.getBuffer('image/jpeg');
+            let webpPath = path.join(process.cwd(), `tmp/temp_${Date.now()}.webp`);
+            let jpgPath = path.join(process.cwd(), `tmp/temp_${Date.now()}.jpg`);
+
+            await fs.promises.writeFile(webpPath, stickerBuffer);
+
+            await execPromise(`ffmpeg -i ${webpPath} ${jpgPath}`);
+
+            const buffer = await fs.promises.readFile(jpgPath);
 
             await conn.sendMessage(m.chat, { 
                 image: buffer, 
                 caption: "❯❯ 𝗦𝗬𝗦𝗧𝗘𝗠: Sticker convertido a imagen." 
             }, { quoted: m });
 
+            if (fs.existsSync(webpPath)) await fs.promises.unlink(webpPath);
+            if (fs.existsSync(jpgPath)) await fs.promises.unlink(jpgPath);
+            
             await m.react('✅');
         } catch (e) {
             console.error(e);
-            return conn.sendMessage(m.chat, { text: "❯❯ 𝗘𝗥𝗥𝗢𝗥: Formato no compatible o fallo en conversión." }, { quoted: m });
+            return conn.sendMessage(m.chat, { text: "❯❯ 𝗘𝗥𝗥𝗢𝗥: Asegúrate de tener ffmpeg instalado." }, { quoted: m });
         }
     }
 };

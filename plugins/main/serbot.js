@@ -28,7 +28,18 @@ const serbot = {
             const phoneNumber = cleanNumber(realJid)
             if (!phoneNumber || phoneNumber.length < 8) return m.reply('> *Error al obtener número.*')
             const instruccion = `*VINCULACIÓN DE SUB-BOT*\n\n1. Dispositivos vinculados > Vincular con número.\n2. Ingresa el código.`
-            await conn.sendMessage(m.chat, { text: instruccion }, { quoted: m })
+            await conn.sendMessage(m.chat, {
+                text: instruccion,
+                contextInfo: {
+                    externalAdReply: {
+                        title: `${global.name?.() || 'Deylin Bot'}`,
+                        thumbnailUrl: global.img?.() || '',
+                        mediaType: 1,
+                        showAdAttribution: true,
+                        renderLargerThumbnail: true
+                    }
+                }
+            }, { quoted: m })
             let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
             if (code && code !== "Conectado") await conn.sendMessage(m.chat, { text: code }, { quoted: m })
             return

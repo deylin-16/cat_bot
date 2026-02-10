@@ -70,14 +70,14 @@ export async function assistant_accessJadiBot(options) {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
         
-        // Creamos un logger nulo para forzar el silencio total
+        
         const silentLogger = pino({ level: 'silent' })
 
         const sock = makeWASocket({
             logger: silentLogger,
             auth: { 
                 creds: state.creds, 
-                // Aquí es donde silenciamos el spam del Keystore
+                
                 keys: makeCacheableSignalKeyStore(state.keys, silentLogger) 
             },
             browser: Browsers.macOS("Chrome"),
@@ -85,7 +85,7 @@ export async function assistant_accessJadiBot(options) {
             msgRetryCache,
             syncFullHistory: false,
             markOnlineOnConnect: true,
-            // Añadimos esto para evitar logs de transacciones de red
+            
             printQRInTerminal: false 
         })
 

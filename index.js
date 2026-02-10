@@ -19,6 +19,7 @@ import axios from 'axios';
 import { smsg } from './lib/serializer.js';
 import { monitorBot } from './lib/telemetry.js';
 import { EventEmitter } from 'events';
+
 const originalLog = console.log;
 console.log = function () {
   const args = Array.from(arguments);
@@ -37,7 +38,6 @@ console.dir = function () {
   }
   originalDir.apply(console, args);
 };
-
 
 EventEmitter.defaultMaxListeners = 0;
 
@@ -103,12 +103,12 @@ const connectionOptions = {
   version,
   logger: pino({ level: 'silent' }), 
   printQRInTerminal: false,
-  browser: Browsers.macOS("Chrome"),
+  browser: Browsers.ubuntu("Chrome"),
   auth: {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 
   },
-  markOnlineOnConnect: false,
+  markOnlineOnConnect: true,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
   getMessage: async (key) => { return ""; } 
@@ -124,7 +124,7 @@ if (!state.creds.registered) {
     console.log(chalk.bold.magenta('│') + chalk.bold.white('         CONFIGURACIÓN DE EMPAREJAMIENTO          ') + chalk.bold.magenta('│'));
     console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
 
-    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: +504 5178-2571):\n> `));
+    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: 50451782571):\n> `));
     let addNumber = phoneNumber.replace(/\D/g, '');
 
     setTimeout(async () => {
@@ -161,14 +161,36 @@ global.reload = async function(restatConn) {
 
   global.conn.ev.removeAllListeners('connection.update');
   global.conn.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect } = update;
+    const { connection, lastDisconnect, qr } = update;
+    
+    if (connection === 'connecting') {
+        console.log(chalk.bold.yellow(`\n[ ESPERANDO ] Estableciendo conexión con el servidor...`));
+    }
+
     if (connection === 'open') {
-        console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
+        console.log(chalk.bold.greenBright(`\n[ OK ] Conectado exitosamente: ${conn.user.name || 'WhatsApp Bot'}`));
         await monitorBot(conn, 'online');
     }
+
     if (connection === 'close') {
+      const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
       await monitorBot(conn, 'offline');
-      if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reload(true);
+      
+      if (reason === DisconnectReason.loggedOut) {
+          console.log(chalk.bold.red(`\n[ ERROR ] Sesión cerrada. Elimine la carpeta 'sessions' y vuelva a vincular.`));
+      } else if (reason === DisconnectReason.connectionLost) {
+          console.log(chalk.bold.red(`\n[ ERROR ] Se perdió la conexión. Reintentando...`));
+          await global.reload(true);
+      } else if (reason === DisconnectReason.restartRequired) {
+          console.log(chalk.bold.blue(`\n[ SISTEMA ] Reinicio requerido. Reiniciando conexión...`));
+          await global.reload(true);
+      } else if (reason === DisconnectReason.timedOut) {
+          console.log(chalk.bold.red(`\n[ ERROR ] Tiempo de conexión agotado. Reintentando...`));
+          await global.reload(true);
+      } else {
+          console.log(chalk.bold.red(`\n[ ERROR ] Conexión cerrada por motivo desconocido: ${reason}. Reintentando...`));
+          await global.reload(true);
+      }
     }
   });
 
@@ -256,7 +278,7 @@ async function initSubBots() {
 global.conn.ev.on('connection.update', async (update) => {
     const { connection } = update;
     if (connection === 'open') {
-        
+
         if (!global.subBotsStarted) {
             global.subBotsStarted = true;
             await initSubBots();

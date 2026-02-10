@@ -19,6 +19,24 @@ import axios from 'axios';
 import { smsg } from './lib/serializer.js';
 import { monitorBot } from './lib/telemetry.js';
 import { EventEmitter } from 'events';
+const originalLog = console.log;
+console.log = function () {
+  const args = Array.from(arguments);
+  const msg = args.join(' ');
+  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity')) {
+    return; 
+  }
+  originalLog.apply(console, args);
+};
+
+const originalDir = console.dir;
+console.dir = function () {
+  const args = Array.from(arguments);
+  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig)) {
+    return;
+  }
+  originalDir.apply(console, args);
+};
 
 EventEmitter.defaultMaxListeners = 0;
 

@@ -69,18 +69,21 @@ export async function assistant_accessJadiBot(options) {
         const { version } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(authFolder)
 
-        const sock = makeWASocket({
-            logger: pino({ level: "silent" }),
-            auth: { 
-                creds: state.creds, 
-                keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) 
-            },
-            browser: Browsers.macOS("Chrome"),
-            version,
-            msgRetryCache,
-            syncFullHistory: false,
-            markOnlineOnConnect: true
-        })
+
+const sock = makeWASocket({
+    logger: pino({ level: "silent" }),
+    auth: { 
+        creds: state.creds, 
+        
+        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) 
+    },
+    browser: Browsers.macOS("Chrome"),
+    version,
+    msgRetryCache,
+    syncFullHistory: false,
+    markOnlineOnConnect: true
+})
+
 
         sock.ev.on('creds.update', saveCreds)
 

@@ -84,7 +84,7 @@ const connectionOptions = {
   browser: Browsers.macOS("Chrome"),
   auth: {
     creds: state.creds,
-    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
+    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
   },
   markOnlineOnConnect: false,
   generateHighQualityLinkPreview: true,

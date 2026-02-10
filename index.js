@@ -23,7 +23,7 @@ const originalLog = console.log;
 console.log = function () {
   const args = Array.from(arguments);
   const msg = args.join(' ');
-  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity')) {
+  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) {
     return; 
   }
   originalLog.apply(console, args);
@@ -32,11 +32,12 @@ console.log = function () {
 const originalDir = console.dir;
 console.dir = function () {
   const args = Array.from(arguments);
-  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig)) {
+  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig || args[0].registrationId)) {
     return;
   }
   originalDir.apply(console, args);
 };
+
 
 EventEmitter.defaultMaxListeners = 0;
 

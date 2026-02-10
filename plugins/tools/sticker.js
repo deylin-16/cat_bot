@@ -81,14 +81,23 @@ const stickerCommand = {
             let txt = args.join(' ');
 
             if (!/image|video|webp/.test(mime)) return m.reply('> *✎ Responde a una imagen o video.*');
-            
+
+            if (/video/.test(mime)) {
+                
+                let duration = q.msg?.seconds || q.seconds || 0;
+                if (duration > 7) {
+                    await m.react('❌');
+                    return m.reply('> *⍰ El video es demasiado largo.* La duración máxima para stickers es de *7 segundos*.');
+                }
+            }
+
             await m.react('🕓');
 
             let buffer = await q.download();
             if (!buffer) return m.reply('> ⚔ Error al descargar.');
 
             let stikerBuffer = await sticker6(buffer);
-            let bot = name()
+            let bot = name() 
             let user = m.pushName
             let [pack, auth] = txt.includes('|') ? txt.split('|').map(v => v.trim()) : [`BOT: ${bot}`, `AUTOR: ${user}`];
             let exifSticker = await addExif(stikerBuffer, pack, auth);

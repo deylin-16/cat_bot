@@ -1,4 +1,4 @@
-import * as Jimp from 'jimp';
+import Jimp from 'jimp';
 
 const reduceCommand = {
     name: 'reduce',
@@ -30,16 +30,18 @@ const reduceCommand = {
             let media = await m.quoted.download?.();
             if (!media) return;
 
-            let image = await Jimp.read(media);
             
-            image.resize(width, height);
+            const image = await Jimp.read(media);
 
-            let buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-            
+            await image.resize(width, height);
+
+            const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+
             await conn.sendFile(m.chat, buffer, 'reducida.jpg', `> ⌬ *Imagen procesada a ${width}x${height}*`, m);
         } catch (e) {
             console.error(e);
-            return conn.sendMessage(m.chat, { text: message.e }, { quoted: m });
+            
+            return conn.sendMessage(m.chat, { text: `> ⚠️ *ERROR:* ${e.message || e}` }, { quoted: m });
         }
     }
 };

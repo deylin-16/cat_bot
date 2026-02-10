@@ -1,7 +1,6 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-// Accedemos directamente a la propiedad jimp del paquete
-const { Jimp } = require('jimp'); 
+const { Jimp } = require('jimp');
 
 const reduceCommand = {
     name: 'reduce',
@@ -32,17 +31,15 @@ const reduceCommand = {
             let media = await m.quoted.download?.();
             if (!media) return;
 
-            
             const image = await Jimp.read(media);
-            image.resize({ w: width, h: height }); // Nota el cambio en resize
-            
-            
+            image.resize({ w: width, h: height });
             const buffer = await image.getBuffer('image/jpeg');
 
-            await conn.sendFile(m.chat, buffer, 'reducida.jpg', `> ⌬ *Imagen procesada a ${width}x${height}*`, m);
+            await conn.sendMessage(m.chat, { 
+                image: buffer, 
+                caption: `> ⌬ *Imagen procesada a ${width}x${height}*` 
+            }, { quoted: m });
         } catch (e) {
-            console.error(e);
-            
             return conn.sendMessage(m.chat, { text: `> ⚠️ *ERROR:* ${e.message || e}` }, { quoted: m });
         }
     }

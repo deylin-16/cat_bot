@@ -1,4 +1,6 @@
-import * as Jimp from 'jimp';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const Jimp = require('jimp');
 
 const reduceCommand = {
     name: 'reduce',
@@ -14,7 +16,6 @@ const reduceCommand = {
         }
 
         let input = text.trim().split(/[x×]/i);
-
         if (input.length !== 2 || isNaN(input[0]) || isNaN(input[1])) {
             return conn.sendMessage(m.chat, { text: '> ⚠ *Formato incorrecto.*\n*Uso: .reduce 300x300*' }, { quoted: m });
         }
@@ -30,17 +31,13 @@ const reduceCommand = {
             let media = await m.quoted.download?.();
             if (!media) return;
 
-            
             const image = await Jimp.read(media);
-
             await image.resize(width, height);
-
             const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
 
             await conn.sendFile(m.chat, buffer, 'reducida.jpg', `> ⌬ *Imagen procesada a ${width}x${height}*`, m);
         } catch (e) {
             console.error(e);
-            
             return conn.sendMessage(m.chat, { text: `> ⚠️ *ERROR:* ${e.message || e}` }, { quoted: m });
         }
     }

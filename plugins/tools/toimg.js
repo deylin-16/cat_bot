@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { Jimp } = require('jimp');
@@ -30,7 +28,7 @@ const toimgCommand = {
             await m.react('✅');
         } catch (e) {
             console.error(e);
-            return conn.sendMessage(m.chat, { text: "❯❯ 𝗘𝗥𝗥𝗢𝗥: Fallo en la conversión." }, { quoted: m });
+            return conn.sendMessage(m.chat, { text: "❯❯ 𝗘𝗥𝗥𝗢𝗥: Formato no compatible o fallo en conversión." }, { quoted: m });
         }
     }
 };

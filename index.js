@@ -47,7 +47,6 @@ const {
     useMultiFileAuthState, 
     fetchLatestBaileysVersion, 
     makeCacheableSignalKeyStore, 
-    jidNormalizedUser, 
     Browsers
 } = await import('@whiskeysockets/baileys');
 
@@ -76,12 +75,7 @@ global.prefix = new RegExp('^[#!./]');
 
 const adapter = new JSONFile('database.json');
 global.db = new Low(adapter, {
-    users: {},
-    chats: {},
-    stats: {},
-    msgs: {},
-    sticker: {},
-    settings: {}
+    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}
 });
 
 global.loadDatabase = async function loadDatabase() {
@@ -92,7 +86,6 @@ global.loadDatabase = async function loadDatabase() {
   global.db.data = global.db.data || {
     users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}
   };
-  global.db.chain = chain(global.db.data);
 };
 await loadDatabase();
 
@@ -111,7 +104,9 @@ const connectionOptions = {
   markOnlineOnConnect: true,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
-  getMessage: async (key) => { return ""; } 
+  connectTimeoutMs: 60000,
+  defaultQueryTimeoutMs: 0,
+  keepAliveIntervalMs: 10000
 };
 
 global.conn = makeWASocket(connectionOptions);
@@ -124,7 +119,7 @@ if (!state.creds.registered) {
     console.log(chalk.bold.magenta('│') + chalk.bold.white('         CONFIGURACIÓN DE EMPAREJAMIENTO          ') + chalk.bold.magenta('│'));
     console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
 
-    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: 50451782571):\n> `));
+    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot:\n> `));
     let addNumber = phoneNumber.replace(/\D/g, '');
 
     setTimeout(async () => {
@@ -146,49 +141,35 @@ global.reload = async function(restatConn) {
   global.conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
         const msg = chatUpdate.messages[0];
-        if (!msg) return;
-        if (!msg.message && !msg.messageStubType) return;
+        if (!msg || (!msg.message && !msg.messageStubType)) return;
         const m = await smsg(conn, msg);
         const Path = path.join(process.cwd(), 'lib/message.js');
         const module = await import(`file://${Path}?update=${Date.now()}`);
         const Func = module.message || module.default?.message || module.default;
-
-        if (typeof Func === 'function') {
-            await Func.call(conn, m, chatUpdate);
-        }
+        if (typeof Func === 'function') await Func.call(conn, m, chatUpdate);
     } catch (e) {}
   });
 
   global.conn.ev.removeAllListeners('connection.update');
   global.conn.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-    
+    const { connection, lastDisconnect } = update;
+
     if (connection === 'connecting') {
-        console.log(chalk.bold.yellow(`\n[ ESPERANDO ] Estableciendo conexión con el servidor...`));
+        console.log(chalk.bold.yellow(`[ ESPERANDO ] Estableciendo conexión...`));
     }
 
     if (connection === 'open') {
-        console.log(chalk.bold.greenBright(`\n[ OK ] Conectado exitosamente: ${conn.user.name || 'WhatsApp Bot'}`));
+        console.log(chalk.bold.greenBright(`[ OK ] Conexión establecida con éxito.`));
         await monitorBot(conn, 'online');
     }
 
     if (connection === 'close') {
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      await monitorBot(conn, 'offline');
-      
       if (reason === DisconnectReason.loggedOut) {
-          console.log(chalk.bold.red(`\n[ ERROR ] Sesión cerrada. Elimine la carpeta 'sessions' y vuelva a vincular.`));
-      } else if (reason === DisconnectReason.connectionLost) {
-          console.log(chalk.bold.red(`\n[ ERROR ] Se perdió la conexión. Reintentando...`));
-          await global.reload(true);
-      } else if (reason === DisconnectReason.restartRequired) {
-          console.log(chalk.bold.blue(`\n[ SISTEMA ] Reinicio requerido. Reiniciando conexión...`));
-          await global.reload(true);
-      } else if (reason === DisconnectReason.timedOut) {
-          console.log(chalk.bold.red(`\n[ ERROR ] Tiempo de conexión agotado. Reintentando...`));
-          await global.reload(true);
+          console.log(chalk.bold.red(`[ ERROR ] Sesión cerrada. Elimine la carpeta 'sessions'.`));
+          process.exit();
       } else {
-          console.log(chalk.bold.red(`\n[ ERROR ] Conexión cerrada por motivo desconocido: ${reason}. Reintentando...`));
+          console.log(chalk.bold.red(`[ ERROR ] Conexión perdida. Reintentando...`));
           await global.reload(true);
       }
     }
@@ -255,33 +236,22 @@ await descargarLicencia();
 async function initSubBots() {
     const jadibtsDir = path.join(process.cwd(), 'jadibts');
     if (!existsSync(jadibtsDir)) return;
-
     const folders = readdirSync(jadibtsDir).filter(f => 
         statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
     );
-
-    if (folders.length > 0) {
-        console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando ${folders.length} sub-bots activos...`));
-    }
-
+    if (folders.length > 0) console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando sub-bots...`));
     for (const folder of folders) {
         try {
             const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
             await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
             await new Promise(r => setTimeout(r, 2000)); 
-        } catch (e) {
-            console.log(chalk.red(`[ ERROR ] No se pudo iniciar el sub-bot ${folder}. Posible sesión corrupta.`));
-        }
+        } catch (e) {}
     }
 }
 
 global.conn.ev.on('connection.update', async (update) => {
-    const { connection } = update;
-    if (connection === 'open') {
-
-        if (!global.subBotsStarted) {
-            global.subBotsStarted = true;
-            await initSubBots();
-        }
+    if (update.connection === 'open' && !global.subBotsStarted) {
+        global.subBotsStarted = true;
+        await initSubBots();
     }
 });

@@ -15,22 +15,27 @@ import { Boom } from '@hapi/boom';
 import NodeCache from 'node-cache';
 import readline from 'readline';
 import cfonts from 'cfonts';
-import axios from 'axios';
+import axios from 'axios'; 
 import { smsg } from './lib/serializer.js';
 import { monitorBot } from './lib/telemetry.js';
 import { EventEmitter } from 'events';
+
 EventEmitter.defaultMaxListeners = 0;
-const {
-makeWASocket,
-DisconnectReason,
-useMultiFileAuthState,
-fetchLatestBaileysVersion,
-makeCacheableSignalKeyStore,
-jidNormalizedUser,
-Browsers
+
+const { 
+    makeWASocket, 
+    DisconnectReason, 
+    useMultiFileAuthState, 
+    fetchLatestBaileysVersion, 
+    makeCacheableSignalKeyStore, 
+    jidNormalizedUser, 
+    Browsers
 } = await import('@whiskeysockets/baileys');
+
 const { chain } = lodash;
+
 if (!existsSync('./tmp')) mkdirSync('./tmp');
+
 let { say } = cfonts;
 console.clear();
 console.log(chalk.bold.cyan('┌────────────────────────────────────────────────────────┐'));
@@ -38,167 +43,195 @@ console.log(chalk.bold.cyan('│') + chalk.bold.yellow('            SISTEMA DE A
 console.log(chalk.bold.cyan('└────────────────────────────────────────────────────────┘'));
 say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
 say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
+
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
-return rmPrefix ? /file:////.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
+  return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
 };
 global.__dirname = function dirname(pathURL) {
-return path.dirname(global.__filename(pathURL, true));
+  return path.dirname(global.__filename(pathURL, true));
 };
+
 const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
+
 const adapter = new JSONFile('database.json');
 global.db = new Low(adapter, {
-users: {},
-chats: {},
-stats: {},
-msgs: {},
-sticker: {},
-settings: {}
+    users: {},
+    chats: {},
+    stats: {},
+    msgs: {},
+    sticker: {},
+    settings: {}
 });
+
 global.loadDatabase = async function loadDatabase() {
-if (global.db.READ) return;
-global.db.READ = true;
-await global.db.read().catch(console.error);
-global.db.READ = null;
-global.db.data = global.db.data || {
-users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}
-};
-global.db.chain = chain(global.db.data);
+  if (global.db.READ) return;
+  global.db.READ = true;
+  await global.db.read().catch(console.error);
+  global.db.READ = null;
+  global.db.data = global.db.data || {
+    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}
+  };
+  global.db.chain = chain(global.db.data);
 };
 await loadDatabase();
+
 const { state, saveCreds } = await useMultiFileAuthState('sessions');
 const { version } = await fetchLatestBaileysVersion();
+
 const connectionOptions = {
-version,
-logger: pino({ level: 'silent' }),
-printQRInTerminal: false,
-browser: Browsers.macOS("Chrome"),
-auth: {
-creds: state.creds,
-keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
-},
-markOnlineOnConnect: false,
-generateHighQualityLinkPreview: true,
-syncFullHistory: false,
-getMessage: async (key) => { return ""; }
+  version,
+  logger: pino({ level: 'silent' }), 
+  printQRInTerminal: false,
+  browser: Browsers.macOS("Chrome"),
+  auth: {
+    creds: state.creds,
+    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 
+  },
+  markOnlineOnConnect: false,
+  generateHighQualityLinkPreview: true,
+  syncFullHistory: false,
+  getMessage: async (key) => { return ""; } 
 };
+
 global.conn = makeWASocket(connectionOptions);
+
 if (!state.creds.registered) {
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
-console.log(chalk.bold.magenta('\n┌──────────────────────────────────────────────────┐'));
-console.log(chalk.bold.magenta('│') + chalk.bold.white('         CONFIGURACIÓN DE EMPAREJAMIENTO          ') + chalk.bold.magenta('│'));
-console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
 
-let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: +504 5178-2571):\n> `));
-let addNumber = phoneNumber.replace(/\D/g, '');
+    console.log(chalk.bold.magenta('\n┌──────────────────────────────────────────────────┐'));
+    console.log(chalk.bold.magenta('│') + chalk.bold.white('         CONFIGURACIÓN DE EMPAREJAMIENTO          ') + chalk.bold.magenta('│'));
+    console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
 
-setTimeout(async () => {
-    let codeBot = await conn.requestPairingCode(addNumber);
-    codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-    console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
-}, 3000);
+    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: +504 5178-2571):\n> `));
+    let addNumber = phoneNumber.replace(/\D/g, '');
 
+    setTimeout(async () => {
+        let codeBot = await conn.requestPairingCode(addNumber);
+        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+        console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
+    }, 3000);
 }
+
 if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
+
 global.reload = async function(restatConn) {
-if (restatConn) {
-try { global.conn.ws.close(); } catch {}
-global.conn = makeWASocket(connectionOptions);
-}
-conn.ev.removeAllListeners('messages.upsert');
-conn.ev.on('messages.upsert', async (chatUpdate) => {
-try {
-const msg = chatUpdate.messages[0];
-if (!msg || (!msg.message && !msg.messageStubType)) return;
-const m = await smsg(conn, msg);
-const Path = path.join(process.cwd(), 'lib/message.js');
-const module = await import(file://${Path}?update=${Date.now()});
-const Func = module.message || module.default?.message || module.default;
-if (typeof Func === 'function') await Func.call(conn, m, chatUpdate);
-} catch (e) {}
-});
-conn.ev.removeAllListeners('connection.update');
-global.conn.ev.on('connection.update', async (update) => {
-const { connection, lastDisconnect } = update;
-if (connection === 'open') {
-console.log(chalk.bold.greenBright(\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}));
-await monitorBot(conn, 'online');
-}
-if (connection === 'close') {
-await monitorBot(conn, 'offline');
-if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reload(true);
-}
-});
-conn.ev.removeAllListeners('creds.update');
-global.conn.ev.on('creds.update', saveCreds);
+  if (restatConn) {
+    try { global.conn.ws.close(); } catch {}
+    global.conn = makeWASocket(connectionOptions);
+  }
+
+  global.conn.ev.removeAllListeners('messages.upsert');
+  global.conn.ev.on('messages.upsert', async (chatUpdate) => {
+    try {
+        const msg = chatUpdate.messages[0];
+        if (!msg) return;
+        if (!msg.message && !msg.messageStubType) return;
+        const m = await smsg(conn, msg);
+        const Path = path.join(process.cwd(), 'lib/message.js');
+        const module = await import(`file://${Path}?update=${Date.now()}`);
+        const Func = module.message || module.default?.message || module.default;
+
+        if (typeof Func === 'function') {
+            await Func.call(conn, m, chatUpdate);
+        }
+    } catch (e) {}
+  });
+
+  global.conn.ev.removeAllListeners('connection.update');
+  global.conn.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect } = update;
+    if (connection === 'open') {
+        console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
+        await monitorBot(conn, 'online');
+    }
+    if (connection === 'close') {
+      await monitorBot(conn, 'offline');
+      if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reload(true);
+    }
+  });
+
+  global.conn.ev.removeAllListeners('creds.update');
+  global.conn.ev.on('creds.update', saveCreds);
 };
+
 await global.reload();
+
 const pluginFolder = join(__dirname, './plugins');
-const pluginFilter = (filename) => /.js$/.test(filename);
+const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = new Map();
 global.aliases = new Map();
+
 async function readRecursive(folder) {
-for (const filename of readdirSync(folder)) {
-const file = join(folder, filename);
-if (statSync(file).isDirectory()) await readRecursive(file);
-else if (pluginFilter(filename)) {
-const module = await import(global.__filename(file));
-const plugin = module.default || module;
-const pluginName = plugin.name || filename.replace('.js', '');
-global.plugins.set(pluginName, plugin);
-if (plugin.alias && Array.isArray(plugin.alias)) {
-plugin.alias.forEach(a => global.aliases.set(a, pluginName));
+  for (const filename of readdirSync(folder)) {
+    const file = join(folder, filename);
+    if (statSync(file).isDirectory()) await readRecursive(file);
+    else if (pluginFilter(filename)) {
+      const module = await import(global.__filename(file));
+      const plugin = module.default || module;
+      const pluginName = plugin.name || filename.replace('.js', '');
+      global.plugins.set(pluginName, plugin);
+      if (plugin.alias && Array.isArray(plugin.alias)) {
+          plugin.alias.forEach(a => global.aliases.set(a, pluginName));
+      }
+    }
+  }
 }
-}
-}
-}
+
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
-if (pluginFilter(filename)) {
-const dir = global.__filename(join(pluginFolder, filename), true);
-const module = await import(${global.__filename(dir)}?update=${Date.now()});
-const plugin = module.default || module;
-const pluginName = plugin.name || filename.replace('.js', '');
-global.plugins.set(pluginName, plugin);
-}
+  if (pluginFilter(filename)) {
+    const dir = global.__filename(join(pluginFolder, filename), true);
+    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
+    const plugin = module.default || module;
+    const pluginName = plugin.name || filename.replace('.js', '');
+    global.plugins.set(pluginName, plugin);
+  }
 });
+
 async function descargarLicencia() {
-if (!existsSync('.gen_license')) return;
-const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
-const localPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
-try {
-const response = await axios({ url, method: 'GET', responseType: 'stream' });
-const writer = createWriteStream(localPath);
-response.data.pipe(writer);
-return new Promise((resolve) => {
-writer.on('finish', () => {
-console.log(chalk.greenBright(✅ SISTEMA: Licencia verificada.));
-unlinkSync('.gen_license');
-resolve();
-});
-});
-} catch (err) {}
+  if (!existsSync('.gen_license')) return;
+  const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
+  const localPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
+  try {
+      const response = await axios({ url, method: 'GET', responseType: 'stream' });
+      const writer = createWriteStream(localPath);
+      response.data.pipe(writer);
+      return new Promise((resolve) => {
+          writer.on('finish', () => {
+              console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada.`));
+              unlinkSync('.gen_license'); 
+              resolve();
+          });
+      });
+  } catch (err) {}
 }
+
 await descargarLicencia();
+
 async function initSubBots() {
-const jadibtsDir = path.join(process.cwd(), 'jadibts');
-if (!existsSync(jadibtsDir)) return;
-const folders = readdirSync(jadibtsDir).filter(f =>
-statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
-);
-console.log(chalk.bold.blue([ SUB-BOTS ] Re-conectando ${folders.length} sesiones activas...));
-for (const folder of folders) {
-try {
-const { assistant_accessJadiBot } = await import(./plugins/main/serbot.js?update=${Date.now()});
-await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
-await new Promise(r => setTimeout(r, 1000));
-} catch (e) {}
+    const jadibtsDir = path.join(process.cwd(), 'jadibts');
+    if (!existsSync(jadibtsDir)) return;
+
+    const folders = readdirSync(jadibtsDir).filter(f => 
+        statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
+    );
+
+    console.log(chalk.bold.blue(`[ SUB-BOTS ] Re-conectando ${folders.length} sesiones activas...`));
+
+    for (const folder of folders) {
+        try {
+            const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
+            await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
+            await new Promise(r => setTimeout(r, 1000)); 
+        } catch (e) {}
+    }
 }
-}
+
 global.conn.ev.on('connection.update', async (update) => {
-if (update.connection === 'open') {
-await initSubBots();
-}
+    if (update.connection === 'open') {
+        await initSubBots();
+    }
 });

@@ -39,7 +39,7 @@ const reduceCommand = {
             await conn.sendFile(m.chat, buffer, 'reducida.jpg', `> ⌬ *Imagen procesada a ${width}x${height}*`, m);
         } catch (e) {
             console.error(e);
-            return conn.sendMessage(m.chat, { text: '> ⚠ *Error al procesar el archivo.*' }, { quoted: m });
+            return conn.sendMessage(m.chat, { text: message.e }, { quoted: m });
         }
     }
 };

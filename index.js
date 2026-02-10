@@ -79,18 +79,19 @@ const { version } = await fetchLatestBaileysVersion();
 
 const connectionOptions = {
   version,
-  logger: pino({ level: 'silent' }),
+  logger: pino({ level: 'silent' }), 
   printQRInTerminal: false,
   browser: Browsers.macOS("Chrome"),
   auth: {
     creds: state.creds,
-    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
+    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 
   },
   markOnlineOnConnect: false,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
   getMessage: async (key) => { return ""; } 
 };
+
 
 global.conn = makeWASocket(connectionOptions);
 

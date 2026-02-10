@@ -26,13 +26,20 @@ const serbot = {
         if (command === 'code') {
             const realJid = await getRealJid(conn, null, m)
             const phoneNumber = cleanNumber(realJid)
-            if (!phoneNumber || phoneNumber.length < 8) return m.reply('> *Error al obtener número.*')
-            const instruccion = `*VINCULACIÓN DE SUB-BOT*\n\n1. Dispositivos vinculados > Vincular con número.\n2. Ingresa el código.`
+            if (!phoneNumber || phoneNumber.length < 8) return m.reply('> *⚠️ No se pudo determinar el número de origen.*')
+            
+            const instruccion = `*───「 VINCULACIÓN 」───*\n\n` +
+                `*Sigue estos pasos para activar tu sub-bot:*\n\n` +
+                `*1.* *Entra a Ajustes o Configuración*\n` +
+                `*2.* *Selecciona Dispositivos vinculados*\n` +
+                `*3.* *Toca en Vincular un dispositivo*\n` +
+                `*4.* *Selecciona "Vincular con el número de teléfono"*\n\n` 
+
             await conn.sendMessage(m.chat, {
                 text: instruccion,
                 contextInfo: {
                     externalAdReply: {
-                        title: `${global.name?.() || 'Deylin Bot'}`,
+                        title: `${global.name?.() || 'SISTEMA JADIBOT'}`,
                         thumbnailUrl: global.img?.() || '',
                         mediaType: 1,
                         showAdAttribution: true,
@@ -40,8 +47,13 @@ const serbot = {
                     }
                 }
             }, { quoted: m })
+
             let code = await assistant_accessJadiBot({ m, conn, phoneNumber, fromCommand: true })
-            if (code && code !== "Conectado") await conn.sendMessage(m.chat, { text: code }, { quoted: m })
+            if (code && code !== "Conectado") {
+                await conn.sendMessage(m.chat, { 
+                    text: `> *CÓDIGO DE ACCESO:*\n\n#️⃣  *${code}*` 
+                }, { quoted: m })
+            }
             return
         }
         m.reply(`Usa *${usedPrefix}code*`)
@@ -101,15 +113,29 @@ function setupSubBotEvents(sock, authFolder) {
         const { connection, lastDisconnect } = update
         const id = path.basename(authFolder)
         if (connection === 'open') {
-            console.log(chalk.greenBright(`[ SUB-BOT ] Sesión abierta: ${id}`))
+            console.log(chalk.bold.greenBright(`\n[ SUB-BOT ] Conexión exitosa: ${id}`))
             const userJid = jidNormalizedUser(sock.user.id)
             if (!global.conns.some(c => jidNormalizedUser(c.user.id) === userJid)) global.conns.push(sock)
         }
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-            if ([DisconnectReason.loggedOut, 401, 403].includes(reason)) {
+            const errorMessages = {
+                [DisconnectReason.loggedOut]: "Sesión cerrada desde el teléfono. Eliminando datos...",
+                [DisconnectReason.badSession]: "Archivo de sesión corrupto. Limpiando...",
+                [DisconnectReason.connectionClosed]: "Conexión finalizada por el servidor.",
+                [DisconnectReason.connectionLost]: "Se perdió la señal de red.",
+                [DisconnectReason.restartRequired]: "Reinicio necesario.",
+                [DisconnectReason.timedOut]: "Tiempo de espera agotado.",
+                403: "Acceso denegado (Posible baneo).",
+                405: "El código de emparejamiento ha vencido."
+            }
+            const mensajeError = errorMessages[reason] || `Cierre por código: ${reason}`
+            console.log(chalk.bold.yellow(`\n[ SUB-BOT ] Estado en ${id}: ${mensajeError}`))
+            const criticalErrors = [DisconnectReason.loggedOut, DisconnectReason.badSession, 401, 403, 405]
+            if (criticalErrors.includes(reason)) {
+                console.log(chalk.bold.red(`[ SISTEMA ] Eliminando carpeta de sesión inválida: ${id}`))
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true })
-                global.conns = global.conns.filter(c => jidNormalizedUser(c.user.id) !== jidNormalizedUser(sock.user.id))
+                global.conns = global.conns.filter(c => jidNormalizedUser(c.user?.id) !== jidNormalizedUser(sock.user?.id))
             } else {
                 setTimeout(() => assistant_accessJadiBot({ phoneNumber: id, fromCommand: false }), 10000)
             }

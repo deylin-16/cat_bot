@@ -74,7 +74,7 @@ const sock = makeWASocket({
     logger: pino({ level: "silent" }),
     auth: { 
         creds: state.creds, 
-        
+
         keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) 
     },
     browser: Browsers.macOS("Chrome"),
@@ -126,7 +126,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
 
         if (connection === 'close') {
             const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            
+
             const deleteSessionErrors = [
                 DisconnectReason.loggedOut,
                 DisconnectReason.badSession,
@@ -139,7 +139,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
                 if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true });
                 global.conns = global.conns.filter(c => jidNormalizedUser(c.user.id) !== jidNormalizedUser(sock.user.id));
             } else {
-                
+
                 console.log(chalk.yellowBright(`[ SUB-BOT ] Reintentando conexión: ${id} (Razón: ${reason})`));
                 setTimeout(() => assistant_accessJadiBot({ phoneNumber: id, fromCommand: false }), 10000);
             }
@@ -151,7 +151,7 @@ function setupSubBotEvents(sock, authFolder, m, conn) {
         try {
             const smsgPath = path.join(process.cwd(), 'lib/serializer.js')
             const Path = path.join(process.cwd(), 'lib/message.js')
-            
+
             const { smsg } = await import(`file://${smsgPath}?update=${Date.now()}`)
             const { message } = await import(`file://${Path}?update=${Date.now()}`)
 

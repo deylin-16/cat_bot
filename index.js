@@ -237,19 +237,28 @@ async function initSubBots() {
         statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
     );
 
-    console.log(chalk.bold.blue(`[ SUB-BOTS ] Re-conectando ${folders.length} sesiones activas...`));
+    if (folders.length > 0) {
+        console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando ${folders.length} sub-bots activos...`));
+    }
 
     for (const folder of folders) {
         try {
             const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
             await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
-            await new Promise(r => setTimeout(r, 1000)); 
-        } catch (e) {}
+            await new Promise(r => setTimeout(r, 2000)); 
+        } catch (e) {
+            console.log(chalk.red(`[ ERROR ] No se pudo iniciar el sub-bot ${folder}. Posible sesión corrupta.`));
+        }
     }
 }
 
 global.conn.ev.on('connection.update', async (update) => {
-    if (update.connection === 'open') {
-        await initSubBots();
+    const { connection } = update;
+    if (connection === 'open') {
+        
+        if (!global.subBotsStarted) {
+            global.subBotsStarted = true;
+            await initSubBots();
+        }
     }
 });

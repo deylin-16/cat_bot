@@ -1,83 +1,61 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
+Process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
 import './config.js';
 import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import path, { join } from 'path';
-import fs, { existsSync, readdirSync, statSync, watch, mkdirSync, createWriteStream, unlinkSync } from 'fs';
+import fs, { existsSync, readdirSync, statSync, watch, mkdirSync, createWriteStream, unlinkSync, rmSync } from 'fs';
 import chalk from 'chalk';
 import pino from 'pino';
 import yargs from 'yargs';
 import lodash from 'lodash';
-import { Low, JSONFile } from 'lowdb';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
 import { Boom } from '@hapi/boom';
-import { makeWASocket, protoType, serialize } from './lib/simple.js';
-import store from './lib/store.js';
 import NodeCache from 'node-cache';
 import readline from 'readline';
-import express from 'express';
-import cors from 'cors';
 import cfonts from 'cfonts';
 import axios from 'axios'; 
+import { smsg } from './lib/serializer.js';
+import { monitorBot } from './lib/telemetry.js';
+import { EventEmitter } from 'events';
 
-const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers } = await import('@whiskeysockets/baileys');
+const originalLog = console.log;
+console.log = function () {
+  const args = Array.from(arguments);
+  const msg = args.join(' ');
+  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) return; 
+  originalLog.apply(console, args);
+};
+
+const originalDir = console.dir;
+console.dir = function () {
+  const args = Array.from(arguments);
+  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig || args[0].registrationId)) return;
+  originalDir.apply(console, args);
+};
+
+EventEmitter.defaultMaxListeners = 0;
+
+const { 
+    makeWASocket, 
+    DisconnectReason, 
+    useMultiFileAuthState, 
+    fetchLatestBaileysVersion, 
+    makeCacheableSignalKeyStore, 
+    Browsers
+} = await import('@whiskeysockets/baileys');
 
 const { chain } = lodash;
-const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
-
 if (!existsSync('./tmp')) mkdirSync('./tmp');
-async function descargarLicencia() {
-  if (!existsSync('.gen_license')) return;
-  
-  const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
-  const localPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
-  const galleryPath = '/sdcard/Download/LICENCIA_AUTORIZADA.png';
-
-  try {
-      console.log(chalk.cyanBright("📡 Accediendo a la Red Z para descargar certificado..."));
-      
-      const response = await axios({
-          url,
-          method: 'GET',
-          responseType: 'stream'
-      });
-
-      const writer = createWriteStream(localPath);
-      response.data.pipe(writer);
-
-      return new Promise((resolve, reject) => {
-          writer.on('finish', () => {
-              console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada localmente.`));
-              
-              try {
-                  if (existsSync('/sdcard')) {
-                      fs.copyFileSync(localPath, galleryPath);
-                      console.log(chalk.magentaBright(`📸 GALERÍA: Certificado guardado en Descargas.`));
-                  }
-              } catch (e) {
-                  console.log(chalk.yellow("⚠️ Nota: No se pudo enviar a Galería. Ejecuta 'termux-setup-storage' para dar permisos."));
-              }
-
-              unlinkSync('.gen_license'); 
-              resolve();
-          });
-          writer.on('error', reject);
-      });
-  } catch (err) {
-      console.error(chalk.red("❌ Error crítico en el despliegue de licencia:"), err.message);
-  }
-}
-
 
 let { say } = cfonts;
-console.log(chalk.bold.hex('#7B68EE')('┌───────────────────────────┐'));
-console.log(chalk.bold.hex('#7B68EE')('│      SYSTEM INITATING...      │'));
-console.log(chalk.bold.hex('#7B68EE')('└───────────────────────────┘'));
-say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
+console.clear();
+console.log(chalk.bold.cyan('┌────────────────────────────────────────────────────────┐'));
+console.log(chalk.bold.cyan('│') + chalk.bold.yellow('            SISTEMA DE AUTOMATIZACIÓN ACTIVO            ') + chalk.bold.cyan('│'));
+console.log(chalk.bold.cyan('└────────────────────────────────────────────────────────┘'));
+say('CAT BOT', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
 say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
-
-protoType();
-serialize();
 
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
@@ -85,130 +63,128 @@ global.__filename = function filename(pathURL = import.meta.url, rmPrefix = plat
 global.__dirname = function dirname(pathURL) {
   return path.dirname(global.__filename(pathURL, true));
 };
-global.__require = function require(dir = import.meta.url) {
-  return createRequire(dir);
-};
 
-global.timestamp = { start: new Date };
 const __dirname = global.__dirname(import.meta.url);
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[#!./]');
 
-global.db = new Low(new JSONFile('database.json'));
-global.DATABASE = global.db;
-
-global.conns = [];
+const adapter = new JSONFile('database.json');
+global.db = new Low(adapter, {
+    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}
+});
 
 global.loadDatabase = async function loadDatabase() {
-  if (global.db.READ) {
-    return new Promise((resolve) => setInterval(async function() {
-      if (!global.db.READ) {
-        clearInterval(this);
-        resolve(global.db.data == null ? global.loadDatabase() : global.db.data);
-      }
-    }, 1 * 1000));
-  }
-  if (global.db.data !== null) return;
+  if (global.db.READ) return;
   global.db.READ = true;
   await global.db.read().catch(console.error);
   global.db.READ = null;
-  global.db.data = {
-    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {},
-    ...(global.db.data || {}),
+  global.db.data = global.db.data || {
+    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}
   };
-  global.db.chain = chain(global.db.data);
 };
 await loadDatabase();
 
-const { state, saveCreds } = await useMultiFileAuthState(global.sessions || 'sessions');
-const msgRetryCounterCache = new NodeCache();
-const userDevicesCache = new NodeCache();
+const sessionPath = './sessions';
+const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
 const { version } = await fetchLatestBaileysVersion();
-
-const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ=", "U2Vzc2lvbiBlcnJvcg==", "RXJyb3I6IEJhZCBNQUM=", "RGVjcnlwdGVkIG1lc3NhZ2U="];
-['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
+const msgRetryCounterCache = new NodeCache();
 
 const connectionOptions = {
-  logger: pino({ level: 'silent' }),
+  version,
+  logger: pino({ level: 'silent' }), 
   printQRInTerminal: false,
-  browser: Browsers.macOS("Chrome"),
+  browser: Browsers.ubuntu("Chrome"),
   auth: {
     creds: state.creds,
-    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
+    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 
   },
-  markOnlineOnConnect: false,
+  markOnlineOnConnect: true,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
-  getMessage: async (key) => {
-    try {
-      let jid = jidNormalizedUser(key.remoteJid);
-      let msg = await store.loadMessage(jid, key.id);
-      return msg?.message || "";
-    } catch { return ""; }
-  },
   msgRetryCounterCache,
-  userDevicesCache,
-  version,
-  keepAliveIntervalMs: 30000,
+  connectTimeoutMs: 60000,
+  defaultQueryTimeoutMs: 0,
+  keepAliveIntervalMs: 10000,
+  emitOwnEvents: true
 };
 
 global.conn = makeWASocket(connectionOptions);
 
-if (!existsSync(`./${global.sessions || 'sessions'}/creds.json`)) {
+if (!state.creds.registered) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
-    let phoneNumber = global.botNumber;
-    if (!phoneNumber) {
-        phoneNumber = await question(chalk.blueBright(`\n[ INPUT ] Ingrese el número del Bot:\n> `));
-    }
+
+    console.log(chalk.bold.magenta('\n┌──────────────────────────────────────────────────┐'));
+    console.log(chalk.bold.magenta('│') + chalk.bold.white('         CONFIGURACIÓN DE EMPAREJAMIENTO          ') + chalk.bold.magenta('│'));
+    console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
+
+    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot:\n> `));
     let addNumber = phoneNumber.replace(/\D/g, '');
+
     setTimeout(async () => {
-        let codeBot = await conn.requestPairingCode(addNumber);
-        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-        console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
+        try {
+            let codeBot = await conn.requestPairingCode(addNumber);
+            codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+            console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
+        } catch {
+            console.log(chalk.red('\n[ ERROR ] Reintentando generar código...'));
+        }
     }, 3000);
 }
 
-conn.isInit = false;
 if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
 
-async function connectionUpdate(update) {
-  const { connection, lastDisconnect, isNewLogin } = update;
-  if (isNewLogin) conn.isInit = true;
-  if (connection === 'close') {
-    if (new Boom(lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut) await global.reloadHandler(true);
-  }
-}
-
-process.on('uncaughtException', console.error);
-
-global.reloadHandler = async function(restatConn) {
-  let handler = await import(`./handler.js?update=${Date.now()}`);
+global.reload = async function(restatConn) {
   if (restatConn) {
     try { global.conn.ws.close(); } catch {}
-    conn.ev.removeAllListeners();
+    await new Promise(resolve => setTimeout(resolve, 8000));
     global.conn = makeWASocket(connectionOptions);
   }
 
-  const setupInstance = (instance) => {
-    instance.handler = async (chatUpdate) => {
-      setImmediate(async () => {
-          try {
-              await handler.handler.call(instance, chatUpdate);
-          } catch (e) { console.error(e); }
-      });
-    };
-    instance.connectionUpdate = connectionUpdate.bind(instance);
-    instance.credsUpdate = saveCreds.bind(instance, true);
-    instance.ev.on('messages.upsert', instance.handler);
-    instance.ev.on('connection.update', instance.connectionUpdate);
-    instance.ev.on('creds.update', instance.credsUpdate);
-  };
+  global.conn.ev.removeAllListeners('messages.upsert');
+  global.conn.ev.on('messages.upsert', async (chatUpdate) => {
+    try {
+        const msg = chatUpdate.messages[0];
+        if (!msg || (!msg.message && !msg.messageStubType)) return;
+        const m = await smsg(conn, msg);
+        const Path = path.join(process.cwd(), 'lib/message.js');
+        const module = await import(`file://${Path}?update=${Date.now()}`);
+        const Func = module.message || module.default?.message || module.default;
+        if (typeof Func === 'function') await Func.call(conn, m, chatUpdate);
+    } catch (e) {}
+  });
 
-  setupInstance(global.conn);
-  global.conns.forEach(c => setupInstance(c));
-  return true;
+  global.conn.ev.removeAllListeners('connection.update');
+  global.conn.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect } = update;
+
+    if (connection === 'connecting') {
+        console.log(chalk.bold.yellow(`[ ESPERANDO ] Estableciendo conexión...`));
+    }
+
+    if (connection === 'open') {
+        console.log(chalk.bold.greenBright(`[ OK ] Conexión establecida con éxito.`));
+        await monitorBot(conn, 'online');
+    }
+
+    if (connection === 'close') {
+      const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+      if (reason === DisconnectReason.loggedOut || reason === 401) {
+          console.log(chalk.bold.red(`[ ERROR ] Sesión inválida. Limpiando carpeta sessions...`));
+          if (existsSync(sessionPath)) rmSync(sessionPath, { recursive: true, force: true });
+          process.exit(1);
+      } else {
+          console.log(chalk.bold.red(`[ ERROR ] Conexión perdida. Reiniciando en 8 segundos...`));
+          await global.reload(true);
+      }
+    }
+  });
+
+  global.conn.ev.removeAllListeners('creds.update');
+  global.conn.ev.on('creds.update', saveCreds);
 };
+
+await global.reload();
 
 const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
@@ -224,14 +200,12 @@ async function readRecursive(folder) {
       const plugin = module.default || module;
       const pluginName = plugin.name || filename.replace('.js', '');
       global.plugins.set(pluginName, plugin);
-
       if (plugin.alias && Array.isArray(plugin.alias)) {
           plugin.alias.forEach(a => global.aliases.set(a, pluginName));
       }
     }
   }
 }
-
 
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
@@ -241,46 +215,48 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
     const plugin = module.default || module;
     const pluginName = plugin.name || filename.replace('.js', '');
     global.plugins.set(pluginName, plugin);
-
-    if (plugin.alias && Array.isArray(plugin.alias)) {
-        plugin.alias.forEach(a => global.aliases.set(a, pluginName));
-    }
   }
 });
 
-
-await global.reloadHandler();
-
-async function autostartSubBots() {
-    const jadibtsPath = join(process.cwd(), 'jadibts');
-    if (existsSync(jadibtsPath)) {
-        const folders = readdirSync(jadibtsPath);
-        for (const folder of folders) {
-            if (statSync(join(jadibtsPath, folder)).isDirectory()) {
-                try {
-                    const { assistant_accessJadiBot } = await import('./plugins/main/serbot.js');
-                    await assistant_accessJadiBot({ m: null, conn: global.conn, phoneNumber: folder, fromCommand: false });
-                } catch (e) {}
-            }
-        }
-    }
+async function descargarLicencia() {
+  if (!existsSync('.gen_license')) return;
+  const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
+  const localPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
+  try {
+      const response = await axios({ url, method: 'GET', responseType: 'stream' });
+      const writer = createWriteStream(localPath);
+      response.data.pipe(writer);
+      return new Promise((resolve) => {
+          writer.on('finish', () => {
+              console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada.`));
+              unlinkSync('.gen_license'); 
+              resolve();
+          });
+      });
+  } catch (err) {}
 }
-autostartSubBots();
-
-function redefineConsoleMethod(methodName, filterStrings) {
-  const original = console[methodName];
-  console[methodName] = function() {
-    if (typeof arguments[0] === 'string' && filterStrings.some(s => arguments[0].includes(atob(s)))) arguments[0] = "";
-    original.apply(console, arguments);
-  };
-}
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.listen(PORT, () => {
-    console.log(chalk.greenBright(`\nSISTEMA INDEPENDIENTE ACTIVO: Puerto ${PORT}`));
-});
 
 await descargarLicencia();
+
+async function initSubBots() {
+    const jadibtsDir = path.join(process.cwd(), 'jadibts');
+    if (!existsSync(jadibtsDir)) return;
+    const folders = readdirSync(jadibtsDir).filter(f => 
+        statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
+    );
+    if (folders.length > 0) console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando sub-bots...`));
+    for (const folder of folders) {
+        try {
+            const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
+            await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
+            await new Promise(r => setTimeout(r, 2000)); 
+        } catch (e) {}
+    }
+}
+
+global.conn.ev.on('connection.update', async (update) => {
+    if (update.connection === 'open' && !global.subBotsStarted) {
+        global.subBotsStarted = true;
+        await initSubBots();
+    }
+});

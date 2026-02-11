@@ -91,7 +91,7 @@ const connectionOptions = {
   version,
   logger: pino({ level: 'silent' }), 
   printQRInTerminal: false,
-  browser: Browsers.ubuntu("Chrome"),
+  browser: ["Ubuntu", "Chrome", "20.0.04"],
   auth: {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 

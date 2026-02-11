@@ -51,7 +51,6 @@ const {
 } = await import('@whiskeysockets/baileys');
 
 const { chain } = lodash;
-
 if (!existsSync('./tmp')) mkdirSync('./tmp');
 
 let { say } = cfonts;
@@ -106,7 +105,7 @@ const connectionOptions = {
   syncFullHistory: false,
   connectTimeoutMs: 60000,
   defaultQueryTimeoutMs: 0,
-  keepAliveIntervalMs: 10000
+  keepAliveIntervalMs: 20000
 };
 
 global.conn = makeWASocket(connectionOptions);
@@ -126,7 +125,7 @@ if (!state.creds.registered) {
         let codeBot = await conn.requestPairingCode(addNumber);
         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
         console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
-    }, 3000);
+    }, 4000);
 }
 
 if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
@@ -134,6 +133,7 @@ if (global.db) setInterval(async () => { if (global.db.data) await global.db.wri
 global.reload = async function(restatConn) {
   if (restatConn) {
     try { global.conn.ws.close(); } catch {}
+    await new Promise(resolve => setTimeout(resolve, 5000));
     global.conn = makeWASocket(connectionOptions);
   }
 
@@ -169,7 +169,7 @@ global.reload = async function(restatConn) {
           console.log(chalk.bold.red(`[ ERROR ] Sesión cerrada. Elimine la carpeta 'sessions'.`));
           process.exit();
       } else {
-          console.log(chalk.bold.red(`[ ERROR ] Conexión perdida. Reintentando...`));
+          console.log(chalk.bold.red(`[ ERROR ] Conexión perdida. Reiniciando en 5 segundos...`));
           await global.reload(true);
       }
     }

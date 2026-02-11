@@ -4,7 +4,7 @@ import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import path, { join } from 'path';
-import fs, { existsSync, readdirSync, statSync, watch, mkdirSync, createWriteStream, unlinkSync } from 'fs';
+import fs, { existsSync, readdirSync, statSync, watch, mkdirSync, createWriteStream, unlinkSync, rmSync } from 'fs';
 import chalk from 'chalk';
 import pino from 'pino';
 import yargs from 'yargs';
@@ -19,23 +19,20 @@ import axios from 'axios';
 import { smsg } from './lib/serializer.js';
 import { monitorBot } from './lib/telemetry.js';
 import { EventEmitter } from 'events';
+import { exec } from "child_process";
 
 const originalLog = console.log;
 console.log = function () {
   const args = Array.from(arguments);
   const msg = args.join(' ');
-  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) {
-    return; 
-  }
+  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) return; 
   originalLog.apply(console, args);
 };
 
 const originalDir = console.dir;
 console.dir = function () {
   const args = Array.from(arguments);
-  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig || args[0].registrationId)) {
-    return;
-  }
+  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig || args[0].registrationId)) return;
   originalDir.apply(console, args);
 };
 
@@ -88,8 +85,10 @@ global.loadDatabase = async function loadDatabase() {
 };
 await loadDatabase();
 
-const { state, saveCreds } = await useMultiFileAuthState('sessions');
+const sessionPath = './sessions';
+const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
 const { version } = await fetchLatestBaileysVersion();
+const msgRetryCounterCache = new NodeCache();
 
 const connectionOptions = {
   version,
@@ -100,12 +99,14 @@ const connectionOptions = {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 
   },
-  markOnlineOnConnect: true,
+  markOnlineOnConnect: false,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
+  msgRetryCounterCache,
   connectTimeoutMs: 60000,
   defaultQueryTimeoutMs: 0,
-  keepAliveIntervalMs: 20000
+  keepAliveIntervalMs: 45000,
+  emitOwnEvents: true
 };
 
 global.conn = makeWASocket(connectionOptions);
@@ -122,9 +123,13 @@ if (!state.creds.registered) {
     let addNumber = phoneNumber.replace(/\D/g, '');
 
     setTimeout(async () => {
-        let codeBot = await conn.requestPairingCode(addNumber);
-        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-        console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
+        try {
+            let codeBot = await conn.requestPairingCode(addNumber);
+            codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+            console.log(chalk.magentaBright(`\n╔═══════════════════════════════════════╗\n║  CÓDIGO DE VINCULACIÓN: ${codeBot}\n╚═══════════════════════════════════════╝\n`));
+        } catch {
+            console.log(chalk.red('\n[ ERROR ] Reintentando generar código...'));
+        }
     }, 4000);
 }
 
@@ -152,24 +157,48 @@ global.reload = async function(restatConn) {
 
   global.conn.ev.removeAllListeners('connection.update');
   global.conn.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect } = update;
+    const { connection, lastDisconnect, receivedPendingNotifications } = update;
 
     if (connection === 'connecting') {
-        console.log(chalk.bold.yellow(`[ ESPERANDO ] Estableciendo conexión...`));
+        console.log(chalk.bold.yellow(`[ ✿ ] Estableciendo conexión...`));
     }
 
     if (connection === 'open') {
-        console.log(chalk.bold.greenBright(`[ OK ] Conexión establecida con éxito.`));
+        console.log(chalk.bold.greenBright(`[ ✿ ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
         await monitorBot(conn, 'online');
     }
 
+    if (receivedPendingNotifications == "true") {
+        console.log(chalk.bold.yellow(`[ ✿ ] Sincronizando notificaciones, espere un momento...`));
+    }
+
     if (connection === 'close') {
-      const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      if (reason === DisconnectReason.loggedOut) {
-          console.log(chalk.bold.red(`[ ERROR ] Sesión cerrada. Elimine la carpeta 'sessions'.`));
-          process.exit();
+      const reason = new Boom(lastDisconnect?.error)?.output?.statusCode || 0;
+      
+      if (reason === DisconnectReason.connectionLost) {
+          console.log(chalk.bold.blue("[ ! ] Conexión perdida, reconectando..."));
+          await global.reload(true);
+      } else if (reason === DisconnectReason.connectionClosed) {
+          console.log(chalk.bold.blue("[ ! ] Conexión cerrada, reintentando..."));
+          await global.reload(true);
+      } else if (reason === DisconnectReason.restartRequired) {
+          console.log(chalk.bold.cyan("[ ! ] Reinicio necesario..."));
+          await global.reload(true);
+      } else if (reason === DisconnectReason.timedOut) {
+          console.log(chalk.bold.yellow("[ ! ] Tiempo de espera agotado, reconectando..."));
+          await global.reload(true);
+      } else if (reason === DisconnectReason.badSession) {
+          console.log(chalk.bold.red("[ ! ] Sesión corrupta. Borre la carpeta sessions y vincule de nuevo."));
+      } else if (reason === DisconnectReason.loggedOut) {
+          console.log(chalk.bold.red("[ ! ] Sesión cerrada por el usuario. Limpiando datos..."));
+          if (existsSync(sessionPath)) rmSync(sessionPath, { recursive: true, force: true });
+          process.exit(1);
+      } else if (reason === DisconnectReason.multideviceMismatch) {
+          console.log(chalk.bold.red("[ ! ] Error de vinculación múltiple. Reinicie el proceso."));
+          if (existsSync(sessionPath)) rmSync(sessionPath, { recursive: true, force: true });
+          process.exit(0);
       } else {
-          console.log(chalk.bold.red(`[ ERROR ] Conexión perdida. Reiniciando en 5 segundos...`));
+          console.log(chalk.bold.red(`[ ! ] Desconexión desconocida: ${reason}`));
           await global.reload(true);
       }
     }

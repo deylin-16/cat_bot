@@ -8,10 +8,27 @@
   </h1>
 
   <p align="center">
-    <kbd>ESTADO: ACTIVO 🚀</kbd> 
-    <kbd>VERSIÓN: 2.0.0 📦</kbd>
-    <kbd>DEVELOPER: DEYLIN 💻</kbd>
-  </p>
+  <img src="https://img.shields.io/badge/ESTADO-ACTIVO-brightgreen?style=for-the-badge&logo=statuspage&logoColor=white" />
+  <img src="https://img.shields.io/badge/VERSION-5.0.0-blue?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/BASED_ON-BAILEYS-orange?style=for-the-badge&logo=javascript&logoColor=white" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/DEVELOPER-DEYLIN-purple?style=for-the-badge&logo=visual-studio-code&logoColor=white" />
+  <img src="https://img.shields.io/badge/LANGUAGE-SPANISH-red?style=for-the-badge&logo=google-translate&logoColor=white" />
+</p>
+
+<p align="center">
+  <kbd>
+    <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/NodeJS-Dark.svg" width="20" height="20" /> 
+    <b>ENGINE: NODE.JS</b>
+  </kbd>
+  <kbd>
+    <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/WhatsApp.svg" width="20" height="20" /> 
+    <b>PLATFORM: WHATSAPP</b>
+  </kbd>
+</p>
+
 
 <div align="center">
   

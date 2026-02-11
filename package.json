@@ -38,7 +38,7 @@
     "form-data": "^4.0.1",
     "formdata-node": "^6.0.3",
     "google-libphonenumber": "^3.2.40",
-    "google-translate-api-next": "*",
+   "@vitalets/google-translate-api": "^9.2.0",
     "human-readable": "^0.2.1",
     "imagekit": "^6.0.0",
     "moment-timezone": "^0.5.37",

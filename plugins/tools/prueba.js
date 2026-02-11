@@ -1,59 +1,37 @@
-import axios from 'axios';
+import translate from 'google-translate-api-next';
 
-const cardCommand = {
-    name: 'carta',
-    alias: ['card', 'cardgen', 'post'],
+const translateConfig = {
+    name: 'translate',
+    alias: ['traducir', 'trt'],
     category: 'tools',
-    run: async (m, { conn, text, usedPrefix, command }) => {
-        const author = m.pushName || 'Deylin System';
-        const baseUrl = 'https://api.deylin.xyz/api/ai/card';
+    run: async function (m, { text, args, command }) {
+        let lang = 'es';
+        let targetText = text;
+
+        if (args[0] && args[0].length === 2) {
+            lang = args[0];
+            targetText = args.slice(1).join(' ');
+        }
+
+        if (!targetText && m.quoted && m.quoted.text) {
+            targetText = m.quoted.text;
+        }
+
+        if (!targetText) return m.reply(`> ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ᴛᴇxᴛᴏ ᴏ ʀᴇsᴘᴏɴᴅᴇ ᴀ ᴜɴ ᴍᴇɴsᴀᴊᴇ.\n> ᴜsᴏ: ${command} [iso] [texto]\n> ᴇᴊ: ${command} en hola`);
 
         try {
+            const result = await translate(targetText, { to: lang });
+            let response = `> ┏━━━〔 ᴛʀᴀᴅᴜᴄᴄɪᴏɴ 〕━━━┓\n`;
+            response += `> ┃ ✎ ᴏʀɪɢᴇɴ: ${result.from.language.iso}\n`;
+            response += `> ┃ ✎ ᴅᴇsᴛɪɴᴏ: ${lang}\n`;
+            response += `> ┃ ✎ ʀᴇsᴜʟᴛᴀᴅᴏ: ${result.text}\n`;
+            response += `> ┗━━━━━━━━━━━━━━━━━━┛`;
             
-            if (!text) {
-                await m.react('🔍');
-                const response = await axios.get(baseUrl);
-                const data = response.data;
-
-                if (data.status && data.menu) {
-                    let menuMsg = `┏━━━〔 ᴄᴀʀᴅ sʏsᴛᴇᴍ 〕━━━┓\n┃\n`;
-                    menuMsg += `┃ ➠ ᴜsᴏ: ${usedPrefix + command} <ᴛᴇxᴛᴏ>|<ɴᴜᴍ>\n`;
-                    menuMsg += `┃ ➠ ᴇᴊ: ${usedPrefix + command} Hola Mundo|6\n┃\n`;
-                    menuMsg += `┣━━〔 ᴇsᴛɪʟᴏs ᴅɪɴᴀ́ᴍɪᴄᴏs 〕━━┓\n┃\n`;
-                    
-                    Object.entries(data.menu).forEach(([key, value]) => {
-                        menuMsg += `┃ ⋆͙̈ ${key}. ${value}\n`;
-                    });
-
-                    menuMsg += `┃\n┗━━━━━━━━━━━━━━━━━━━━┛`;
-                    return m.reply(menuMsg);
-                }
-            }
-
-            let [txt, type] = text.split('|');
-            
-            if (!type) {
-                return m.reply(`⚠️ *Falta el estilo.* Usa el formato: \n${usedPrefix + command} ${txt.trim()}|número\n\n_Escribe solo *${usedPrefix + command}* para ver la lista de estilos._`);
-            }
-
-            await m.react('⏳');
-
-            const apiUrl = `${baseUrl}?text=${encodeURIComponent(txt.trim())}&author=${encodeURIComponent(author)}&type=${type.trim()}`;
-
-            await conn.sendMessage(m.chat, { 
-                image: { url: apiUrl }, 
-                caption: `┏━━━〔 ᴄᴀʀᴅ ɢᴇɴ 〕━━━┓\n┃ ✎ ᴇsᴛɪʟᴏ: ${type.trim()}\n┃ ✎ ᴜsᴜᴀʀɪᴏ: @${m.sender.split('@')[0]}\n┃ ✎ ᴄᴏᴘʏʀɪɢʜᴛ: ᴅᴇʏʟɪɴ sʏsᴛᴇᴍ\n┗━━━━━━━━━━━━━━━━━━┛`,
-                mentions: [m.sender]
-            }, { quoted: m });
-
-            await m.react('✅');
-
+            return m.reply(response);
         } catch (e) {
-            console.error(e);
-            await m.react('❌');
-            m.reply(`┏━━━〔 ᴇʀʀᴏʀ 〕━━━┓\n┃ ✎ ɪɴғᴏ: No se pudo conectar con la API o el estilo es inválido.\n┗━━━━━━━━━━━━━━━┛`);
+            return m.reply('> ┃ ✎ ᴇʀʀᴏʀ: sᴇʀᴠɪᴄɪᴏ ɴᴏ ᴅɪsᴘᴏɴɪʙʟᴇ.');
         }
     }
-}
+};
 
-export default cardCommand;
+export default translateConfig;

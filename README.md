@@ -2,7 +2,7 @@
   <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="220" height="220" alt="Cat_Bot Logo" style="border-radius: 200%; margin-bottom: 200px; box-shadow: 0 180px 206px rgba(0,0,0,0.2);">
 
 <h1 align="center" style="border-bottom: none; margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 15px;">
-    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="70" height="70" style="border-radius: 50%; border: 3px solid #00BFFF;">
+    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778392226_catbot_icon_1770778379194_aMFyuTGij.png" width="70" height="70" style="border-radius: 50%; border: 3px solid #00BFFF;">
     <span style="background: linear-gradient(135deg, #00BFFF, #FF4500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 3.5rem; font-weight: 800; letter-spacing: 2px;">
       CAT_BOT
     </span>

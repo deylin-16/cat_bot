@@ -5,7 +5,7 @@ const shortCommand = {
     alias: ['acortar', 'link', 'corta'],
     category: 'tools',
     run: async (m, { text }) => {
-        const googleApiUrl = 'https://script.google.com/macros/s/AKfycbx3e2bh6qY7OZvYVt9efII53tleaKOAdqjfVDPQBmOhkO0PSNRhFRq6bzDDUa3Myca7/exec';
+        const googleApiUrl = 'https://script.google.com/macros/s/AKfycbzadF8bdYBYo6OAse0cZe7r__ahnot6HhujP_ZmbQlWgKz84VS7ahsXQzEkGiJgKoZ5/exec';
 
         if (!text) return m.reply('> ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ᴇɴʟᴀᴄᴇ.');
 
@@ -20,10 +20,11 @@ const shortCommand = {
             if (json.status) {
                 const shortUrl = `${googleApiUrl}?id=${json.id}`;
                 
-                let txt = `> *ᴇɴʟᴀᴄᴇ ᴀᴄᴏʀᴛᴀᴅᴏ*\n\n`;
+                let txt = `> 🔗 *ᴇɴʟᴀᴄᴇ ᴀᴄᴏʀᴛᴀᴅᴏ*\n\n`;
                 txt += `> ✧ *ᴏʀɪɢɪɴᴀʟ:* ${text}\n`;
                 txt += `> ✧ *ᴄᴏʀᴛᴏ:* ${shortUrl}\n\n`;
-                txt += `> ☁️ *ɪɴғᴏ:* ʟᴀ ᴜʀʟ ʜᴀ sɪᴅᴏ ᴀʟᴍᴀᴄᴇɴᴀᴅᴀ ᴇɴ ʟᴀ ʙᴀsᴇ ᴅᴇ ᴅᴀᴛᴏs ᴅᴇ ɢᴏᴏɢʟᴇ sʜᴇᴇᴛs.`;
+                txt += `> 👤 *sɪsᴛᴇᴍᴀ:* ᴅᴇʏʟɪɴ ᴛᴇᴄʜ\n`;
+                txt += `> ☁️ *ɪɴғᴏ:* ʟᴀ ɪɴғᴏʀᴍᴀᴄɪᴏɴ sᴇ ʜᴀ ɢᴜᴀʀᴅᴀᴅᴏ ᴇɴ ʟᴀ ʙᴀsᴇ ᴅᴇ ᴅᴀᴛᴏs ᴅᴇ ɢᴏᴏɢʟᴇ sʜᴇᴇᴛs.`;
 
                 await m.reply(txt);
                 await m.react('✅');

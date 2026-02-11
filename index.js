@@ -24,7 +24,7 @@ const originalLog = console.log;
 console.log = function () {
   const args = Array.from(arguments);
   const msg = args.join(' ');
-  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) {
+  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet') || msg.includes('_chains') || msg.includes('chainKey') || msg.includes('publicKey') || msg.includes('privateKey')) {
     return; 
   }
   originalLog.apply(console, args);
@@ -33,7 +33,7 @@ console.log = function () {
 const originalDir = console.dir;
 console.dir = function () {
   const args = Array.from(arguments);
-  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig || args[0].registrationId)) {
+  if (args[0] && (args[0].constructor?.name === 'SessionEntry' || args[0].sessionConfig || args[0].registrationId || args[0]._chains)) {
     return;
   }
   originalDir.apply(console, args);
@@ -166,22 +166,22 @@ global.reload = async function(restatConn) {
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === 'connecting') console.log(chalk.yellow(`[ ✿ ] Conectando...`));
-    
+
     if (connection === 'open') {
         console.log(chalk.greenBright(`[ ✿ ] ¡CONECTADO! a: ${conn.user.name || 'WhatsApp Bot'}`));
         global.isBotReady = true;
         await monitorBot(conn, 'online');
-        
+
         if (!global.subBotsStarted) {
             global.subBotsStarted = true;
             await initSubBots();
         }
     }
-    
+
     if (connection === 'close') {
       await monitorBot(conn, 'offline');
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode || 0;
-      
+
       if (reason === DisconnectReason.restartRequired || reason === DisconnectReason.connectionLost) {
           console.log(chalk.blue("[ ! ] Estabilizando conexión..."));
           await global.reload(true);
@@ -200,80 +200,3 @@ global.reload = async function(restatConn) {
 };
 
 await global.reload();
-
-const pluginFolder = join(process.cwd(), './plugins');
-const pluginFilter = (filename) => /\.js$/.test(filename);
-global.plugins = new Map();
-global.aliases = new Map();
-
-async function readRecursive(folder) {
-  for (const filename of readdirSync(folder)) {
-    const file = join(folder, filename);
-    if (statSync(file).isDirectory()) await readRecursive(file);
-    else if (pluginFilter(filename)) {
-      const module = await import(`file://${file}`);
-      const plugin = module.default || module;
-      const pluginName = plugin.name || filename.replace('.js', '');
-      global.plugins.set(pluginName, plugin);
-      if (plugin.alias && Array.isArray(plugin.alias)) {
-          plugin.alias.forEach(a => global.aliases.set(a, pluginName));
-      }
-    }
-  }
-}
-
-await readRecursive(pluginFolder);
-watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
-  if (pluginFilter(filename)) {
-    const dir = join(pluginFolder, filename);
-    if (existsSync(dir) && statSync(dir).isFile()) {
-        const module = await import(`file://${dir}?update=${Date.now()}`);
-        const plugin = module.default || module;
-        const pluginName = plugin.name || filename.replace('.js', '');
-        global.plugins.set(pluginName, plugin);
-    }
-  }
-});
-
-async function descargarLicencia() {
-  if (!existsSync('.gen_license')) return;
-  const url = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770169108387_MVhCH9VHOe.jpeg';
-  const localPath = path.join(process.cwd(), 'LICENCIA_AUTORIZADA.png');
-  try {
-      const response = await axios({ url, method: 'GET', responseType: 'stream' });
-      const writer = createWriteStream(localPath);
-      response.data.pipe(writer);
-      return new Promise((resolve) => {
-          writer.on('finish', () => {
-              console.log(chalk.greenBright(`✅ SISTEMA: Licencia verificada.`));
-              unlinkSync('.gen_license'); 
-              resolve();
-          });
-      });
-  } catch (err) {}
-}
-
-await descargarLicencia();
-
-async function initSubBots() {
-    const jadibtsDir = path.join(process.cwd(), 'jadibts');
-    if (!existsSync(jadibtsDir)) return;
-
-    const folders = readdirSync(jadibtsDir).filter(f => 
-        statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
-    );
-
-    if (folders.length > 0) {
-        console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando ${folders.length} sub-bots activos...`));
-    }
-
-    for (const folder of folders) {
-        try {
-            const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
-            await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
-            await new Promise(r => setTimeout(r, 2000)); 
-        } catch (e) {
-            console.log(chalk.red(`[ ERROR ] No se pudo iniciar el sub-bot ${folder}. Posible sesión corrupta.`));
-        }
-    }
-}

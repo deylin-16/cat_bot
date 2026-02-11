@@ -10,7 +10,7 @@
   <p align="center" style="margin: 20px 0;">
     <img src="https://img.shields.io/badge/ESTADO-ACTIVO-brightgreen?style=for-the-badge&logo=statuspage&logoColor=white" alt="Estado">
     <img src="https://img.shields.io/badge/VERSIÓN-5.0.0-blue?style=for-the-badge&logo=github&logoColor=white" alt="Versión">
-    <img src="https://img.shields.io/badge/PLATAFORMA-TERMUX-000000?style=for-the-badge&logo=termux&logoColor=white" alt="Plataforma">
+    <img src="https://img.shields.io/badge/EJECUTOR-H+TERMUX-000000?style=for-the-badge&logo=termux&logoColor=white" alt="Plataforma">
   </p>
 
   <p align="center" style="margin: 15px 0;">

@@ -8,26 +8,37 @@
   </h1>
 
   <p align="center">
-  <img src="https://img.shields.io/badge/ESTADO-ACTIVO-brightgreen?style=for-the-badge&logo=statuspage&logoColor=white" />
-  <img src="https://img.shields.io/badge/VERSION-5.0.0-blue?style=for-the-badge&logo=github&logoColor=white" />
-  <img src="https://img.shields.io/badge/BASED_ON-BAILEYS-orange?style=for-the-badge&logo=javascript&logoColor=white" />
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/DEVELOPER-DEYLIN-purple?style=for-the-badge&logo=visual-studio-code&logoColor=white" />
-  <img src="https://img.shields.io/badge/LANGUAGE-SPANISH-red?style=for-the-badge&logo=google-translate&logoColor=white" />
+  <img src="https://img.shields.io/badge/ESTADO-ACTIVO-success?style=for-the-badge&logo=statuspage&logoColor=white" />
+  <img src="https://img.shields.io/badge/VERSIÓN-5.0.0-blue?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/SOPORTE-WHATSAPP-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" />
 </p>
 
 <p align="center">
   <kbd>
-    <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/NodeJS-Dark.svg" width="20" height="20" /> 
+    <img src="https://cdn-icons-png.flaticon.com/512/5968/5968292.png" width="15" /> 
+    <b>BASED ON: BAILEYS</b>
+  </kbd>
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/919/919825.png" width="15" /> 
     <b>ENGINE: NODE.JS</b>
   </kbd>
   <kbd>
-    <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/WhatsApp.svg" width="20" height="20" /> 
-    <b>PLATFORM: WHATSAPP</b>
+    <img src="https://cdn-icons-png.flaticon.com/512/2103/2103633.png" width="15" /> 
+    <b>PREFIX: ( . )</b>
   </kbd>
 </p>
+
+<p align="center">
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/606/606203.png" width="15" /> 
+    <b>DEVELOPER: DEYLIN</b>
+  </kbd>
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png" width="15" /> 
+    <b>DATABASE: RENDER/SUPABASE</b>
+  </kbd>
+</p>
+
 
 
 <div align="center">

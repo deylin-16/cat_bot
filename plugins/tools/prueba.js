@@ -1,4 +1,4 @@
-import translate from 'google-translate-api-next';
+import { translate } from '@vitalets/google-translate-api';
 
 const translateConfig = {
     name: 'translate',
@@ -8,28 +8,20 @@ const translateConfig = {
         let lang = 'es';
         let targetText = text;
 
-        // Si usas: .traducir en hello -> args[0] es 'en', el resto es el texto
         if (args[0] && args[0].length === 2) {
             lang = args[0];
             targetText = args.slice(1).join(' ');
         }
 
-        // Si respondes a un mensaje: .traducir en (y el mensaje tiene texto)
         if (!targetText && m.quoted && m.quoted.text) {
             targetText = m.quoted.text;
         }
 
-        if (!targetText) return m.reply(`> ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ᴛᴇxᴛᴏ.\n> ᴜsᴏ: ${command} [iso] [texto]\n> ᴇᴊ: ${command} en hola`);
+        if (!targetText) return m.reply(`> ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ᴛᴇxᴛᴏ.\n> ᴜsᴏ: ${command} [iso] [texto]\n> ᴇᴊ: ${command} en hello`);
 
         try {
-            // Se añade un timeout para que no se quede colgado
-            const result = await translate(targetText, { to: lang }).catch(err => {
-                console.error(err);
-                return null;
-            });
-
-            if (!result) throw new Error('No result');
-
+            const result = await translate(targetText, { to: lang });
+            
             let response = `> ┏━━━〔 ᴛʀᴀᴅᴜᴄᴄɪᴏɴ 〕━━━┓\n`;
             response += `> ┃ ✎ ᴏʀɪɢᴇɴ: ${result.from.language.iso}\n`;
             response += `> ┃ ✎ ᴅᴇsᴛɪɴᴏ: ${lang}\n`;
@@ -38,9 +30,8 @@ const translateConfig = {
             
             return m.reply(response);
         } catch (e) {
-            
-            console.log("Error en Traductor:", e.message);
-            return m.reply('> ┃ ✎ ᴇʀʀᴏʀ: ɢᴏᴏɢʟᴇ ᴛʀᴀɴsʟᴀᴛᴇ ɴᴏ ʀᴇsᴘᴏɴᴅɪᴏ.');
+            console.error(e);
+            return m.reply('> ┃ ✎ ᴇʀʀᴏʀ: ᴇʟ sᴇʀᴠɪᴄɪᴏ ᴅᴇ ɢᴏᴏɢʟᴇ ᴇsᴛᴀ sᴀᴛᴜʀᴀᴅᴏ.');
         }
     }
 };

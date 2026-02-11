@@ -19,11 +19,6 @@
     </tr>
   </table>
 
-  <h1 align="center" style="border-bottom: none;">
-    <span style="background: linear-gradient(135deg, #00BFFF, #FF4500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Segoe UI', sans-serif; font-size: 3rem; font-weight: 800;">
-      CAT_BOT
-    </span>
-  </h1>
 </div>
 
 

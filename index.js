@@ -24,7 +24,9 @@ const originalLog = console.log;
 console.log = function () {
   const args = Array.from(arguments);
   const msg = args.join(' ');
-  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) return; 
+  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) {
+    return; 
+  }
   originalLog.apply(console, args);
 };
 
@@ -103,19 +105,20 @@ const connectionOptions = {
   version,
   logger: pino({ level: 'silent' }), 
   printQRInTerminal: false,
-  browser: Browsers.macOS("Chrome"),
+  browser: Browsers.ubuntu("Chrome"),
   auth: {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 
   },
   markOnlineOnConnect: false,
   generateHighQualityLinkPreview: true,
-  syncFullHistory: false,
+  syncFullHistory: false, // CLAVE: No descarga chats viejos para evitar crash al vincular
   msgRetryCounterCache,
   connectTimeoutMs: 60000,
   defaultQueryTimeoutMs: 0,
   keepAliveIntervalMs: 10000,
   emitOwnEvents: true,
+  retryRequestDelayMs: 5000,
   getMessage: async (key) => { return ""; } 
 };
 
@@ -138,7 +141,7 @@ if (!state.creds.registered) {
             codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
             console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
         } catch {
-            console.log(chalk.red('\n[ ERROR ] No se pudo generar el código. Reintentando...'));
+            console.log(chalk.red('\n[ ! ] Error al generar código de vinculación.'));
         }
     }, 3000);
 }
@@ -148,7 +151,7 @@ if (global.db) setInterval(async () => { if (global.db.data) await global.db.wri
 global.reload = async function(restatConn) {
   if (restatConn) {
     try { global.conn.ws.close(); } catch {}
-    await new Promise(resolve => setTimeout(resolve, 8000));
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Espera para estabilizar el hosting
     global.conn = makeWASocket(connectionOptions);
   }
 
@@ -172,26 +175,34 @@ global.reload = async function(restatConn) {
   global.conn.ev.removeAllListeners('connection.update');
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
-
+    
     if (connection === 'connecting') {
-        console.log(chalk.bold.yellow(`[ ESPERANDO ] Estableciendo conexión...`));
+        console.log(chalk.yellow(`[ ✿ ] Conectando...`));
     }
 
     if (connection === 'open') {
         console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
         await monitorBot(conn, 'online');
+        
+        if (!global.subBotsStarted) {
+            global.subBotsStarted = true;
+            await initSubBots();
+        }
     }
 
     if (connection === 'close') {
       await monitorBot(conn, 'offline');
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode || 0;
 
-      if (reason === DisconnectReason.loggedOut || reason === 401) {
-          console.log(chalk.bold.red(`[ ERROR ] Sesión inválida. Limpiando y deteniendo...`));
+      if (reason === DisconnectReason.restartRequired || reason === DisconnectReason.connectionLost) {
+          console.log(chalk.blue("[ ! ] Estabilizando conexión..."));
+          await global.reload(true);
+      } else if (reason === DisconnectReason.loggedOut) {
+          console.log(chalk.red("[ ! ] Sesión cerrada. Elimine la carpeta de sesión."));
           if (existsSync(sessionPath)) rmSync(sessionPath, { recursive: true, force: true });
           process.exit(1);
       } else {
-          console.log(chalk.bold.red(`[ ERROR ] Conexión perdida (Razón: ${reason}). Reiniciando en 8 segundos...`));
+          console.log(chalk.red(`[ ! ] Reintentando en 10s... (Motivo: ${reason})`));
           await global.reload(true);
       }
     }
@@ -277,13 +288,3 @@ async function initSubBots() {
         }
     }
 }
-
-global.conn.ev.on('connection.update', async (update) => {
-    const { connection } = update;
-    if (connection === 'open') {
-        if (!global.subBotsStarted) {
-            global.subBotsStarted = true;
-            await initSubBots();
-        }
-    }
-});

@@ -132,19 +132,28 @@ if (!state.creds.registered) {
     console.log(chalk.bold.magenta('│') + chalk.bold.white('         CONFIGURACIÓN DE EMPAREJAMIENTO          ') + chalk.bold.magenta('│'));
     console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
 
-    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot (Ej: +504 5178-2571):\n> `));
-    let addNumber = phoneNumber.replace(/\D/g, '');
+    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número del Bot:\n> `));
+    // Limpieza profunda del número
+    let addNumber = phoneNumber.replace(/[^0-9]/g, '');
 
-    setTimeout(async () => {
-        try {
-            let codeBot = await conn.requestPairingCode(addNumber);
-            codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-            console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
-        } catch {
-            console.log(chalk.red('\n[ ! ] Error al generar código de vinculación.'));
-        }
-    }, 3000);
+    if (!addNumber) {
+        console.log(chalk.red('\n[ ! ] Número inválido. Reinicie el proceso.'));
+        process.exit(0);
+    }
+
+    // Pequeña espera para asegurar que el socket esté listo
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    try {
+        let codeBot = await conn.requestPairingCode(addNumber);
+        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+        console.log(chalk.bold.white('\n  CÓDIGO DE VINCULACIÓN: ') + chalk.bold.greenBright(codeBot) + '\n');
+    } catch (error) {
+        console.log(chalk.red('\n[ ! ] Error al generar código:'), error);
+        console.log(chalk.yellow('Sugerencia: Borra la carpeta "sessions" e intenta de nuevo.'));
+    }
 }
+
 
 if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
 

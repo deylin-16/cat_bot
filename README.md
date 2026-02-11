@@ -1,10 +1,20 @@
 <div align="center">
   <div align="center" style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px; margin-bottom: 50px;">
-    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="220" height="220" alt="Cat_Bot Logo 1" style="border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+   <div align="center" style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 30px; margin: 40px 0;">
+    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="180" height="180" style="border-radius: 50%; box-shadow: 0 8px 15px rgba(0,0,0,0.3); transition: 0.3s;">
+    
+    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="180" height="180" style="border-radius: 50%; box-shadow: 0 8px 15px rgba(0,0,0,0.3);">
+    
+    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="180" height="180" style="border-radius: 50%; box-shadow: 0 8px 15px rgba(0,0,0,0.3);">
+    
+    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="180" height="180" style="border-radius: 50%; box-shadow: 0 8px 15px rgba(0,0,0,0.3);">
+</div>
 
-    <div style="width: 50px;"></div> 
-
-    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="220" height="220" alt="Cat_Bot Logo 2" style="border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+<h1 align="center" style="border-bottom: none; margin-top: -10px;">
+    <span style="background: linear-gradient(135deg, #00BFFF, #FF4500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Segoe UI', sans-serif; font-size: 3.5rem; font-weight: 800;">
+      CAT_BOT
+    </span>
+</h1>
 
 
 <h1 align="center" style="border-bottom: none; margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 15px;">

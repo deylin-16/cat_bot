@@ -1,6 +1,6 @@
 import axios from 'axios';
-import pkg from 'telegra.ph';
-const { uploadByBuffer } = pkg;
+import FormData from 'form-data';
+import { fileTypeFromBuffer } from 'file-type';
 
 const qrDeylinConfig = {
     name: 'qr',
@@ -14,13 +14,26 @@ const qrDeylinConfig = {
         let qrData = text;
 
         if (/image/.test(mime)) {
-            m.reply('> ⏳ ᴘʀᴏᴄᴇsᴀɴᴅᴏ ɪᴍᴀɢᴇɴ ʏ ɢᴇɴᴇʀᴀɴᴅᴏ ǫʀ...');
-            let media = await q.download();
-            // Ahora uploadByBuffer funcionará correctamente
-            qrData = await uploadByBuffer(media, 'image/png');
+            m.reply('> ⏳ ᴘʀᴏᴄᴇsᴀɴᴅᴏ ɪᴍᴀɢᴇɴ...');
+            try {
+                let media = await q.download();
+                const { ext } = await fileTypeFromBuffer(media);
+                
+                // Subida manual a Telegra.ph vía API
+                const form = new FormData();
+                form.append('file', media, { filename: `file.${ext}` });
+                
+                const { data } = await axios.post('https://telegra.ph/upload', form, {
+                    headers: { ...form.getHeaders() }
+                });
+                
+                qrData = 'https://telegra.ph' + data[0].src;
+            } catch (err) {
+                return m.reply('> ┃ ✎ ᴇʀʀᴏʀ ᴀʟ sᴜʙɪʀ ɪᴍᴀɢᴇɴ.');
+            }
         } 
 
-        if (!qrData) return m.reply(`> ✎ ɪɴғᴏ: ʀᴇsᴘᴏɴᴅᴇ ᴀ ᴜɴᴀ ɪᴍᴀɢᴇɴ ᴏ ᴇsᴄʀɪʙᴇ ᴜɴ ᴛᴇxᴛᴏ ᴘᴀʀᴀ ᴇʟ ǫʀ.`);
+        if (!qrData) return m.reply(`> ✎ ɪɴғᴏ: ʀᴇsᴘᴏɴᴅᴇ ᴀ ᴜɴᴀ ɪᴍᴀɢᴇɴ ᴏ ᴇsᴄʀɪʙᴇ ᴜɴ ᴛᴇxᴛᴏ.`);
 
         const qrFinalUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}&size=600&centerImageUrl=${encodeURIComponent(logoUrl)}&centerImageSize=0.2&margin=2`;
 
@@ -30,7 +43,7 @@ const qrDeylinConfig = {
                 caption: `> ✅ ǫʀ ɢᴇɴᴇʀᴀᴅᴏ ᴄᴏɴ ᴇxɪᴛᴏ\n> 👤 ʙʏ: ᴅᴇʏʟɪɴ ᴛᴇᴄʜ\n> 🔗 ᴄᴏɴᴛᴇɴɪᴅᴏ: ${qrData}` 
             }, { quoted: m });
         } catch (e) {
-            return m.reply('> ┃ ✎ ᴇʀʀᴏʀ: ɴᴏ sᴇ ᴘᴜᴅᴏ ɢᴇɴᴇʀᴀʀ ᴇʟ ǫʀ.');
+            return m.reply('> ┃ ✎ ᴇʀʀᴏʀ ᴀʟ ɢᴇɴᴇʀᴀʀ ǫʀ.');
         }
     }
 };

@@ -5,19 +5,16 @@ const translateConfig = {
     alias: ['traducir', 'trt'],
     category: 'tools',
     run: async function (m, { text, args, command }) {
-        const MyApiUrl = 'https://script.google.com/macros/s/AKfycbyrAxDGtL-_e8FjIJFIE4kdFK76jZ2rIIHfMtEcRwkdfX3Wz8JLOVfB4OHnCO6Dzism/exec';
+        const MyApiUrl = 'https://script.google.com/macros/s/AKfycbwSWtr-v945xDM6hr49pwob6-ZYxJll85WL-q-GdbpQuVPW62X33NnXMwBl8AKodzfa/exec';
 
-        // 1. Idioma por defecto: Español
         let lang = 'es';
         let targetText = text;
 
-        // 2. Inteligencia: Si el primer argumento es un código de idioma (2 letras)
         if (args[0] && args[0].length === 2) {
             lang = args[0];
             targetText = args.slice(1).join(' ');
         }
 
-        // 3. Soporte para mensajes citados
         if (!targetText && m.quoted) targetText = m.quoted.text;
         
         if (!targetText) return m.reply(`> ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ᴛᴇxᴛᴏ ᴏ ʀᴇsᴘᴏɴᴅᴇ ᴀ ᴜɴ ᴍᴇɴsᴀᴊᴇ.\n> ᴇᴊ: ${m.prefix}${command} hello\n> ᴇᴊ: ${m.prefix}${command} en hola`);

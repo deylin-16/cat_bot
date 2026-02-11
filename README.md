@@ -105,10 +105,14 @@
 
 <br>
 
+---
+
 > [!CAUTION]
 > **⚠️ PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA**
 > 
 > Este software es propiedad exclusiva de **Deylin Eliac**. Queda estrictamente prohibida la redistribución, clonación masiva o comercialización del código fuente sin una licencia comercial explícita. El incumplimiento de estos términos resultará en acciones técnicas y legales pertinentes.
+
+---
 
 <br>
 

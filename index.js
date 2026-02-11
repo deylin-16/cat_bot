@@ -177,10 +177,10 @@ global.reload = async function(restatConn) {
 
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
-    if (connection === 'connecting') console.log(chalk.yellow(`[ ✿ ] Conectando...`));
+    if (connection === 'connecting') console.log(chalk.yellow(`➠ Conectando...`));
     
     if (connection === 'open') {
-        console.log(chalk.greenBright(`[ ✿ ] ¡CONECTADO! a: ${conn.user.name || 'WhatsApp Bot'}`));
+        console.log(chalk.greenBright(`➠ ¡CONECTADO! a: ➜ ${conn.user.name || 'WhatsApp Bot'}`));
         global.isBotReady = true;
         await monitorBot(conn, 'online');
         

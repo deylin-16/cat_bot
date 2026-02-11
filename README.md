@@ -62,7 +62,7 @@
   </p>
 
   <p align="center" style="margin: 20px 0;">
-    <img src="https://img.shields.io/badge/SOPORTE-WHATSAPP-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Soporte WhatsApp">
+    <img src="https://img.shields.io/badge/PLATAFORMA-WHATSAPP-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Soporte WhatsApp">
   </p>
 
   <hr style="border: 2px solid #ddd; margin: 30px 0;">

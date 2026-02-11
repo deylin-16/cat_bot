@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770681140747_VoYDYJVpM.jpeg" width="120" height="120" alt="Cat_Bot Logo" style="border-radius: 20%; margin-bottom: 20px; box-shadow: 0 18px 26px rgba(0,0,0,0.2);">
+  <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770681140747_VoYDYJVpM.jpeg" width="220" height="220" alt="Cat_Bot Logo" style="border-radius: 20%; margin-bottom: 20px; box-shadow: 0 18px 26px rgba(0,0,0,0.2);">
 
   <h1 align="center" style="border-bottom: none; margin: 20px 0;">
     <span style="background: linear-gradient(135deg, #00BFFF, #FF4500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 3.5rem; font-weight: 800; letter-spacing: 2px;">

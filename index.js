@@ -24,7 +24,7 @@ const originalLog = console.log;
 console.log = function () {
   const args = Array.from(arguments);
   const msg = args.join(' ');
-  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) return;
+  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet')) return; 
   originalLog.apply(console, args);
 };
 
@@ -43,6 +43,7 @@ const {
     useMultiFileAuthState, 
     fetchLatestBaileysVersion, 
     makeCacheableSignalKeyStore, 
+    jidNormalizedUser,
     Browsers
 } = await import('@whiskeysockets/baileys');
 
@@ -50,13 +51,9 @@ const { chain } = lodash;
 
 if (!existsSync('./tmp')) mkdirSync('./tmp');
 
-let { say } = cfonts;
 console.clear();
-console.log(chalk.bold.cyan('┌────────────────────────────────────────────────────────┐'));
-console.log(chalk.bold.cyan('│') + chalk.bold.yellow('            SISTEMA DE AUTOMATIZACIÓN ACTIVO            ') + chalk.bold.cyan('│'));
-console.log(chalk.bold.cyan('└────────────────────────────────────────────────────────┘'));
-say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
-say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
+cfonts.say('WhatsApp_bot', { font: 'chrome', align: 'center', gradient: ['#00BFFF', '#FF4500'] });
+cfonts.say('by Deylin', { font: 'console', align: 'center', colors: ['#DAA520', '#FF69B4', '#ADFF2F'] });
 
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
@@ -70,14 +67,23 @@ global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse()
 global.prefix = new RegExp('^[#!./]');
 
 const adapter = new JSONFile('database.json');
-global.db = new Low(adapter, { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {} });
+global.db = new Low(adapter, {
+    users: {},
+    chats: {},
+    stats: {},
+    msgs: {},
+    sticker: {},
+    settings: {}
+});
 
 global.loadDatabase = async function loadDatabase() {
   if (global.db.READ) return;
   global.db.READ = true;
   await global.db.read().catch(console.error);
   global.db.READ = null;
-  global.db.data = global.db.data || { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {} };
+  global.db.data = global.db.data || {
+    users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {}
+  };
   global.db.chain = chain(global.db.data);
 };
 await loadDatabase();
@@ -91,12 +97,12 @@ const connectionOptions = {
   version,
   logger: pino({ level: 'silent' }), 
   printQRInTerminal: false,
-  browser: ["Ubuntu", "Chrome", "110.0.5481.177"],
+  browser: Browsers.ubuntu("Chrome"),
   auth: {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })), 
   },
-  markOnlineOnConnect: true,
+  markOnlineOnConnect: false,
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
   msgRetryCounterCache,
@@ -110,6 +116,26 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
+if (!state.creds.registered) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
+    console.log(chalk.bold.magenta('\n➤ VINCULACIÓN REFORZADA'));
+    let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número:\n> `));
+    let addNumber = phoneNumber.replace(/\D/g, '');
+
+    setTimeout(async () => {
+        try {
+            let codeBot = await conn.requestPairingCode(addNumber);
+            codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+            console.log(chalk.magentaBright(`\nCÓDIGO: ${codeBot}\n`));
+        } catch {
+            console.log(chalk.red('\n[ ! ] Error de red.'));
+        }
+    }, 3000);
+}
+
+if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30 * 1000);
+
 global.reload = async function(restatConn) {
   if (restatConn) {
     try { global.conn.ws.close(); } catch {}
@@ -117,78 +143,61 @@ global.reload = async function(restatConn) {
     global.conn = makeWASocket(connectionOptions);
   }
 
-  global.conn.ev.removeAllListeners('messages.upsert');
   global.conn.ev.on('messages.upsert', async (chatUpdate) => {
     try {
         const msg = chatUpdate.messages[0];
-        if (!msg || (!msg.message && !msg.messageStubType)) return;
+        if (!msg) return;
+        if (!msg.message && !msg.messageStubType) return;
         const m = await smsg(conn, msg);
         const Path = path.join(process.cwd(), 'lib/message.js');
         const module = await import(`file://${Path}?update=${Date.now()}`);
         const Func = module.message || module.default?.message || module.default;
-        if (typeof Func === 'function') await Func.call(conn, m, chatUpdate);
+
+        if (typeof Func === 'function') {
+            await Func.call(conn, m, chatUpdate);
+        }
     } catch (e) {}
   });
 
-  global.conn.ev.removeAllListeners('connection.update');
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
-    
     if (connection === 'connecting') console.log(chalk.yellow(`[ ✿ ] Conectando...`));
-
-    if (!state.creds.registered && connection === 'connecting') {
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        const question = (texto) => new Promise((resolver) => rl.question(texto, resolver));
-        console.log(chalk.bold.magenta('\n┌──────────────────────────────────────────────────┐'));
-        console.log(chalk.bold.magenta('│') + chalk.bold.white('         SISTEMA DE VINCULACIÓN LISTO             ') + chalk.bold.magenta('│'));
-        console.log(chalk.bold.magenta('└──────────────────────────────────────────────────┘'));
-        let phoneNumber = await question(chalk.cyanBright(`\n➤ Ingrese el número:\n> `));
-        let addNumber = phoneNumber.replace(/[^0-9]/g, '');
-        if (addNumber) {
-            try {
-                let codeBot = await conn.requestPairingCode(addNumber);
-                codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
-                console.log(chalk.bold.white('\n  CÓDIGO: ') + chalk.bold.greenBright(codeBot) + '\n');
-            } catch (err) {
-                console.log(chalk.red('\n[ ! ] Reintentando conexión para vincular...'));
-            }
-        }
-    }
-
+    
     if (connection === 'open') {
-        console.log(chalk.bold.greenBright(`\n[ OK ] Conectado a: ${conn.user.name || 'WhatsApp Bot'}`));
+        console.log(chalk.greenBright(`[ ✿ ] ¡CONECTADO! a: ${conn.user.name || 'WhatsApp Bot'}`));
+        global.isBotReady = true;
         await monitorBot(conn, 'online');
+        
         if (!global.subBotsStarted) {
             global.subBotsStarted = true;
             await initSubBots();
         }
     }
-
+    
     if (connection === 'close') {
       await monitorBot(conn, 'offline');
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode || 0;
+      
       if (reason === DisconnectReason.restartRequired || reason === DisconnectReason.connectionLost) {
-          console.log(chalk.blue("[ ! ] Estabilizando..."));
+          console.log(chalk.blue("[ ! ] Estabilizando conexión..."));
           await global.reload(true);
       } else if (reason === DisconnectReason.loggedOut) {
           console.log(chalk.red("[ ! ] Sesión cerrada."));
-          if (existsSync(sessionPath)) rmSync(sessionPath, { recursive: true, force: true });
+          rmSync(sessionPath, { recursive: true, force: true });
           process.exit(1);
       } else {
-          console.log(chalk.red(`[ ! ] Error ${reason}. Reintentando...`));
+          console.log(chalk.red(`[ ! ] Reintentando en 10s... (Motivo: ${reason})`));
           await global.reload(true);
       }
     }
   });
 
-  global.conn.ev.removeAllListeners('creds.update');
   global.conn.ev.on('creds.update', saveCreds);
 };
 
 await global.reload();
 
-const pluginFolder = join(__dirname, './plugins');
+const pluginFolder = join(process.cwd(), './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = new Map();
 global.aliases = new Map();
@@ -198,7 +207,7 @@ async function readRecursive(folder) {
     const file = join(folder, filename);
     if (statSync(file).isDirectory()) await readRecursive(file);
     else if (pluginFilter(filename)) {
-      const module = await import(global.__filename(file));
+      const module = await import(`file://${file}`);
       const plugin = module.default || module;
       const pluginName = plugin.name || filename.replace('.js', '');
       global.plugins.set(pluginName, plugin);
@@ -212,11 +221,13 @@ async function readRecursive(folder) {
 await readRecursive(pluginFolder);
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
   if (pluginFilter(filename)) {
-    const dir = global.__filename(join(pluginFolder, filename), true);
-    const module = await import(`${global.__filename(dir)}?update=${Date.now()}`);
-    const plugin = module.default || module;
-    const pluginName = plugin.name || filename.replace('.js', '');
-    global.plugins.set(pluginName, plugin);
+    const dir = join(pluginFolder, filename);
+    if (existsSync(dir) && statSync(dir).isFile()) {
+        const module = await import(`file://${dir}?update=${Date.now()}`);
+        const plugin = module.default || module;
+        const pluginName = plugin.name || filename.replace('.js', '');
+        global.plugins.set(pluginName, plugin);
+    }
   }
 });
 
@@ -243,17 +254,22 @@ await descargarLicencia();
 async function initSubBots() {
     const jadibtsDir = path.join(process.cwd(), 'jadibts');
     if (!existsSync(jadibtsDir)) return;
-    const folders = readdirSync(jadibtsDir).filter(f => statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json')));
-    if (folders.length > 0) console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando ${folders.length} sub-bots...`));
+
+    const folders = readdirSync(jadibtsDir).filter(f => 
+        statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
+    );
+
+    if (folders.length > 0) {
+        console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando ${folders.length} sub-bots activos...`));
+    }
+
     for (const folder of folders) {
         try {
             const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);
             await assistant_accessJadiBot({ phoneNumber: folder, fromCommand: false });
             await new Promise(r => setTimeout(r, 2000)); 
         } catch (e) {
-            console.log(chalk.red(`[ ERROR ] Sub-bot ${folder} falló.`));
+            console.log(chalk.red(`[ ERROR ] No se pudo iniciar el sub-bot ${folder}. Posible sesión corrupta.`));
         }
     }
 }
-
-if (global.db) setInterval(async () => { if (global.db.data) await global.db.write(); }, 30000);

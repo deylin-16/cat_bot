@@ -5,7 +5,6 @@
     <div style="width: 50px;"></div> 
 
     <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="220" height="220" alt="Cat_Bot Logo 2" style="border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
-</div>
 
 
 <h1 align="center" style="border-bottom: none; margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 15px;">

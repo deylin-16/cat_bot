@@ -8,14 +8,12 @@ const groupConfig = {
     group: true,
     botAdmin: true,
     run: async function (m, { conn, text, command, participants, chat }) {
-        
-        // Comando Welcome
+
         if (command === 'welcome') {
             chat.welcome = !chat.welcome
             return m.reply(`> ┏━━━〔 sɪsᴛᴇᴍᴀ 〕━━━┓\n> ┃ ✎ ᴇsᴛᴀᴅᴏ: ʙɪᴇɴᴠᴇɴɪᴅᴀ\n> ┃ ✎ sᴛᴀᴛᴜs: ${chat.welcome ? 'ᴀᴄᴛɪᴠᴀᴅᴏ' : 'ᴅᴇsᴀᴄᴛɪᴠᴀᴅᴏ'}\n> ┗━━━━━━━━━━━━━━━━━━┛`)
         }
 
-        // Comando Detect
         if (command === 'detect') {
             chat.detect = !chat.detect
             return m.reply(`> ┏━━━〔 sɪsᴛᴇᴍᴀ 〕━━━┓\n> ┃ ✎ ᴇsᴛᴀᴅᴏ: ᴅᴇᴛᴇᴄᴛᴏʀ\n> ┃ ✎ sᴛᴀᴛᴜs: ${chat.detect ? 'ᴀᴄᴛɪᴠᴀᴅᴏ' : 'ᴅᴇsᴀᴄᴛɪᴠᴀᴅᴏ'}\n> ┗━━━━━━━━━━━━━━━━━━┛`)

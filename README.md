@@ -7,39 +7,76 @@
     </span>
   </h1>
 
+---
+
   <p align="center">
-  <img src="https://img.shields.io/badge/ESTADO-ACTIVO-success?style=for-the-badge&logo=statuspage&logoColor=white" />
+  <img src="https://img.shields.io/badge/ESTADO-ACTIVO-brightgreen?style=for-the-badge&logo=statuspage&logoColor=white" />
   <img src="https://img.shields.io/badge/VERSIÓN-5.0.0-blue?style=for-the-badge&logo=github&logoColor=white" />
-  <img src="https://img.shields.io/badge/SOPORTE-WHATSAPP-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" />
+  <img src="https://img.shields.io/badge/PLATAFORMA-TERMUX-000000?style=for-the-badge&logo=termux&logoColor=white" />
 </p>
 
 <p align="center">
-  <kbd>
-    <img src="https://cdn-icons-png.flaticon.com/512/5968/5968292.png" width="15" /> 
-    <b>BASED ON: BAILEYS</b>
-  </kbd>
   <kbd>
     <img src="https://cdn-icons-png.flaticon.com/512/919/919825.png" width="15" /> 
     <b>ENGINE: NODE.JS</b>
   </kbd>
   <kbd>
-    <img src="https://cdn-icons-png.flaticon.com/512/2103/2103633.png" width="15" /> 
-    <b>PREFIX: ( . )</b>
+    <img src="https://cdn-icons-png.flaticon.com/512/5968/5968292.png" width="15" /> 
+    <b>CORE: BAILEYS</b>
+  </kbd>
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/4248/4248443.png" width="15" /> 
+    <b>DB: SUPABASE / RENDER</b>
   </kbd>
 </p>
 
 <p align="center">
   <kbd>
-    <img src="https://cdn-icons-png.flaticon.com/512/606/606203.png" width="15" /> 
-    <b>DEVELOPER: DEYLIN</b>
+    <img src="https://cdn-icons-png.flaticon.com/512/2103/2103633.png" width="15" /> 
+    <b>IA: GPT-4 & VISION</b>
   </kbd>
   <kbd>
-    <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png" width="15" /> 
-    <b>DATABASE: RENDER/SUPABASE</b>
+    <img src="https://cdn-icons-png.flaticon.com/512/2436/2436636.png" width="15" /> 
+    <b>SISTEMA: EDUCATIVO</b>
+  </kbd>
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/1611/1611179.png" width="15" /> 
+    <b>SCRAPER: WEB DESGARRADOR</b>
   </kbd>
 </p>
 
+<p align="center">
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="15" /> 
+    <b>DOWNLOAD: YT/TIKTOK/IG</b>
+  </kbd>
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/825/825590.png" width="15" /> 
+    <b>DESIGN: MINIMALIST JS</b>
+  </kbd>
+</p>
 
+<p align="center">
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="15" /> 
+    <b>OWNER: DEYLIN</b>
+  </kbd>
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png" width="15" /> 
+    <b>PREFIX: ( . )</b>
+  </kbd>
+  <kbd>
+    <img src="https://cdn-icons-png.flaticon.com/512/702/702797.png" width="15" /> 
+    <b>SECURITY: ANTI-BAN</b>
+  </kbd>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/SOPORTE-WHATSAPP-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" />
+</p>
+
+
+---
 
 <div align="center">
   

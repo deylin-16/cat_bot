@@ -24,29 +24,25 @@
     </kbd>
     <kbd style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <img src="https://cdn-icons-png.flaticon.com/512/4248/4248443.png" width="15" alt="Database"> 
-      <b>DB: SUPABASE / RENDER</b>
+      <b>DB: SUPABASE / JSON / LOCAL</b>
     </kbd>
   </p>
 
   <p align="center" style="margin: 15px 0;">
     <kbd style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <img src="https://cdn-icons-png.flaticon.com/512/2103/2103633.png" width="15" alt="IA"> 
-      <b>IA: GPT-4 & VISION</b>
+      <b>IA: GPT-4 & GEMINI & +</b>
     </kbd>
     <kbd style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <img src="https://cdn-icons-png.flaticon.com/512/2436/2436636.png" width="15" alt="Sistema"> 
       <b>SISTEMA: EDUCATIVO</b>
-    </kbd>
-    <kbd style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-      <img src="https://cdn-icons-png.flaticon.com/512/1611/1611179.png" width="15" alt="Scraper"> 
-      <b>SCRAPER: WEB DESGARRADOR</b>
     </kbd>
   </p>
 
   <p align="center" style="margin: 15px 0;">
     <kbd style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="15" alt="Download"> 
-      <b>DOWNLOAD: YT/TIKTOK/IG</b>
+      <b>DOWNLOAD: YT/TIKTOK/IG/+</b>
     </kbd>
     <kbd style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <img src="https://cdn-icons-png.flaticon.com/512/825/825590.png" width="15" alt="Design"> 

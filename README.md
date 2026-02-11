@@ -5,16 +5,16 @@
   <table style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
       <td align="center" style="border: none; padding: 15px;">
-        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
+        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770779280352_IMG-20260102-WA0014_wt_Kd9Gnc.jpg" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
       </td>
       <td align="center" style="border: none; padding: 15px;">
-        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
+        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770779278730_9d44b99d4d0952f51bf52fdb2c05986e_w2PithJlI.jpg" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
       </td>
       <td align="center" style="border: none; padding: 15px;">
-        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
+        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770779276811_fada3f5d2889e45ff1603d8d35a642f8_HTrHi14S7.jpg" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
       </td>
       <td align="center" style="border: none; padding: 15px;">
-        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
+        <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770779274923_f9f9761120a4e530c31fd4796d4f0727__H7oTE-Pym.jpg" width="160" style="border-radius: 50%; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
       </td>
     </tr>
   </table>

@@ -1,7 +1,12 @@
 <div align="center">
-  <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="220" height="220" alt="Cat_Bot Logo" style="border-radius: 200%; margin-bottom: 200px; box-shadow: 0 180px 206px rgba(0,0,0,0.2);">
+  <div align="center" style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px; margin-bottom: 50px;">
+    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778072905_235013-removebg-preview_sdacyrr6e.png" width="220" height="220" alt="Cat_Bot Logo 1" style="border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
 
- <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="220" height="220" alt="Cat_Bot Logo" style="border-radius: 200%; margin-bottom: 200px; box-shadow: 0 180px 206px rgba(0,0,0,0.2);">
+    <div style="width: 50px;"></div> 
+
+    <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778547219_catbot_icon_1770778527747_Khq5uqomN.png" width="220" height="220" alt="Cat_Bot Logo 2" style="border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+</div>
+
 
 <h1 align="center" style="border-bottom: none; margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 15px;">
     <img src="https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770778392226_catbot_icon_1770778379194_aMFyuTGij.png" width="70" height="70" style="border-radius: 100%; border: 0px solid #00BFFF;">

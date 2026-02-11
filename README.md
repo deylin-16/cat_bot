@@ -57,11 +57,7 @@
     </kbd>
     <kbd style="background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); color: #333; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <img src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png" width="15" alt="Prefix"> 
-      <b>PREFIX: ( . )</b>
-    </kbd>
-    <kbd style="background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); color: #333; padding: 8px 15px; border-radius: 5px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-      <img src="https://cdn-icons-png.flaticon.com/512/702/702797.png" width="15" alt="Security"> 
-      <b>SECURITY: ANTI-BAN</b>
+      <b>PREFIX: ( . # /)</b>
     </kbd>
   </p>
 

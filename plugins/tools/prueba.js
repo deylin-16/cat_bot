@@ -1,40 +1,27 @@
 import axios from 'axios';
 
-const translateConfig = {
-    name: 'translate',
-    alias: ['traducir', 'trt'],
+const qrConfig = {
+    name: 'qr',
+    alias: ['codigoqr'],
     category: 'tools',
-    run: async function (m, { text, args, command }) {
-        const MyApiUrl = 'https://script.google.com/macros/s/AKfycbwSWtr-v945xDM6hr49pwob6-ZYxJll85WL-q-GdbpQuVPW62X33NnXMwBl8AKodzfa/exec';
+    run: async function (m, { text, conn }) {
+        if (!text) return m.reply(`> ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ʟɪɴᴋ ᴏ ᴛᴇxᴛᴏ.\n> ᴇᴊ: .qr https://github.com/DeylinTech`);
 
-        let lang = 'es';
-        let targetText = text;
-
-        if (args[0] && args[0].length === 2) {
-            lang = args[0];
-            targetText = args.slice(1).join(' ');
-        }
-
-        if (!targetText && m.quoted) targetText = m.quoted.text;
+        // URL de tu logo (asegúrate de que sea un link directo a la imagen)
+        const logoUrl = 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770845181541_catbot_icon_1770845163396_yTNW-OVi_.png'; 
         
-        if (!targetText) return m.reply(`> ✎ ɪɴғᴏ: ɪɴɢʀᴇsᴀ ᴇʟ ᴛᴇxᴛᴏ ᴏ ʀᴇsᴘᴏɴᴅᴇ ᴀ ᴜɴ ᴍᴇɴsᴀᴊᴇ.\n> ᴇᴊ: ${m.prefix}${command} hello\n> ᴇᴊ: ${m.prefix}${command} en hola`);
+        // Configuramos la API de QuickChart
+        const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(text)}&size=500&centerImageUrl=${encodeURIComponent(logoUrl)}&centerImageSize=0.2`;
 
         try {
-            const res = await axios.get(`${MyApiUrl}?text=${encodeURIComponent(targetText)}&to=${lang}`);
-            
-            if (res.data && res.data.status) {
-                let response = `> ┏━━━〔 ᴛʀᴀᴅᴜᴄᴄɪᴏɴ 〕━━━┓\n`;
-                response += `> ┃ ✎ ᴅᴇsᴛɪɴᴏ: ${lang.toUpperCase()}\n`;
-                response += `> ┃ ✎ ʀᴇsᴜʟᴛᴀᴅᴏ: ${res.data.result}\n`;
-                response += `> ┗━━━━━━━━━━━━━━━━━━┛`;
-                return m.reply(response);
-            } else {
-                return m.reply('> ┃ ✎ ᴇʀʀᴏʀ: ʟᴀ ᴀᴘɪ ɴᴏ ᴘᴜᴅᴏ ᴘʀᴏᴄᴇsᴀʀ ᴇʟ ᴛᴇxᴛᴏ.');
-            }
+            await conn.sendMessage(m.chat, { 
+                image: { url: qrUrl }, 
+                caption: `> ✅ ǫʀ ɢᴇɴᴇʀᴀᴅᴏ ᴄᴏɴ ᴇxɪᴛᴏ` 
+            }, { quoted: m });
         } catch (e) {
-            return m.reply('> ┃ ✎ ᴇʀʀᴏʀ: ғᴀʟʟᴏ ʟᴀ ᴄᴏɴᴇxɪᴏɴ ᴄᴏɴ ᴛᴜ sᴇʀᴠɪᴅᴏʀ ɢᴏᴏɢʟᴇ.');
+            return m.reply('> ┃ ✎ ᴇʀʀᴏʀ: ɴᴏ sᴇ ᴘᴜᴅᴏ ɢᴇɴᴇʀᴀʀ ᴇʟ ǫʀ.');
         }
     }
 };
 
-export default translateConfig;
+export default qrConfig;

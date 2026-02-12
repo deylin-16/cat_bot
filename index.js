@@ -218,6 +218,20 @@ global.reload = async function(restatConn) {
   global.conn.ev.on('creds.update', saveCreds);
 };
 
+global.lastRestartTime = Date.now();
+const monitorRemoteOrders = async () => {
+    try {
+        const response = await axios.get('https://script.google.com/macros/s/AKfycbzHIzFsXRJj2KYhUf7lmxBskw90LAKjorXZKKtQWlbdhl6WkN2U5lyuPbNXFMJIRlAC/exec');
+        const { restart, timestamp } = response.data;
+        if (restart && timestamp > global.lastRestartTime) {
+            console.log(chalk.bgRed.white(' [!] ALERTA ') + chalk.red(' Reinicio remoto ejecutado.'));
+            global.lastRestartTime = timestamp;
+            setTimeout(() => { process.exit(0); }, 1000);
+        }
+    } catch (e) {}
+};
+setInterval(monitorRemoteOrders, 40000);
+
 await global.reload();
 
 const pluginFolder = join(process.cwd(), './plugins');

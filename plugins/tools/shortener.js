@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 const shortCommand = {
     name: 'short',
-    alias: ['acortar', 'link', 'corta'],
+    alias: ['acortar', 'short', 'corta'],
     category: 'tools',
     run: async (m, { text }) => {
         const apiVercel = 'https://deylin.xyz/api/short';

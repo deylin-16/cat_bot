@@ -219,18 +219,31 @@ global.reload = async function(restatConn) {
 };
 
 global.lastRestartTime = Date.now();
+const botID = "unidad_" + Math.random().toString(36).substring(7); // ID único por sesión
+
 const monitorRemoteOrders = async () => {
     try {
-        const response = await axios.get('https://script.google.com/macros/s/AKfycbzHIzFsXRJj2KYhUf7lmxBskw90LAKjorXZKKtQWlbdhl6WkN2U5lyuPbNXFMJIRlAC/exec');
-        const { restart, timestamp } = response.data;
-        if (restart && timestamp > global.lastRestartTime) {
-            console.log(chalk.bgRed.white(' [!] ALERTA ') + chalk.red(' Reinicio remoto ejecutado.'));
-            global.lastRestartTime = timestamp;
+        
+        await axios.post('https://script.google.com/macros/s/AKfycbxyE76L0_YNf8cGaEbNnGlEn81yXp5G_VKYxq1GYFnEISs6BjF4zoylZk8TzixJfXuW/exec', {
+            action: 'REPORT_STATUS',
+            botId: botID,
+            name: conn.user.name || 'Bot_Unidad',
+            platform: process.platform
+        });
+
+        
+        const response = await axios.get('https://script.google.com/macros/s/AKfycbxyE76L0_YNf8cGaEbNnGlEn81yXp5G_VKYxq1GYFnEISs6BjF4zoylZk8TzixJfXuW/exec');
+        const { config } = response.data;
+        
+        if (config.restart && config.timestamp > global.lastRestartTime) {
+            console.log(chalk.bgRed.white(' [!] REINICIO REMOTO RECIBIDO '));
+            global.lastRestartTime = config.timestamp;
             setTimeout(() => { process.exit(0); }, 1000);
         }
     } catch (e) {}
 };
-setInterval(monitorRemoteOrders, 40000);
+
+setInterval(monitorRemoteOrders, 30000); 
 
 await global.reload();
 

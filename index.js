@@ -224,7 +224,7 @@ const botID = "unidad_" + Math.random().toString(36).substring(7); // ID único 
 const monitorRemoteOrders = async () => {
     try {
         
-        await axios.post('https://script.google.com/macros/s/AKfycbxyE76L0_YNf8cGaEbNnGlEn81yXp5G_VKYxq1GYFnEISs6BjF4zoylZk8TzixJfXuW/exec', {
+        await axios.post('https://script.google.com/macros/s/AKfycbxovehwYERvA0hvbOFGan2u_dgwupe9WnFxklMfjavDaF56E4O13CF7aaI0hCO82h0a/exec', {
             action: 'REPORT_STATUS',
             botId: botID,
             name: conn.user.name || 'Bot_Unidad',
@@ -232,7 +232,7 @@ const monitorRemoteOrders = async () => {
         });
 
         
-        const response = await axios.get('https://script.google.com/macros/s/AKfycbxyE76L0_YNf8cGaEbNnGlEn81yXp5G_VKYxq1GYFnEISs6BjF4zoylZk8TzixJfXuW/exec');
+        const response = await axios.get('https://script.google.com/macros/s/AKfycbxovehwYERvA0hvbOFGan2u_dgwupe9WnFxklMfjavDaF56E4O13CF7aaI0hCO82h0a/exec');
         const { config } = response.data;
         
         if (config.restart && config.timestamp > global.lastRestartTime) {

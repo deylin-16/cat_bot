@@ -18,6 +18,7 @@ import cfonts from 'cfonts';
 import axios from 'axios'; 
 import { smsg } from './lib/serializer.js';
 import { monitorBot } from './lib/telemetry.js';
+import { uploadCriticalError } from './lib/.js';
 import { EventEmitter } from 'events';
 
 const originalLog = console.log;
@@ -172,28 +173,34 @@ global.reload = async function(restatConn) {
         if (typeof Func === 'function') {
             await Func.call(conn, m, chatUpdate);
         }
-    } catch (e) {}
+    } catch (e) {
+        await uploadCriticalError(e, 'Message Upsert Handler');
+    }
   });
 
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === 'connecting') console.log(chalk.yellow(`➠ Conectando...`));
-    
+
     if (connection === 'open') {
         console.log(chalk.greenBright(`➠ ¡CONECTADO! a: ➜ ${conn.user.name || 'WhatsApp Bot'}`));
         global.isBotReady = true;
         await monitorBot(conn, 'online');
-        
+
         if (!global.subBotsStarted) {
             global.subBotsStarted = true;
             await initSubBots();
         }
     }
-    
+
     if (connection === 'close') {
       await monitorBot(conn, 'offline');
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode || 0;
-      
+
+      if (reason !== DisconnectReason.loggedOut) {
+          await uploadCriticalError(lastDisconnect?.error || `Reason: ${reason}`, 'Connection Update');
+      }
+
       if (reason === DisconnectReason.restartRequired || reason === DisconnectReason.connectionLost) {
           console.log(chalk.blue("[ ! ] Estabilizando conexión..."));
           await global.reload(true);

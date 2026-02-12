@@ -38,18 +38,20 @@ const transcribeCommand = {
 };
 
 async function getTranscription(buffer, fileName) {
-    const proxyUrl = 'https://deylin.xyz/api/ai/transcribe';
+    if (!buffer || !Buffer.isBuffer(buffer)) throw new Error('Archivo requerido');
 
-    const { data } = await axios.post(proxyUrl, {
+    const googleUrl = 'https://script.google.com/macros/s/AKfycbz8CuN1sOmharXmNFlVHPBVrl-zpIXwLA2UP6UeyYMAMYc_LSLQVBf8kjsHCENBaNf8mA/exec';
+
+    const { data } = await axios.post(googleUrl, {
         audio: buffer.toString('base64'),
         name: fileName
     }, {
         headers: { 'Content-Type': 'application/json' }
     });
 
-    if (!data.status) throw new Error(data.error || 'Error en el servidor');
+    if (!data.status) throw new Error(data.error || 'Error en el servidor de Google');
 
-    return data.text || 'No se pudo extraer texto del archivo.';
+    return data.text || 'No se pudo extraer texto del archivo (posiblemente no hay voz clara).';
 }
 
 export default transcribeCommand;

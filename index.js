@@ -18,7 +18,7 @@ import cfonts from 'cfonts';
 import axios from 'axios'; 
 import { smsg } from './lib/serializer.js';
 import { monitorBot } from './lib/telemetry.js';
-import { uploadCriticalError } from './lib/.js';
+import { uploadCriticalError } from './lib/db_logs.js';
 import { EventEmitter } from 'events';
 
 const originalLog = console.log;

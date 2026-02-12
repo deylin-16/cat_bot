@@ -38,20 +38,22 @@ const transcribeCommand = {
 };
 
 async function getTranscription(buffer, fileName) {
-    if (!buffer || !Buffer.isBuffer(buffer)) throw new Error('Archivo requerido');
-
-    const googleUrl = 'https://script.google.com/macros/s/AKfycbz8CuN1sOmharXmNFlVHPBVrl-zpIXwLA2UP6UeyYMAMYc_LSLQVBf8kjsHCENBaNf8mA/exec';
+    const googleUrl = 'https://script.google.com/macros/s/AKfycbxW7WtTEm7-o-hFjrf6bT6uV65B8kwuoUic8qq14ChjxMYiytoO97LIQ-OwWUEilZvzIQ/exec';
 
     const { data } = await axios.post(googleUrl, {
         audio: buffer.toString('base64'),
         name: fileName
     }, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000 // 30 segundos de espera
     });
 
-    if (!data.status) throw new Error(data.error || 'Error en el servidor de Google');
+    if (!data.status) throw new Error(data.error);
 
-    return data.text || 'No se pudo extraer texto del archivo (posiblemente no hay voz clara).';
+    // Si Google no encuentra texto, a veces devuelve el nombre del archivo
+    if (data.text.includes(fileName)) return "No se encontró voz clara.";
+    
+    return data.text;
 }
 
 export default transcribeCommand;

@@ -118,6 +118,7 @@ const menuCommand = {
 *┃ ▣* .whatmusic
 *┃ ▣* .traducir 
 *┃ ▣* .qr (texto/link)
+*┃ ▣* .corta/acortar (Link)
 *┃ ▣* .toimg
 *┃ ▣* .pfp 
 *┃ ▣* .reducir 

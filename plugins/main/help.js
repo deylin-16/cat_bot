@@ -116,6 +116,8 @@ const menuCommand = {
 *┃ ▣* .read
 *┃ ▣* .ver
 *┃ ▣* .whatmusic
+*┃ ▣* .traducir 
+*┃ ▣* .qr (texto/link)
 *┃ ▣* .toimg
 *┃ ▣* .pfp 
 *┃ ▣* .reducir 

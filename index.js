@@ -54,6 +54,21 @@ console.error = function () {
 
 EventEmitter.defaultMaxListeners = 0;
 
+process.on('uncaughtException', async (err) => {
+    console.error(chalk.red.bold('\n⚠️ ERROR CRÍTICO DETECTADO (Uncaught Exception):'));
+    console.error(chalk.red(err.stack));
+    
+    try { await uploadCriticalError(err, 'Uncaught Exception Global'); } catch {}
+    console.log(chalk.yellow('➜ El servidor permanecera encendido por seguridad.'));
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+    console.error(chalk.red.bold('\n⚠️ PROMESA NO MANEJADA (Unhandled Rejection):'));
+    console.error(chalk.red(reason));
+    try { await uploadCriticalError(reason, 'Unhandled Rejection Global'); } catch {}
+});
+
+
 const { 
     makeWASocket, 
     DisconnectReason, 

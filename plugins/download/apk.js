@@ -1,4 +1,4 @@
-import { search, download } from 'ptoide-scraper'
+import { search, download } from 'aptoide-scraper'
 import fetch from 'node-fetch'
 
 const apkCommand = {

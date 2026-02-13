@@ -10,19 +10,15 @@ import sharp from "sharp";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-async function addExif(webpSticker, packname, author, categories = ["🤩"], extra = {}) {
+async function addExif(webpSticker, packname, author, categories = ["🤩"]) {
     const img = new webp.Image();
     const json = {
         "sticker-pack-id": crypto.randomBytes(32).toString("hex"),
         "sticker-pack-name": packname,
         "sticker-pack-publisher": author,
         emojis: categories,
-        ...extra,
     };
-    const exifAttr = Buffer.from([
-        0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57,
-        0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00,
-    ]);
+    const exifAttr = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
     const jsonBuffer = Buffer.from(JSON.stringify(json), "utf8");
     const exif = Buffer.concat([exifAttr, jsonBuffer]);
     exif.writeUIntLE(jsonBuffer.length, 14, 4);
@@ -31,24 +27,26 @@ async function addExif(webpSticker, packname, author, categories = ["🤩"], ext
     return await img.save(null);
 }
 
-async function processStatic(buffer) {
-    return await sharp(buffer)
-        .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-        .webp()
-        .toBuffer();
-}
+async function processEmoji(buffer, isAnimated) {
+    const tmpDir = path.join(__dirname, '../../tmp');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    
+    const inputPath = path.join(tmpDir, `in_${Date.now()}.${isAnimated ? 'gif' : 'webp'}`);
+    const outputPath = path.join(tmpDir, `out_${Date.now()}.webp`);
+    fs.writeFileSync(inputPath, buffer);
 
-function processAnimated(buffer) {
-    return new Promise(async (resolve, reject) => {
-        const tmpDir = path.join(__dirname, '../../tmp');
-        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-        const inputPath = path.join(tmpDir, `in_${Date.now()}.gif`);
-        const outputPath = path.join(tmpDir, `out_${Date.now()}.webp`);
+    if (!isAnimated) {
+        const staticBuffer = await sharp(inputPath)
+            .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .webp()
+            .toBuffer();
+        if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+        return staticBuffer;
+    }
 
-        fs.writeFileSync(inputPath, buffer);
-
+    return new Promise((resolve, reject) => {
         fluent_ffmpeg(inputPath)
-            .inputFormat('gif')
+            .inputOptions(['-vcodec gif'])
             .on("error", (err) => {
                 if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
                 reject(err);
@@ -61,13 +59,13 @@ function processAnimated(buffer) {
             })
             .addOutputOptions([
                 "-vcodec", "libwebp",
-                "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=white@0.0",
-                "-lossless", "0",
-                "-compression_level", "4",
-                "-q:v", "50",
-                "-loop", "0"
+                "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=12,pad=512:512:-1:-1:color=white@0.0",
+                "-loop", "0",
+                "-preset", "default",
+                "-an",
+                "-vsync", "0",
+                "-f", "webp"
             ])
-            .toFormat("webp")
             .save(outputPath);
     });
 }
@@ -78,30 +76,42 @@ const emojiCommand = {
     category: 'tools',
     run: async (m, { conn, args, text }) => {
         try {
-            if (!text) return m.reply('> *✎ Uso: .emoji <emoji> o .emoji gif <emoji>*');
+            if (!text) return m.reply('> *✎ Uso: .emoji 🤖 o .emoji gif 🤖*');
+            
             let isAnimated = args[0] === 'gif';
             let emojiRaw = isAnimated ? args[1] : args[0];
             if (!emojiRaw) return m.reply('> *✎ Falta el emoji.*');
 
             await m.react('🕓');
-            const codePoints = [...emojiRaw].map(e => e.codePointAt(0).toString(16)).join('-');
-            const url = `https://fonts.gstatic.com/s/e/notoemoji/latest/${codePoints}/${isAnimated ? 'lottie.gif' : '512.webp'}`;
-
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('No disponible en Google.');
-
-            const buffer = await response.buffer();
-            const webpBuffer = isAnimated ? await processAnimated(buffer) : await processStatic(buffer);
             
-            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["Pack", "Google"];
-            const finalSticker = await addExif(webpBuffer, pack, auth);
+            const codePoints = [...emojiRaw].map(e => e.codePointAt(0).toString(16)).join('-');
+            
+            const urls = isAnimated 
+                ? [`https://fonts.gstatic.com/s/e/notoemoji/latest/${codePoints}/lottie.gif`, `https://fonts.gstatic.com/s/e/notoemoji/latest/${codePoints}/512.gif`]
+                : [`https://fonts.gstatic.com/s/e/notoemoji/latest/${codePoints}/512.webp`];
+
+            let response, finalBuffer, success = false;
+            for (let url of urls) {
+                response = await fetch(url);
+                if (response.ok) {
+                    finalBuffer = await response.buffer();
+                    success = true;
+                    break;
+                }
+            }
+
+            if (!success) return m.reply('> ⚔ Emoji no compatible con animación.');
+
+            const processed = await processEmoji(finalBuffer, isAnimated);
+            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["Emoji Pack", "Google"];
+            const finalSticker = await addExif(processed, pack, auth);
 
             await conn.sendMessage(m.chat, { sticker: finalSticker }, { quoted: m });
             await m.react('✅');
         } catch (e) {
             console.error(e);
             await m.react('✖️');
-            m.reply(`> ⚔ Error: ${e.message}. Intenta con un emoji básico (ej: 🤖).`);
+            m.reply(`> ⚔ Error: ${e.message}`);
         }
     }
 }

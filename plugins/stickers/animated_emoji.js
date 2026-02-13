@@ -1,9 +1,6 @@
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import * as fs from "fs";
-import * as path from "path";
 import * as crypto from "crypto";
-import fluent_ffmpeg from "fluent-ffmpeg";
 import webp from "node-webpmux";
 import fetch from "node-fetch";
 import sharp from "sharp";
@@ -27,39 +24,20 @@ async function addExif(webpSticker, packname, author, categories = ["🤩"]) {
     return await img.save(null);
 }
 
-function processAnimated(buffer) {
-    return new Promise((resolve, reject) => {
-        const tmpDir = path.join(__dirname, '../../tmp');
-        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-        const inputPath = path.join(tmpDir, `in_${Date.now()}.gif`);
-        const outputPath = path.join(tmpDir, `out_${Date.now()}.webp`);
-        fs.writeFileSync(inputPath, buffer);
-
-        fluent_ffmpeg(inputPath)
-            .on("error", (err) => {
-                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-                reject(err);
-            })
-            .on("end", async () => {
-                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-                const result = await fs.promises.readFile(outputPath);
-                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-                resolve(result);
-            })
-            .addOutputOptions([
-                "-vcodec", "libwebp",
-                "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=white@0.0",
-                "-lossless", "0",
-                "-compression_level", "4",
-                "-q:v", "50",
-                "-loop", "0",
-                "-preset", "default",
-                "-an",
-                "-vsync", "0"
-            ])
-            .toFormat("webp")
-            .save(outputPath);
-    });
+async function processWithSharp(buffer, isAnimated) {
+    // Sharp maneja tanto estáticos como animados (GIF/WebP)
+    return await sharp(buffer, { animated: isAnimated })
+        .resize(512, 512, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .webp({
+            effort: 0, // Rapidez sobre compresión
+            quality: 40,
+            lossless: false,
+            force: true
+        })
+        .toBuffer();
 }
 
 const emojiCommand = {
@@ -73,36 +51,28 @@ const emojiCommand = {
             
             await m.react('🕓');
 
-            // Limpieza de código (por si envían 1f916 o el emoji directo)
             let code = input.includes('1f') ? input : [...input].map(e => e.codePointAt(0).toString(16)).join('-');
             
-            // Intentar primero con la versión animada (GIF)
+            // Intentamos obtener el GIF directamente de Google
             const animatedUrl = `https://fonts.gstatic.com/s/e/notoemoji/latest/${code}/lottie.gif`;
             let response = await fetch(animatedUrl);
             let isAnimated = true;
 
             if (!response.ok) {
-                // Si falla el GIF, intentar con el WebP estático
+                // Si no hay GIF, vamos por el WebP estático
                 const staticUrl = `https://fonts.gstatic.com/s/e/notoemoji/latest/${code}/512.webp`;
                 response = await fetch(staticUrl);
                 isAnimated = false;
             }
 
-            if (!response.ok) return m.reply('> ⚔ No se encontró el emoji en los servidores de Google.');
+            if (!response.ok) return m.reply('> ⚔ Emoji no encontrado.');
 
             const buffer = await response.buffer();
-            let processedBuffer;
+            
+            // Procesamiento total con Sharp (sin FFmpeg)
+            const processedBuffer = await processWithSharp(buffer, isAnimated);
 
-            if (isAnimated) {
-                processedBuffer = await processAnimated(buffer);
-            } else {
-                processedBuffer = await sharp(buffer)
-                    .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-                    .webp()
-                    .toBuffer();
-            }
-
-            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["Google Emoji", "Bot"];
+            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["Pack", "Google"];
             const finalSticker = await addExif(processedBuffer, pack, auth);
 
             await conn.sendMessage(m.chat, { sticker: finalSticker }, { quoted: m });

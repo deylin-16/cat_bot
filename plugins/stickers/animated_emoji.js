@@ -24,18 +24,17 @@ async function addExif(webpSticker, packname, author, categories = ["🤩"]) {
     return await img.save(null);
 }
 
-async function processAnimatedEmoji(buffer) {
+async function processEmoji(buffer) {
+    // Sharp detecta si es GIF y mantiene la animación al convertir a WebP
     return await sharp(buffer, { animated: true })
         .resize(512, 512, {
             fit: 'contain',
             background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
         .webp({
-            effort: 0, 
-            quality: 40,
-            lossless: false,
-            loop: 0, // Asegura que la animación se repita siempre
-            force: true
+            loop: 0,       // 0 significa bucle infinito para el sticker
+            quality: 50,   // Ajustamos calidad para que no pese demasiado
+            lossless: false
         })
         .toBuffer();
 }
@@ -47,34 +46,34 @@ const emojiCommand = {
     run: async (m, { conn, args, text }) => {
         try {
             let input = args[0];
-            if (!input) return m.reply('> *✎ Proporciona un emoji o código hex.*');
+            if (!input) return m.reply('> *✎ Indica un emoji o código (ej: 1f916).*');
             
             await m.react('🕓');
 
-            // Convertimos a código hexadecimal si es un emoji directo
             let code = input.includes('1f') ? input : [...input].map(e => e.codePointAt(0).toString(16)).join('-');
             
-            // Usamos la URL del GIF que confirmaste que funciona
+            // Forzamos la URL del GIF que ya confirmamos que tiene el movimiento circular
             const url = `https://fonts.gstatic.com/s/e/notoemoji/latest/${code}/512.gif`;
             
             const response = await fetch(url);
-            if (!response.ok) return m.reply('> ⚔ Este emoji no tiene versión animada en Google.');
+            if (!response.ok) return m.reply('> ⚔ No encontré la animación para ese emoji.');
 
             const buffer = await response.buffer();
             
-            // Procesamos el GIF para convertirlo a WebP Animado compatible con WhatsApp
-            const processedBuffer = await processAnimatedEmoji(buffer);
+            // Convertimos el GIF a WebP Animado real
+            const stickerBuffer = await processEmoji(buffer);
 
-            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["Google Emojis", "DeylinBot"];
-            const finalSticker = await addExif(processedBuffer, pack, auth);
+            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["GatoBot Emojis", "Deylin"];
+            const finalSticker = await addExif(stickerBuffer, pack, auth);
 
+            // IMPORTANTE: Enviar con el parámetro { sticker: ... } para que WhatsApp lo reconozca
             await conn.sendMessage(m.chat, { sticker: finalSticker }, { quoted: m });
             await m.react('✅');
 
         } catch (e) {
             console.error(e);
             await m.react('✖️');
-            m.reply(`> ⚔ Error en el procesamiento: ${e.message}`);
+            m.reply(`> ⚔ Error en la conversión: ${e.message}`);
         }
     }
 }

@@ -112,7 +112,6 @@ const menuCommand = {
 
 *┏━━ 『 𝐓𝐎𝐎𝐋𝐒 』*
 *┃ ▣* .get
-*┃ ▣* .sticker
 *┃ ▣* .upload 
 *┃ ▣* .read
 *┃ ▣* .ver

@@ -31,30 +31,31 @@ async function addExif(webpSticker, packname, author, categories = ["🤩"], ext
     return await img.save(null);
 }
 
-function processWebp(img) {
+function processEmoji(img, isAnimated) {
     return new Promise(async (resolve, reject) => {
         try {
-            const type = (await fileTypeFromBuffer(img)) || { mime: "image/png", ext: "png" };
             const tmpDir = path.join(__dirname, '../../tmp');
             if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-            const tmp = path.join(tmpDir, `${Date.now()}.${type.ext}`);
+            const tmp = path.join(tmpDir, `${Date.now()}.${isAnimated ? 'gif' : 'webp'}`);
             const out = path.join(tmp + ".webp");
-
             await fs.promises.writeFile(tmp, img);
 
-            fluent_ffmpeg(tmp)
+            let command = fluent_ffmpeg(tmp);
+            
+            if (isAnimated) {
+                command.inputOptions(['-t', '7', '-ignore_loop', '0']);
+            }
+
+            command
                 .on("error", (err) => {
                     if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
                     reject(err);
                 })
                 .on("end", async () => {
                     if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-                    if (fs.existsSync(out)) {
-                        const result = await fs.promises.readFile(out);
-                        fs.unlinkSync(out);
-                        resolve(result);
-                    }
+                    const result = await fs.promises.readFile(out);
+                    if (fs.existsSync(out)) fs.unlinkSync(out);
+                    resolve(result);
                 })
                 .addOutputOptions([
                     "-vcodec", "libwebp",
@@ -75,40 +76,36 @@ function processWebp(img) {
 
 const emojiCommand = {
     name: 'emoji',
-    alias: ['emo', 'emojigif'],
+    alias: ['emo'],
     category: 'tools',
     run: async (m, { conn, args, text }) => {
         try {
-            if (!text) return m.reply('> *✎ Ingresa el código o emoji.*');
+            if (!text) return m.reply('> *✎ Uso: .emoji <emoji> o .emoji gif <emoji>*');
             
+            let isAnimated = args[0] === 'gif';
+            let emoji = isAnimated ? args[1] : args[0];
+            if (!emoji) return m.reply('> *✎ Falta el emoji.*');
+
             await m.react('🕓');
+
+            const hexCode = [...emoji].map(e => e.codePointAt(0).toString(16)).join('-');
+            const fileType = isAnimated ? "lottie.gif" : "512.webp";
+            const url = `https://fonts.gstatic.com/s/e/notoemoji/latest/${hexCode}/${fileType}`;
+
+            const res = await fetch(url);
+            if (!res.ok) return m.reply('> ⚔ No se encontró la versión animada/estática de ese emoji.');
+
+            const buffer = await res.buffer();
+            const sticker = await processEmoji(buffer, isAnimated);
             
-            const isAnimated = m.args[0] === 'gif';
-            const emojiCode = isAnimated ? args[1] : args[0];
-            
-            if (!emojiCode) return m.reply('> *✎ Especifica un emoji.*');
+            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["Google Emojis", "Bot"];
+            const finalSticker = await addExif(sticker, pack, auth);
 
-            const hexCode = emojiCode.codePointAt(0).toString(16).toLowerCase();
-            const baseUrl = "https://fonts.gstatic.com/s/e/notoemoji/latest";
-            const fileType = isAnimated ? "gif" : "webp";
-            const url = `${baseUrl}/${hexCode}/512.${fileType}`;
-
-            const response = await fetch(url);
-            if (!response.ok) return m.reply('> ⚔ Emoji no encontrado en la base de datos de Google.');
-
-            const buffer = await response.buffer();
-            const processedBuffer = await processWebp(buffer);
-            
-            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["Emoji Pack", "Google"];
-            const exifSticker = await addExif(processedBuffer, pack, auth);
-
-            await conn.sendMessage(m.chat, { sticker: exifSticker }, { quoted: m });
+            await conn.sendMessage(m.chat, { sticker: finalSticker }, { quoted: m });
             await m.react('✅');
-
         } catch (e) {
             console.error(e);
-            await m.react('✖️');
-            m.reply('> ⚔ Error al procesar el emoji.');
+            m.reply('> ⚔ Error: Verifica que sea un emoji válido.');
         }
     }
 }

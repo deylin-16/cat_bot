@@ -9,7 +9,7 @@ const gayCommand = {
         const who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender;
 
         try {
-            const avatarUrl = await conn.profilePictureUrl(who, 'image').catch(() => 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770961342099_YSAua3_It.jpeg');
+            const avatarUrl = await conn.profilePictureUrl(who, 'image').catch(() => 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1771018082759_bwnA5OM5c.jpeg');
             const processedImageUrl = `https://some-random-api.com/canvas/gay?avatar=${encodeURIComponent(avatarUrl)}`;
 
             

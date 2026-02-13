@@ -42,13 +42,14 @@ const wmCommand = {
             await m.react('🕓');
 
             let buffer = await q.download();
+            let aut = m.pushName
             if (!buffer) return m.reply('> ⚔ Error al descargar el sticker.');
 
             let [pack, auth] = text.includes('|') 
                 ? text.split('|').map(v => v.trim()) 
-                : [text.trim() || 'Pack', 'Autor'];
+                : [text.trim() || 'Pack', aut];
 
-            let exifSticker = await addExif(buffer, pack, auth);
+            let exifSticker = await addExif(buffer, pack, aut);
 
             await conn.sendMessage(m.chat, { sticker: exifSticker }, { quoted: m });
             await m.react('✅');

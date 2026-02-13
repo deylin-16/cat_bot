@@ -9,7 +9,7 @@ const gayCommand = {
         const who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender;
 
         try {
-            const avatarUrl = await conn.profilePictureUrl(who, 'image').catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png');
+            const avatarUrl = await conn.profilePictureUrl(who, 'image').catch(() => 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1770961342099_YSAua3_It.jpeg');
             const processedImageUrl = `https://some-random-api.com/canvas/gay?avatar=${encodeURIComponent(avatarUrl)}`;
 
             
@@ -40,7 +40,7 @@ const gayCommand = {
 
         } catch (error) {
             console.error('Error en gayCommand:', error);
-            // Si falla la descarga, avisamos al chat (opcional)
+            
             // await conn.sendMessage(m.chat, { text: 'No pude cargar el audio, intenta más tarde.' }, { quoted: m });
         }
     }

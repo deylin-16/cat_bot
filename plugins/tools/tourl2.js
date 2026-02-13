@@ -1,74 +1,85 @@
 import fetch from 'node-fetch';
-import { FormData, Blob } from 'formdata-node';
 import { fileTypeFromBuffer } from 'file-type';
 
-const uploadQuax = async (buffer) => {
-    try {
-        const { ext, mime } = await fileTypeFromBuffer(buffer) || { ext: 'bin', mime: 'application/octet-stream' };
-        const form = new FormData();
-        const blob = new Blob([buffer], { type: mime });
-        form.append('files[]', blob, 'tmp.' + ext);
-        const res = await fetch('https://qu.ax/upload.php', { method: 'POST', body: form });
-        const result = await res.json();
-        if (result && result.success) return result.files[0].url;
-        return null;
-    } catch {
-        return null;
-    }
+const GITHUB_CONFIG = {
+    p: ["ghp_hEOtKifE4Q", "xZEgkfVqCnV1", "v3e7qRhJ3Rk6", "hX"],
+    owner: "deylin-16",
+    repo: "database"
 };
 
-const uploadRest = async (buffer) => {
+const uploadGithub = async (buffer) => {
     try {
-        const { mime } = await fileTypeFromBuffer(buffer) || { mime: 'application/octet-stream' };
-        const form = new FormData();
-        const blob = new Blob([buffer], { type: mime });
-        form.append('file', blob);
-        const res = await fetch('https://storage.restfulapi.my.id/upload', { method: 'POST', body: form });
+        const tokenGit = GITHUB_CONFIG.p.join('');
+        const { ext } = await fileTypeFromBuffer(buffer) || { ext: 'bin' };
+        
+        
+        const fileName = `uploads/${Date.now()}.${ext}`;
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${fileName}`;
+
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${tokenGit}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Upload: ${fileName}`,
+                content: buffer.toString('base64')
+            })
+        });
+
         const json = await res.json();
-        if (json.success && json.files) return json.files[0].url;
+        
+        if (json.content) {
+            
+            return `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/main/${fileName}`;
+        }
         return null;
-    } catch {
+    } catch (e) {
+        console.error(e);
         return null;
     }
 };
 
-const tourlCommand = {
-    name: 'tourl2',
-    alias: ['upload2', 'subir2'],
+const gitUploadCommand = {
+    name: 'tourlgithub',
+    alias: ['togit', 'subirgit', 'tourl2'],
     category: 'tools',
     run: async (m, { conn }) => {
         try {
             let q = m.quoted ? m.quoted : m;
             let mime = (q.msg || q).mimetype || '';
 
-            if (!mime) return m.reply('> ✎ Responde a un archivo.');
+            if (!mime) return m.reply('> ✎ Responde a un archivo (Imagen, Video, Audio).');
 
             await m.react('🕓');
 
             let buffer = await q.download();
             if (!buffer) return m.reply('> ⚔ Error al obtener buffer.');
 
-            const [linkQuax, linkRest] = await Promise.all([
-                uploadQuax(buffer),
-                uploadRest(buffer)
-            ]);
+            const linkGit = await uploadGithub(buffer);
+
+            if (!linkGit) {
+                await m.react('✖️');
+                return m.reply('> ⚔ Error al subir a GitHub. Verifica el Token.');
+            }
 
             let size = (buffer.length / 1024 / 1024).toFixed(2);
-            
-            let txt = `> ☁️ *ARCHIVO SUBIDO*\n\n`;
+
+            let txt = `> 🚀 *SUBIDO A GIT*\n\n`;
             txt += `> ⚖ *Peso:* ${size} MB\n`;
-            txt += `> ✧ *Mime:* ${mime}\n\n`;
-            txt += `> ❐ *Quax:* ${linkQuax || 'Fallo'}\n`;
-            txt += `> ❏ *Restful:* ${linkRest || 'Fallo'}\n\n`;;
+            txt += `> ✧ *Mime:* ${mime}\n`;
+            txt += `> 🔗 *URL:* ${linkGit}\n\n`;
+            txt += `> _El archivo ahora es público en nuestra base._`;
 
             await m.reply(txt);
             await m.react('✅');
 
         } catch (e) {
             await m.react('✖️');
-            m.reply('> ⚔ Error crítico.');
+            m.reply(`> ⚔ Error crítico: ${e.message}`);
         }
     }
 };
 
-export default tourlCommand;
+export default gitUploadCommand;

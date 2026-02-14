@@ -23,9 +23,8 @@ const memesCommand = {
                 data: { url }
             }));
 
-            const caption = `*── 「 MEMES ALBUM 」 ──*\n\n` +
+            const caption = `\t\t*── 「 MEMES ALBUM 」 ──*\n\n` +
                              `▢ *CANTIDAD:* ${medias.length}\n` +
-                             `▢ *AUTOR:* ${res.autor || 'Deylin'}\n\n` +
                              `> ⍰ Aquí tienes tus memes aleatorios...`;
 
             await sendAlbum(conn, m.chat, medias, {

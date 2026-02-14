@@ -138,13 +138,19 @@ const connectionOptions = {
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
   msgRetryCounterCache,
-  connectTimeoutMs: 60000,
-  defaultQueryTimeoutMs: 0,
-  keepAliveIntervalMs: 10000,
+  connectTimeoutMs: 90000,
+  defaultQueryTimeoutMs: 60000,
+  keepAliveIntervalMs: 30000,
   emitOwnEvents: true,
   retryRequestDelayMs: 5000,
-  getMessage: async (key) => { return ""; } 
+  maxRetries: 20,
+  getMessage: async (key) => { 
+    return {
+      conversation: ""
+    }; 
+  } 
 };
+
 
 global.conn = makeWASocket(connectionOptions);
 

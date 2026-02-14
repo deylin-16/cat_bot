@@ -78,13 +78,16 @@ async function sendAlbumMessage(conn, jid, medias, options = {}) {
             caption: i === 0 ? options.caption : ''
         }, { upload: conn.waUploadToServer });
 
-        msg.message[type + 'Message'].contextInfo = {
-            ...msg.message[type + 'Message'].contextInfo,
-            messageAssociation: {
-                associationType: 1,
-                parentMessageKey: album.key
-            }
-        };
+        if (msg.message[type + 'Message']) {
+            msg.message[type + 'Message'].gifPlayback = true;
+            msg.message[type + 'Message'].contextInfo = {
+                ...(msg.message[type + 'Message'].contextInfo || {}),
+                messageAssociation: {
+                    associationType: 1,
+                    parentMessageKey: album.key
+                }
+            };
+        }
 
         await conn.relayMessage(jid, msg.message, { messageId: msg.key.id });
         await new Promise(resolve => setTimeout(resolve, options.delay || 500));

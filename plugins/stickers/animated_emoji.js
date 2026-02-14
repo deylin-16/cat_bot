@@ -25,15 +25,15 @@ async function addExif(webpSticker, packname, author, categories = ["🤩"]) {
 }
 
 async function processEmoji(buffer) {
-    // Sharp detecta si es GIF y mantiene la animación al convertir a WebP
+    
     return await sharp(buffer, { animated: true })
         .resize(512, 512, {
             fit: 'contain',
             background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
         .webp({
-            loop: 0,       // 0 significa bucle infinito para el sticker
-            quality: 50,   // Ajustamos calidad para que no pese demasiado
+            loop: 0,       
+            quality: 50,   
             lossless: false
         })
         .toBuffer();
@@ -52,7 +52,6 @@ const emojiCommand = {
 
             let code = input.includes('1f') ? input : [...input].map(e => e.codePointAt(0).toString(16)).join('-');
             
-            // Forzamos la URL del GIF que ya confirmamos que tiene el movimiento circular
             const url = `https://fonts.gstatic.com/s/e/notoemoji/latest/${code}/512.gif`;
             
             const response = await fetch(url);
@@ -60,13 +59,13 @@ const emojiCommand = {
 
             const buffer = await response.buffer();
             
-            // Convertimos el GIF a WebP Animado real
+            
             const stickerBuffer = await processEmoji(buffer);
 
             let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["GatoBot Emojis", "Deylin"];
             const finalSticker = await addExif(stickerBuffer, pack, auth);
 
-            // IMPORTANTE: Enviar con el parámetro { sticker: ... } para que WhatsApp lo reconozca
+            
             await conn.sendMessage(m.chat, { sticker: finalSticker }, { quoted: m });
             await m.react('✅');
 

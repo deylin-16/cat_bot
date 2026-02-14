@@ -54,7 +54,7 @@ const memesCommand = {
         };
 
         try {
-            const res = await fetch(`${global.url_api}/api/search/memes?apikey=${global.key}`);
+            const res = await fetch(`${global.url_api}/api/search/memes?apikey=by_deylin`);
             const json = await res.json();
 
             if (!json.memes || !Array.isArray(json.memes)) throw new Error();

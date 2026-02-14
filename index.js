@@ -25,7 +25,17 @@ const originalLog = console.log;
 console.log = function () {
   const args = Array.from(arguments);
   const msg = args.join(' ');
-  if (msg.includes('Closing session') || msg.includes('SessionEntry') || msg.includes('Verifying identity') || msg.includes('registrationId') || msg.includes('currentRatchet') || msg.includes('rate-overlimit') || msg.includes('429')) {
+  if (
+    msg.includes('Closing session') || 
+    msg.includes('SessionEntry') || 
+    msg.includes('Verifying identity') || 
+    msg.includes('registrationId') || 
+    msg.includes('currentRatchet') || 
+    msg.includes('rate-overlimit') || 
+    msg.includes('429') ||
+    msg.includes('Rate Limit') || 
+    msg.includes('Ignorando')
+  ) {
     return; 
   }
   originalLog.apply(console, args);

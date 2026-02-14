@@ -51,7 +51,7 @@ const memesCommand = {
         };
 
         try {
-            const res = await fetch(`https://Api.deylin.xyz/api/search/memes?apikey=by_deylin`);
+            const res = await fetch(`https://api.deylin.xyz/api/search/memes?apikey=by_deylin`);
             const json = await res.json();
 
             if (!json.memes || !Array.isArray(json.memes)) throw new Error("No hay memes");

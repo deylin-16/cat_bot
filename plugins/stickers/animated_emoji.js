@@ -62,7 +62,7 @@ const emojiCommand = {
             
             const stickerBuffer = await processEmoji(buffer);
 
-            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : ["GatoBot Emojis", "Deylin"];
+            let [pack, auth] = text.includes('|') ? text.split('|').map(v => v.trim()) : [name(), m.pushName];
             const finalSticker = await addExif(stickerBuffer, pack, auth);
 
             

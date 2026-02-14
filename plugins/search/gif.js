@@ -33,17 +33,18 @@ const gifCommand = {
                 }
             }
 
-            if (medias.length < 2) {
-                for (let media of medias) {
-                    await conn.sendMessage(m.chat, { video: media.data, gifPlayback: true, caption: urlsCaption }, { quoted: m });
-                }
-                return;
+            if (medias.length === 1) {
+                return await conn.sendMessage(m.chat, { 
+                    video: medias[0].data, 
+                    gifPlayback: true, 
+                    caption: urlsCaption 
+                }, { quoted: m });
             }
 
             await sendAlbumMessage(conn, m.chat, medias, {
                 caption: urlsCaption.trim(),
                 quoted: m,
-                delay: 800
+                delay: 1000
             });
 
         } catch (err) {
@@ -54,40 +55,39 @@ const gifCommand = {
 };
 
 async function sendAlbumMessage(conn, jid, medias, options = {}) {
-    const album = conn.generateWAMessageFromContent(
-        jid,
-        {
-            albumMessage: {
-                expectedImageCount: medias.filter(m => m.type === "image").length,
-                expectedVideoCount: medias.filter(m => m.type === "video").length,
-                ...(options.quoted ? {
-                    contextInfo: {
-                        remoteJid: options.quoted.key.remoteJid,
-                        fromMe: options.quoted.key.fromMe,
-                        stanzaId: options.quoted.key.id,
-                        participant: options.quoted.key.participant || options.quoted.key.remoteJid,
-                        quotedMessage: options.quoted.message,
-                    },
-                } : {}),
-            },
-        },
-        {}
-    );
+    const album = await conn.generateWAMessageFromContent(jid, {
+        albumMessage: {
+            expectedImageCount: medias.filter(m => m.type === "image").length,
+            expectedVideoCount: medias.filter(m => m.type === "video").length,
+            contextInfo: options.quoted ? {
+                stanzaId: options.quoted.key.id,
+                participant: options.quoted.key.participant || options.quoted.key.remoteJid,
+                quotedMessage: options.quoted.message,
+                remoteJid: options.quoted.key.remoteJid
+            } : {}
+        }
+    }, { userJid: conn.user.id });
 
-    await conn.relayMessage(album.key.remoteJid, album.message, { messageId: album.key.id });
+    await conn.relayMessage(jid, album.message, { messageId: album.key.id });
 
     for (let i = 0; i < medias.length; i++) {
         const { type, data } = medias[i];
-        const msg = await conn.generateWAMessage(
-            album.key.remoteJid,
-            { [type]: data, gifPlayback: true, ...(i === 0 ? { caption: options.caption } : {}) },
-            { upload: conn.waUploadToServer }
-        );
-        msg.message.messageContextInfo = {
-            messageAssociation: { associationType: 1, parentMessageKey: album.key },
+        const msg = await conn.generateWAMessage(jid, {
+            [type]: data,
+            gifPlayback: true,
+            caption: i === 0 ? options.caption : ''
+        }, { upload: conn.waUploadToServer });
+
+        msg.message[type + 'Message'].contextInfo = {
+            ...msg.message[type + 'Message'].contextInfo,
+            messageAssociation: {
+                associationType: 1,
+                parentMessageKey: album.key
+            }
         };
-        await conn.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id });
-        await conn.delay(options.delay || 500);
+
+        await conn.relayMessage(jid, msg.message, { messageId: msg.key.id });
+        await new Promise(resolve => setTimeout(resolve, options.delay || 500));
     }
     return album;
 }

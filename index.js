@@ -1,9 +1,9 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
+Process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
 import './config.js';
 import { platform } from 'process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
-import path, { join } from 'path';
+import path, { join, basename } from 'path';
 import fs, { existsSync, readdirSync, statSync, watch, mkdirSync, createWriteStream, unlinkSync, rmSync } from 'fs';
 import chalk from 'chalk';
 import pino from 'pino';
@@ -57,7 +57,7 @@ EventEmitter.defaultMaxListeners = 0;
 process.on('uncaughtException', async (err) => {
     console.error(chalk.red.bold('\n⚠️ ERROR CRÍTICO DETECTADO (Uncaught Exception):'));
     console.error(chalk.red(err.stack));
-    
+
     try { await uploadCriticalError(err, 'Uncaught Exception Global'); } catch {}
     console.log(chalk.yellow('➜ El servidor permanecera encendido por seguridad.'));
 });
@@ -234,11 +234,11 @@ global.reload = async function(restatConn) {
 };
 
 global.lastRestartTime = Date.now();
-const botID = "unidad_" + Math.random().toString(36).substring(7); // ID único por sesión
+const botID = "unidad_" + Math.random().toString(36).substring(7);
 
 const monitorRemoteOrders = async () => {
     try {
-        
+
         await axios.post('https://script.google.com/macros/s/AKfycbxnJ_BRuW2DdNDCtnspyL1qHvedn4Ue5k3OFfzZK4aFH50aVz1hgO094d02DEqKFB8gCg/exec', {
             action: 'REPORT_STATUS',
             botId: botID,
@@ -246,10 +246,10 @@ const monitorRemoteOrders = async () => {
             platform: process.platform
         });
 
-        
+
         const response = await axios.get('https://script.google.com/macros/s/AKfycbxnJ_BRuW2DdNDCtnspyL1qHvedn4Ue5k3OFfzZK4aFH50aVz1hgO094d02DEqKFB8gCg/exec');
         const { config } = response.data;
-        
+
         if (config.restart && config.timestamp > global.lastRestartTime) {
             console.log(chalk.bgRed.white(' [!] REINICIO REMOTO RECIBIDO '));
             global.lastRestartTime = config.timestamp;
@@ -272,26 +272,43 @@ async function readRecursive(folder) {
     const file = join(folder, filename);
     if (statSync(file).isDirectory()) await readRecursive(file);
     else if (pluginFilter(filename)) {
-      const module = await import(`file://${file}`);
-      const plugin = module.default || module;
-      const pluginName = plugin.name || filename.replace('.js', '');
-      global.plugins.set(pluginName, plugin);
-      if (plugin.alias && Array.isArray(plugin.alias)) {
-          plugin.alias.forEach(a => global.aliases.set(a, pluginName));
-      }
+      try {
+        const module = await import(`file://${file}`);
+        const plugin = module.default || module;
+        const pluginName = plugin.name || basename(filename, '.js');
+        global.plugins.set(pluginName, plugin);
+        if (plugin.alias) {
+            const aliases = Array.isArray(plugin.alias) ? plugin.alias : [plugin.alias];
+            aliases.forEach(a => global.aliases.set(a, pluginName));
+        }
+      } catch (e) {}
     }
   }
 }
 
 await readRecursive(pluginFolder);
+
 watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
   if (pluginFilter(filename)) {
     const dir = join(pluginFolder, filename);
     if (existsSync(dir) && statSync(dir).isFile()) {
+      try {
         const module = await import(`file://${dir}?update=${Date.now()}`);
         const plugin = module.default || module;
-        const pluginName = plugin.name || filename.replace('.js', '');
+        const pluginName = plugin.name || basename(filename, '.js');
+        
+        for (const [a, p] of global.aliases.entries()) {
+            if (p === pluginName) global.aliases.delete(a);
+        }
+
         global.plugins.set(pluginName, plugin);
+
+        if (plugin.alias) {
+            const aliases = Array.isArray(plugin.alias) ? plugin.alias : [plugin.alias];
+            aliases.forEach(a => global.aliases.set(a, pluginName));
+        }
+        console.log(chalk.greenBright(`[ ACTUALIZADO ] Plugin: ${pluginName}`));
+      } catch (e) {}
     }
   }
 });

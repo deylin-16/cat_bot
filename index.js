@@ -57,7 +57,6 @@ EventEmitter.defaultMaxListeners = 0;
 process.on('uncaughtException', async (err) => {
     console.error(chalk.red.bold('\n⚠️ ERROR CRÍTICO DETECTADO (Uncaught Exception):'));
     console.error(chalk.red(err.stack));
-
     try { await uploadCriticalError(err, 'Uncaught Exception Global'); } catch {}
     console.log(chalk.yellow('➜ El servidor permanecera encendido por seguridad.'));
 });
@@ -67,7 +66,6 @@ process.on('unhandledRejection', async (reason, promise) => {
     console.error(chalk.red(reason));
     try { await uploadCriticalError(reason, 'Unhandled Rejection Global'); } catch {}
 });
-
 
 const { 
     makeWASocket, 
@@ -151,7 +149,6 @@ const connectionOptions = {
   } 
 };
 
-
 global.conn = makeWASocket(connectionOptions);
 
 if (!state.creds.registered) {
@@ -190,7 +187,6 @@ global.reload = async function(restatConn) {
         const Path = path.join(process.cwd(), 'lib/message.js');
         const module = await import(`file://${Path}?update=${Date.now()}`);
         const Func = module.message || module.default?.message || module.default;
-
         if (typeof Func === 'function') {
             await Func.call(conn, m, chatUpdate);
         }
@@ -202,26 +198,21 @@ global.reload = async function(restatConn) {
   global.conn.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === 'connecting') console.log(chalk.yellow(`➠ Conectando...`));
-
     if (connection === 'open') {
         console.log(chalk.greenBright(`➠ ¡CONECTADO! a: ➜ ${conn.user.name || 'WhatsApp Bot'}`));
         global.isBotReady = true;
         await monitorBot(conn, 'online');
-
         if (!global.subBotsStarted) {
             global.subBotsStarted = true;
             await initSubBots();
         }
     }
-
     if (connection === 'close') {
       await monitorBot(conn, 'offline');
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode || 0;
-
       if (reason !== DisconnectReason.loggedOut) {
           await uploadCriticalError(lastDisconnect?.error || `Reason: ${reason}`, 'Connection Update');
       }
-
       if (reason === DisconnectReason.restartRequired || reason === DisconnectReason.connectionLost) {
           console.log(chalk.blue("[ ! ] Estabilizando conexión..."));
           await global.reload(true);
@@ -244,18 +235,14 @@ const botID = "unidad_" + Math.random().toString(36).substring(7);
 
 const monitorRemoteOrders = async () => {
     try {
-
         await axios.post('https://script.google.com/macros/s/AKfycbxnJ_BRuW2DdNDCtnspyL1qHvedn4Ue5k3OFfzZK4aFH50aVz1hgO094d02DEqKFB8gCg/exec', {
             action: 'REPORT_STATUS',
             botId: botID,
             name: conn.user.name || 'Bot_Unidad',
             platform: process.platform
         });
-
-
         const response = await axios.get('https://script.google.com/macros/s/AKfycbxnJ_BRuW2DdNDCtnspyL1qHvedn4Ue5k3OFfzZK4aFH50aVz1hgO094d02DEqKFB8gCg/exec');
         const { config } = response.data;
-
         if (config.restart && config.timestamp > global.lastRestartTime) {
             console.log(chalk.bgRed.white(' [!] REINICIO REMOTO RECIBIDO '));
             global.lastRestartTime = config.timestamp;
@@ -265,7 +252,6 @@ const monitorRemoteOrders = async () => {
 };
 
 setInterval(monitorRemoteOrders, 30000); 
-
 await global.reload();
 
 const pluginFolder = join(process.cwd(), './plugins');
@@ -302,13 +288,10 @@ watch(pluginFolder, { recursive: true }, async (_ev, filename) => {
         const module = await import(`file://${dir}?update=${Date.now()}`);
         const plugin = module.default || module;
         const pluginName = plugin.name || basename(filename, '.js');
-        
         for (const [a, p] of global.aliases.entries()) {
             if (p === pluginName) global.aliases.delete(a);
         }
-
         global.plugins.set(pluginName, plugin);
-
         if (plugin.alias) {
             const aliases = Array.isArray(plugin.alias) ? plugin.alias : [plugin.alias];
             aliases.forEach(a => global.aliases.set(a, pluginName));
@@ -342,15 +325,12 @@ await descargarLicencia();
 async function initSubBots() {
     const jadibtsDir = path.join(process.cwd(), 'jadibts');
     if (!existsSync(jadibtsDir)) return;
-
     const folders = readdirSync(jadibtsDir).filter(f => 
         statSync(join(jadibtsDir, f)).isDirectory() && existsSync(join(jadibtsDir, f, 'creds.json'))
     );
-
     if (folders.length > 0) {
         console.log(chalk.bold.blue(`[ SISTEMA ] Re-conectando ${folders.length} sub-bots activos...`));
     }
-
     for (const folder of folders) {
         try {
             const { assistant_accessJadiBot } = await import(`./plugins/main/serbot.js?update=${Date.now()}`);

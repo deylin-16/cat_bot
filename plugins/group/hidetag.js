@@ -8,42 +8,37 @@ const hidetagCommand = {
         const users = participants.map(u => u.id)
         const q = m.quoted ? m.quoted : m
         const mime = (q.msg || q).mimetype || ''
-        const tagText = text || (m.quoted && m.quoted.text ? m.quoted.text : "") || `*Notificación General*`
+        const tagText = text || q.text || "Notificación General"
 
         try {
-            if (m.quoted) {
-                await conn.copyNForward(m.chat, m.quoted, false, { 
-                    contextInfo: { 
-                        mentionedJid: users,
-                        externalAdReply: {
-                            title: '📢 NOTIFICACIÓN GRUPAL',
-                            body: tagText,
-                            mediaType: 1,
-                            previewType: 0,
-                            showAdAttribution: true
-                        }
-                    },
-                    caption: tagText,
-                    mentions: users
-                })
-            } else if (/image|video|sticker|audio/.test(mime)) {
+            if (/image|video|sticker|audio/.test(mime)) {
                 const media = await q.download()
                 const type = mime.split('/')[0]
-                await conn.sendMessage(m.chat, { 
-                    [type === 'sticker' ? 'sticker' : type]: media, 
-                    caption: tagText, 
-                    mentions: users 
-                }, { quoted: m })
+                const messageContent = {
+                    [type === 'sticker' ? 'sticker' : type]: media,
+                    caption: tagText,
+                    mentions: users,
+                    contextInfo: { mentionedJid: users }
+                }
+                await conn.sendMessage(m.chat, messageContent, { quoted: m })
             } else {
                 await conn.sendMessage(m.chat, { 
                     text: tagText, 
-                    mentions: users 
+                    mentions: users,
+                    contextInfo: { 
+                        mentionedJid: users,
+                        externalAdReply: {
+                            title: 'NOTIFICACIÓN',
+                            body: tagText,
+                            mediaType: 1,
+                            showAdAttribution: true
+                        }
+                    }
                 }, { quoted: m })
             }
             await m.react('✅')
         } catch (e) {
-            console.error(e)
-            await conn.sendMessage(m.chat, { text: tagText, mentions: users }, { quoted: m })
+            await conn.sendMessage(m.chat, { text: tagText, mentions: users })
         }
     }
 }

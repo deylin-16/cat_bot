@@ -8,11 +8,14 @@ const gifCommand = {
         if (!text) return m.reply('> *Ingrese el término de búsqueda para los GIFs.*');
 
         try {
+            await m.react('🕒');
+
             const { data } = await axios.get(
                 `https://api.tenor.com/v1/search?q=${encodeURIComponent(text)}&key=LIVDSRZULELA&limit=5`
             );
 
             if (!data?.results || data.results.length === 0) {
+                await m.react('❌');
                 return m.reply(`> *No se encontraron resultados para: ${text}*`);
             }
 
@@ -34,6 +37,7 @@ const gifCommand = {
             }
 
             if (medias.length === 1) {
+                await m.react('✅');
                 return await conn.sendMessage(m.chat, { 
                     video: medias[0].data, 
                     gifPlayback: true, 
@@ -41,30 +45,37 @@ const gifCommand = {
                 }, { quoted: m });
             }
 
-            await sendAlbumMessage(conn, m.chat, medias, {
+            await sendAlbum(conn, m.chat, medias, {
                 caption: urlsCaption.trim(),
                 quoted: m,
-                delay: 1000
+                delay: 800
             });
 
+            await m.react('✅');
+
         } catch (err) {
+            await m.react('❌');
             console.error(err);
             m.reply('> *Error al procesar la solicitud de GIFs.*');
         }
     }
 };
 
-async function sendAlbumMessage(conn, jid, medias, options = {}) {
+async function sendAlbum(conn, jid, medias, options = {}) {
     const album = await conn.generateWAMessageFromContent(jid, {
+        messageContextInfo: {},
         albumMessage: {
             expectedImageCount: medias.filter(m => m.type === "image").length,
             expectedVideoCount: medias.filter(m => m.type === "video").length,
-            contextInfo: options.quoted ? {
-                stanzaId: options.quoted.key.id,
-                participant: options.quoted.key.participant || options.quoted.key.remoteJid,
-                quotedMessage: options.quoted.message,
-                remoteJid: options.quoted.key.remoteJid
-            } : {}
+            ...(options.quoted ? {
+                contextInfo: {
+                    remoteJid: options.quoted.key.remoteJid,
+                    fromMe: options.quoted.key.fromMe,
+                    stanzaId: options.quoted.key.id,
+                    participant: options.quoted.key.participant || options.quoted.key.remoteJid,
+                    quotedMessage: options.quoted.message,
+                }
+            } : {}),
         }
     }, { userJid: conn.user.id });
 
@@ -75,24 +86,21 @@ async function sendAlbumMessage(conn, jid, medias, options = {}) {
         const msg = await conn.generateWAMessage(jid, {
             [type]: data,
             gifPlayback: true,
-            caption: i === 0 ? options.caption : ''
+            ...(i === 0 ? { caption: options.caption || "" } : {})
         }, { upload: conn.waUploadToServer });
 
-        if (msg.message[type + 'Message']) {
-            msg.message[type + 'Message'].gifPlayback = true;
-            msg.message[type + 'Message'].contextInfo = {
-                ...(msg.message[type + 'Message'].contextInfo || {}),
-                messageAssociation: {
-                    associationType: 1,
-                    parentMessageKey: album.key
-                }
-            };
-        }
+        msg.message.messageContextInfo = {
+            messageAssociation: { associationType: 1, parentMessageKey: album.key }
+        };
 
         await conn.relayMessage(jid, msg.message, { messageId: msg.key.id });
-        await new Promise(resolve => setTimeout(resolve, options.delay || 500));
+        
+        if (conn.delay) {
+            await conn.delay(options.delay || 500);
+        } else {
+            await new Promise(res => setTimeout(res, options.delay || 500));
+        }
     }
-    return album;
 }
 
 export default gifCommand;

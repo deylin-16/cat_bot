@@ -5,7 +5,7 @@ const gifCommand = {
     alias: ['tenor', 'gifs'],
     category: 'search',
     run: async (m, { conn, text }) => {
-        if (!text) return m.reply('> *Ingrese el término de búsqueda para los GIFs.*');
+        if (!text) return m.reply('> *Ingrese el término de búsqueda para obtener videos.*');
 
         try {
             await m.react('🕒');
@@ -20,12 +20,12 @@ const gifCommand = {
             }
 
             const medias = [];
-            let urlsCaption = `> *𝗚𝗜𝗙𝗦 𝗗𝗘:* ${text.toUpperCase()}\n\n`;
+            let urlsCaption = `> *𝗩𝗜𝗗𝗘𝗢𝗦 𝗗𝗘:* ${text.toUpperCase()}\n\n`;
 
             for (let i = 0; i < data.results.length; i++) {
                 const gif = data.results[i];
                 const mediaObj = gif.media[0];
-                const url = mediaObj?.mp4?.url || mediaObj?.gif?.url;
+                const url = mediaObj?.mp4?.url; // Forzamos el uso de MP4
 
                 if (url) {
                     medias.push({
@@ -40,7 +40,6 @@ const gifCommand = {
                 await m.react('✅');
                 return await conn.sendMessage(m.chat, { 
                     video: medias[0].data, 
-                    gifPlayback: true, 
                     caption: urlsCaption 
                 }, { quoted: m });
             }
@@ -56,7 +55,7 @@ const gifCommand = {
         } catch (err) {
             await m.react('❌');
             console.error(err);
-            m.reply('> *Error al procesar la solicitud de GIFs.*');
+            m.reply('> *Error al procesar la solicitud de videos.*');
         }
     }
 };
@@ -85,7 +84,7 @@ async function sendAlbum(conn, jid, medias, options = {}) {
         const { type, data } = medias[i];
         const msg = await conn.generateWAMessage(jid, {
             [type]: data,
-            gifPlayback: true,
+            
             ...(i === 0 ? { caption: options.caption || "" } : {})
         }, { upload: conn.waUploadToServer });
 

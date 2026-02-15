@@ -102,7 +102,6 @@
   </p>
 </div>
 
-> [!CAUTION]
 > **⚠️ PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA**
 > 
 > Este software es propiedad exclusiva de **Deylin Eliac**.
@@ -121,7 +120,6 @@ Este sistema utiliza una implementación independiente de la API de WhatsApp (Mu
 
 ### 📜 2. Cumplimiento de Términos (TOS)
 
-> [!IMPORTANT]
 > El usuario es el único responsable del cumplimiento de los **Términos de Servicio de WhatsApp**. El uso de automatizaciones para el envío de spam o contenido no solicitado puede resultar en la suspensión permanente de su cuenta. Este software ha sido diseñado con fines de automatización técnica y educativa.
 
 <br>
@@ -363,14 +361,4 @@ pm2 startup
 
 <div align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=100&section=footer" width="100%" alt="Footer Wave">
-</div>
-
-<div align="center">
-
-> [!CAUTION]
-> **⚠️ PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA**
-> 
-> Este software es propiedad exclusiva de **Deylin Eliac**.
-> Queda estrictamente prohibida la redistribución, clonación masiva o comercialización del código fuente sin una licencia comercial explícita. El incumplimiento de estos términos resultará en acciones técnicas y legales pertinentes.
-
 </div>

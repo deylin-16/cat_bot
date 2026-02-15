@@ -29,12 +29,13 @@ const hidetagCommand = {
                         mentionedJid: users,
                         externalAdReply: {
                             title: 'NOTIFICACIÓN',
-                            body: tagText,
                             mediaType: 1,
-                            showAdAttribution: true
+                            showAdAttribution: true,
+                            thumbnailUrl: 'https://raw.githubusercontent.com/deylin-16/database/main/uploads/1771122017110.png'
                         }
                     }
                 }, { quoted: m })
+
             }
             await m.react('✅')
         } catch (e) {

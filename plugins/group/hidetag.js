@@ -31,7 +31,7 @@ const hidetagCommand = {
                             title: 'NOTIFICACIÓN',
                             mediaType: 1,
                             showAdAttribution: true,
-                            thumbnailUrl: 'https://raw.githubusercontent.com/deylin-16/database/main/uploads/1771122017110.png'
+                            thumbnailUrl: 'https://ik.imagekit.io/pm10ywrf6f/bot_by_deylin/1771123381140_9u4BT8HVp.jpeg'
                         }
                     }
                 }, { quoted: m })

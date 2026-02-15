@@ -13,24 +13,27 @@ const muteCommand = {
         if (!who || who === '@s.whatsapp.net') return conn.reply(m.chat, `*👑 Menciona o responde al mensaje de la persona que deseas ${command === 'mute' ? 'mutar' : 'demutar'}*`, m)
 
         const ownerBot = global.owner[0][0] + '@s.whatsapp.net'
-        if (who === ownerBot) throw '🔥 *No puedes mutar al creador del bot*'
-        if (who === conn.user.jid) throw '🔥 *No puedes mutar al propio bot*'
+        
+        
+        if (who === ownerBot) return conn.reply(m.chat, '🔥 *No puedes mutar al creador del bot*', m)
+        if (who === conn.user.jid) return conn.reply(m.chat, '🔥 *No puedes mutar al propio bot*', m)
 
         const groupMetadata = await conn.groupMetadata(m.chat)
         const groupOwner = groupMetadata.owner || m.chat.split`-`[0] + '@s.whatsapp.net'
-        if (who === groupOwner) throw '🔥 *No puedes mutar al creador del grupo*'
+        if (who === groupOwner) return conn.reply(m.chat, '🔥 *No puedes mutar al creador del grupo*', m)
+        
 
         let chat = global.db.data.chats[m.chat]
         if (!chat.mutos) chat.mutos = []
 
-        if (command === 'mute') {
-            if (chat.mutos.includes(who)) throw '🔥 *Este usuario ya ha sido mutado en este grupo*'
+        if (command === 'mute' || command === 'mutar' || command === 'silenciar') {
+            if (chat.mutos.includes(who)) return conn.reply(m.chat, '🔥 *Este usuario ya ha sido mutado en este grupo*', m)
 
             chat.mutos.push(who)
             await conn.reply(m.chat, '𝗨𝘀𝘂𝗮𝗿𝗶𝗼 𝗺𝘂𝘁𝗮𝗱𝗼\n*Sus mensajes serán eliminados automáticamente en este grupo.*', m, { mentions: [who] })
 
         } else if (command === 'unmute') {
-            if (!chat.mutos.includes(who)) throw '🔥 *Este usuario no está mutado en este grupo*'
+            if (!chat.mutos.includes(who)) return conn.reply(m.chat, '🔥 *Este usuario no está mutado en este grupo*', m)
 
             chat.mutos = chat.mutos.filter(id => id !== who)
             await conn.reply(m.chat, '𝗨𝘀𝘂𝗮𝗿𝗶𝗼 𝗱𝗲𝗺𝘂𝘁𝗮𝗱𝗼\n*Ya puede enviar mensajes normalmente.*', m, { mentions: [who] })

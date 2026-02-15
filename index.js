@@ -147,7 +147,11 @@ const connectionOptions = {
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
   msgRetryCounterCache,
-  cachedGroupMetadata: groupMetadataCache, 
+  cachedGroupMetadata: async (jid) => {
+    const cached = groupMetadataCache.get(jid);
+    if (cached) return cached;
+    return undefined;
+  },
   connectTimeoutMs: 90000,
   defaultQueryTimeoutMs: 60000,
   keepAliveIntervalMs: 30000,

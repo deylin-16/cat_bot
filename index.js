@@ -132,6 +132,8 @@ const sessionPath = './sessions';
 const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
 const { version } = await fetchLatestBaileysVersion();
 const msgRetryCounterCache = new NodeCache();
+// NUEVA CACHÉ PARA METADATOS DE GRUPO (Evita Rate Limit)
+const groupMetadataCache = new NodeCache({ stdTTL: 180, checkperiod: 120 });
 
 const connectionOptions = {
   version,
@@ -146,6 +148,7 @@ const connectionOptions = {
   generateHighQualityLinkPreview: true,
   syncFullHistory: false,
   msgRetryCounterCache,
+  cachedGroupMetadata: groupMetadataCache, // Se añade la caché aquí
   connectTimeoutMs: 90000,
   defaultQueryTimeoutMs: 60000,
   keepAliveIntervalMs: 30000,

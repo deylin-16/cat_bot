@@ -365,10 +365,12 @@ pm2 startup
   <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=100&section=footer" width="100%" alt="Footer Wave">
 </div>
 
-
+<div align="center">
 
 > [!CAUTION]
 > **⚠️ PROPIEDAD INTELECTUAL Y LICENCIA PRIVADA**
 > 
 > Este software es propiedad exclusiva de **Deylin Eliac**.
 > Queda estrictamente prohibida la redistribución, clonación masiva o comercialización del código fuente sin una licencia comercial explícita. El incumplimiento de estos términos resultará en acciones técnicas y legales pertinentes.
+
+</div>
